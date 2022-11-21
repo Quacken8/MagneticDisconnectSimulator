@@ -1,5 +1,7 @@
 from .opacity_data import xzcotrin21 as xz
 
+print dir(xz)
+
 xz.set_opal_dir('OPAL/opacity_data/')
 xz.set_mol_dir('OPAL/opacity_data/fergson/')
 xz.read_extended_opac(20, 0.02, 'GN93hz', 0., '', 21, 0, 0, '')

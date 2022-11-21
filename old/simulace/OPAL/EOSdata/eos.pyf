@@ -27,7 +27,7 @@ python module eos ! in
             real dimension(4) :: h
             real :: xxh
             integer dimension(10) :: iri
-            integer dimension(10) :: index
+            integer dimension(10) :: index_bn
             integer dimension(169) :: nta
             real dimension(5) :: zz
             integer :: itime
@@ -47,7 +47,7 @@ python module eos ! in
             real dimension(10) :: eos
             common /aeos/ xz,t6list,rho,t6a,esk,esk2,dfsx,dfs,dfsr,m,mf,xa
             common /aaeos/ q,h,xxh
-            common /beos/ iri,index,nta,zz
+            common /beos/ iri,index_bn,nta,zz
             common /lreadco/ itime
             common /bbeos/ l1,l2,l3,l4,k1,k2,k3,k4,ip,iq
             common /eeeos/ epl,xx
@@ -107,7 +107,7 @@ python module eos ! in
             real :: esact
             real dimension(10) :: eos
             integer dimension(10) :: iri
-            integer dimension(10) :: index
+            integer dimension(10) :: index_bn
             integer dimension(169) :: nta
             real dimension(5) :: zz
             real dimension(5) :: moles
@@ -124,7 +124,7 @@ python module eos ! in
             real :: xxh
             common /aeos/ xz,t6list,rho,t6a,esk,esk2,dfsx,dfs,dfsr,m,mf,xa
             common /eeos/ esact,eos
-            common /beos/ iri,index,nta,zz
+            common /beos/ iri,index_bn,nta,zz
             common /eeeeos/ moles,xin,tmass,icycuse,rhogr,frac,alogr
             common /eeeos/ epl,xx
             common /aaeos/ q,h,xxh
@@ -158,11 +158,11 @@ python module eos ! in
             real :: esact
             real dimension(10) :: eos
             integer dimension(10) :: iri
-            integer dimension(10) :: index
+            integer dimension(10) :: index_bn
             integer dimension(169) :: nta
             real dimension(5) :: zz
             common /eeos/ esact,eos
-            common /beos/ iri,index,nta,zz
+            common /beos/ iri,index_bn,nta,zz
         end subroutine radsub
         function rhoofp(x,ztab,t6,p,irad) ! in :eos:IEOSxtrin.f
             real :: x
@@ -186,14 +186,14 @@ python module eos ! in
             real :: esact
             real dimension(10) :: eos
             integer dimension(10) :: iri
-            integer dimension(10) :: index
+            integer dimension(10) :: index_bn
             integer dimension(169) :: nta
             real dimension(5) :: zz
             real :: rhoofp
             common /aeos/ xz,t6list,rho,t6a,esk,esk2,dfsx,dfs,dfsr,m,mf,xa
             common /lreadco/ itime
             common /eeos/ esact,eos
-            common /beos/ iri,index,nta,zz
+            common /beos/ iri,index_bn,nta,zz
         end function rhoofp
         block data  ! in :eos:IEOSxtrin.f
             real dimension(5,10,191,169) :: xz
@@ -212,7 +212,7 @@ python module eos ! in
             real dimension(4) :: h
             real :: xxh
             integer dimension(10) :: iri
-            integer dimension(10) :: index
+            integer dimension(10) :: index_bn
             integer dimension(169) :: nta
             real dimension(5) :: zz
             integer, parameter,optional :: nt=191
@@ -221,7 +221,7 @@ python module eos ! in
             integer, parameter,optional :: mx=5
             common /aeos/ xz,t6list,rho,t6a,esk,esk2,dfsx,dfs,dfsr,m,mf,xa
             common /aaeos/ q,h,xxh
-            common /beos/ iri,index,nta,zz
+            common /beos/ iri,index_bn,nta,zz
         end block data 
     end interface 
 end python module eos

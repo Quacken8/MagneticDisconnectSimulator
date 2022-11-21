@@ -179,7 +179,7 @@ def comp_mag(P, bcg_P, y0=None, tol=1e-5):
         else:
             eps = eps/2.
         i += 1
-    print 'done in {} iterations'.format(i)
+        print 'done in {} iterations'.format(i)
     return y0
 
 def comp_mag_old(P, bcg_P, y_=None, tol=1e-6):
