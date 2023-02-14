@@ -35,6 +35,8 @@ class Data():
         self.zs = np.arange(start=0, stop=self.maxDepth, step=self.dz)
         self.numberOfZSteps = self.zs.size
 
+        self.values = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
+
         self.pressures = np.zeros((self.numberOfZSteps, self.numberOfTSteps))
         self.temperatures = np.zeros((self.numberOfZSteps, self.numberOfTSteps))
         self.B_0s = np.zeros((self.numberOfZSteps, self.numberOfTSteps))
@@ -43,9 +45,7 @@ class Data():
         """
         adds SingleTimeDatapoint to the data at index
         """
-        self.pressures[:, index] = datapoint.pressures
-        self.temperatures[:, index] = datapoint.temperatures
-        self.B_0s[:, index] = datapoint.B_0s
+        self.values[index] = datapoint
 
     def saveToFolder(self, outputFolderName):
         """
