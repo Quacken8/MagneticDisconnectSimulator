@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 from constants import *
 import os
@@ -8,10 +9,12 @@ class SingleTimeDatapoint():
     all datapoints are expected in SI
     """
 
-    def __init__(self, temperatures, pressures, B_0s) -> None:
+    def __init__(self, temperatures, pressures, B_0s, F_rads, F_cons) -> None:
         self.temperatures = temperatures
         self.pressures = pressures
         self.B_0s = B_0s
+        self.F_rads = F_rads
+        self.F_cons = F_cons
 
 class Data():
     """
@@ -66,4 +69,3 @@ class Data():
         np.savetxt(pressureFilename, self.pressures, header="pressure [TBDDD], rows index depth, columns index time", delimiter=",")
         np.savetxt(B_0Filename, self.B_0s/CGauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
         
-

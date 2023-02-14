@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from dataStructure import Data, SingleTimeDatapoint
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper

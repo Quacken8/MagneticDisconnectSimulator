@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
+
 import numpy as np
 from initialConditionsSetterUpper import getInitialConditions
 from dataVisualisator import visualizeData
-from dataStructure import Data
+from dataStructure import Data, SingleTimeDatapoint
+import solvers
 from constants import *
 
 # EVERYTHING IN SI!!!!
@@ -46,23 +49,27 @@ def main(initialConditions, finalT = 100, dt = 1e-1, maxDepth = 100, dz = 1e-2, 
     dz *= CMm
 
     # create empty data structure with only initial conditions
-    data = Data(initialConditions, finalT=finalT, dt=dt, maxDepth=maxDepth, dz=dz)
+    data = Data(finalT=finalT, dt=dt, maxDepth=maxDepth, dz=dz)
+    numberOfTSteps = data.numberOfTSteps
+    data.addDatapointAtIndex(initialConditions, 0)
 
     ti = 0 # time index, not actual time
-    while (ti < numberOfTSteps):
+    while (ti < numberOfTSteps): # hey, did you know that in python for cycles are just while cycles that interanlly increment their made up indeces?
+
+        currentState = data.values[ti]
+
+        newTs = solvers.getNewTs(currentState, dt)
+        newPs = solvers.getNewPs()
+        newYs = solvers.getNewYs()
+        newB_0s = newYs*newYs
+        newF_cons = solvers.getNewF_cons()
+        newF_rads = solvers.getNewF_rads()
+
+
+        newDatapoint = SingleTimeDatapoint(temperatures = newTs, pressures=newPs, B_0s=newB_0s, F_cons=newF_cons, F_rads=newF_rads)
+
         ti += 1
-
-        newTs = getAdjustedTemperature()
-
-        figureOutBottomPressure()
-
-        newPs = getAdjustPressure()
-
-        calculateYAlsoKnownAsSqrtB()
-
-        getRadiativeAndConvectiveFluxes() # why does he do it so late
-
-        data.addNewStep(timeIndex = ti, newTs = newTs, newPs = newPs)
+        data.addDatapointAtIndex(newDatapoint, ti)
 
     data.saveToFolder(outputFolderName)
     visualizeData(data)
