@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 from dataStructure import SingleTimeDatapoint
+import boundaryConditions as bcs
 
 def getNewTs(currentState:SingleTimeDatapoint, dt:float):
     undefined
 
-def getBottomPressure():
-    undefined
 
 def getNewPs():
-    bottomPressure = getBottomPressure()
+    bottomPressure = bcs.getBottomPressure()
     undefined
 
 def getNewYs():

@@ -1,9 +1,9 @@
 import numpy as np
 from constants import *
 
-def idealGas(temperature, density):
+@np.vectorize
+def idealGas(temperature, pressure):
     """
-    returns pressure accotding to ideal gas law
+    returns density accotding to ideal gas law
     """
-    numberOfMolecules = density / CMeanMolecularWeight
-    return numberOfMolecules*temperature*CBoltzmannConstant
+    return pressure/temperature*CMeanMolecularWeight/CBoltzmannConstant

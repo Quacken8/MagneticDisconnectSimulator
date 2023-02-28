@@ -5,11 +5,11 @@ import os
 
 class SingleTimeDatapoint():
     """
-    class that saves an instanteanous state of the simulation. Similar to Data class, but only for one T
+    class that saves an instanteanous state of the simulation. Similar to Data class, but only for one t
     all datapoints are expected in SI
     """
 
-    def __init__(self, temperatures, pressures, B_0s, F_rads, F_cons) -> None:
+    def __init__(self, temperatures, pressures, B_0s, F_rads, F_cons, ) -> None:
         self.temperatures = temperatures
         self.pressures = pressures
         self.B_0s = B_0s

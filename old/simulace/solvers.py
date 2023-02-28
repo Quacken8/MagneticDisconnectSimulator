@@ -218,7 +218,7 @@ def comp_mag_old(P, bcg_P, y_=None, tol=1e-6):
 
 def adjust_base_pressure(mod, mod_old, bcg_P, tau, uplow_velocity):
     def mass(P_bottom, mod, mod_old, P_bcg):
-        start = time.time()
+        start = time.time() 
         # print 'pressure difference: ', bcg_P[-1]-P_bottom
         y = mod['y'].values
         y_old = mod_old['y'].values
