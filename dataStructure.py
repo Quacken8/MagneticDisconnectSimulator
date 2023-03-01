@@ -54,6 +54,7 @@ class Data():
         """
         appends datapoint at the end of the data cube
         """
+        raise NotImplementedError()
         index = np.argmax(self.values is None)
         self.addDatapointAtIndex(datapoint=datapoint, index=index)
 
