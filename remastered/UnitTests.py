@@ -135,5 +135,7 @@ def TestDataStractureSave():
 def main():
     TestDataStractureSave()
 
+    print("Tests passed :)")
+
 if __name__ == "__main__":
     main()

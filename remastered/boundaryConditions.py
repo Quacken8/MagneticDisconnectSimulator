@@ -16,7 +16,7 @@ def getTopB():
     """
     return 2e3 * CGauss
 
-def getBottomPressure(currentState:SingleTimeDatapoint, dt:float, zs, upflowVelocity:float, totalMagneticFlux:float):
+def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocity:float, totalMagneticFlux:float):
     """
     boundary condition of pressure is only given on the bottom
     returns pressure at the bottom of the flux tube calculated from assumption that it should change based on the inflow of material trough the bottom boundary. Schüssler and Rempel 2018 eq 15
@@ -45,6 +45,8 @@ def getBottomPressure(currentState:SingleTimeDatapoint, dt:float, zs, upflowVelo
     #see for what adjustment of pressure at the bottom (dictated by inflow of material) will the mass of the whole tube change according to approximation via function massAfterPressureAdjustment
 
     bottomRho = currentRhos[-1] # note that in "massAfterPressureAdjustment" we use the current density. Schüssler and Rempel 2018 explicitly argues that change of bottomP affects both bottomB and bottomRho, however the effect on magnetic field is much stronger than that on the density. Same reasoning applies to the first argument of the massOfFluxTube
+    
+    bottomB = getBottomB()
     dz = currentState.dz
     dP = Solve(
         massAfterPressureAdjustment(
