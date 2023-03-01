@@ -7,8 +7,21 @@ def getNewTs(currentState:SingleTimeDatapoint, dt:float):
 
 
 def getNewPs():
+    """
+    integrates pressure from the assumption of hydrostatic equilibrium (eq 6)
+    dp/dz = rho(p(z), T(z)) g(z)
+    """
     bottomPressure = bcs.getBottomPressure()
+    def g(z):
+        """
+        gravitational acceleration in m/s^2 z meters below the surface
+        """
+        return undefined
+    
     undefined
 
-def getNewYs():
+def getNewYs(innerPs, outerPs, totalMagneticFlux):
+    """
+    solves differential equation 5 to get y = sqrt(B) = y(z)
+    """
     undefined

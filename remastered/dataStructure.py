@@ -7,9 +7,17 @@ class SingleTimeDatapoint():
     """
     class that saves an instanteanous state of the simulation. Similar to Data class, but only for one t
     all datapoints are expected in SI
+
+    NumberOfZStepsPower: the number of steps in z direction will be 2^k + 1 where k is the NumberOfZStepsPower
     """
 
-    def __init__(self, temperatures, pressures, B_0s, F_rads, F_cons, ) -> None:
+    def __init__(self, temperatures, pressures, B_0s, F_rads, F_cons, maxDepth: float, numberOfZStepsPower: int,) -> None:
+
+        self.numberOfZSteps = 2**numberOfZStepsPower + 1
+        self.maxDepth = maxDepth
+        self.zs = np.linspace(start=0, stop=self.maxDepth,num=self.numberOfZSteps)
+        self.dz = self.zs[1]
+
         self.temperatures = temperatures
         self.pressures = pressures
         self.B_0s = B_0s
@@ -26,23 +34,15 @@ class Data():
     pressures, 2D np array of doubles: temperatures in TBD. First index stands for z index (i.e. depth), second for t index (i.e. time)
     """
 
-    def __init__(self, maxDepth : float, dz : float, finalT : float, dt : float):
+    def __init__(self, finalT : float, numberOfTSteps : int):
 
         self.finalT = finalT
-        self.dt = dt
-        self.times = np.arange(start = 0, stop = self.finalT, step = self.dt)
+        self.times = np.linspace(start = 0, stop = self.finalT, num = numberOfTSteps)
+        self.dt = self.times[1]
         self.numberOfTSteps = self.times.size
-        
-        self.maxDepth = maxDepth
-        self.dz = dz
-        self.zs = np.arange(start=0, stop=self.maxDepth, step=self.dz)
-        self.numberOfZSteps = self.zs.size
 
         self.values = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
 
-        self.pressures = np.zeros((self.numberOfZSteps, self.numberOfTSteps))
-        self.temperatures = np.zeros((self.numberOfZSteps, self.numberOfTSteps))
-        self.B_0s = np.zeros((self.numberOfZSteps, self.numberOfTSteps))
 
     def addDatapointAtIndex(self, datapoint : SingleTimeDatapoint, index : int):
         """
@@ -50,10 +50,11 @@ class Data():
         """
         self.values[index] = datapoint
 
-    def saveToFolder(self, outputFolderName):
+    def saveToFolder(self, outputFolderName, rewriteFolder = False):
         """
         creates folder which contains csv files of the simulation
         """
+        if rewriteFolder: os.system(f"rm -r {outputFolderName}")
         os.mkdir(outputFolderName)
 
         temperatureFilename = f"{outputFolderName}/Temperature.csv"
@@ -61,11 +62,34 @@ class Data():
         B_0Filename = f"{outputFolderName}/B_0.csv"
         timeFilename = f"{outputFolderName}/Time.csv"
         depthFilename = f"{outputFolderName}/Depth.csv"
+        F_radFilename = f"{outputFolderName}/F_rad.csv"
+        F_conFilename = f"{outputFolderName}/F_con.csv"
 
         np.savetxt(timeFilename, self.times/Chour, header="time [h]", delimiter=",")
-        np.savetxt(depthFilename, self.zs/CMm, header="depth [Mm]", delimiter=",")
 
-        np.savetxt(temperatureFilename, self.temperatures, header="temperature [K], rows index depth, columns index time", delimiter=",")
-        np.savetxt(pressureFilename, self.pressures, header="pressure [TBDDD], rows index depth, columns index time", delimiter=",")
-        np.savetxt(B_0Filename, self.B_0s/CGauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
+        tosaveZs = self.values[0].zs
+        np.savetxt(depthFilename, tosaveZs/CMm, header="depth [Mm]", delimiter=",")
+
+        numberOfZSteps = len(tosaveZs)
+        toSaveTemperatures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSavePressures = np.zeros(
+            (self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveB_0s = np.zeros(
+            (self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveF_rads = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveF_cons = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+
+        for i, datapoint in enumerate(self.values):
+            toSaveTemperatures[i] = datapoint.temperatures
+            toSavePressures[i] = datapoint.pressures
+            toSaveB_0s[i] = datapoint.B_0s
+            toSaveF_rads[i] = datapoint.F_rads
+            toSaveF_cons[i] = datapoint.F_cons
+
+        np.savetxt(temperatureFilename, toSaveTemperatures.T, header="temperature [K], rows index depth, columns index time", delimiter=",")
+        np.savetxt(pressureFilename, toSavePressures.T, header="pressure [Pa], rows index depth, columns index time", delimiter=",")
+        np.savetxt(B_0Filename, toSaveB_0s.T/CGauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
+        np.savetxt(F_conFilename, toSaveF_cons.T, header="F_con [???], rows index depth, columns index time", delimiter=",")
+        np.savetxt(F_radFilename, toSaveF_rads.T,header="F_rad [???], rows index depth, columns index time", delimiter=",")
+        
         
