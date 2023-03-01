@@ -4,19 +4,19 @@ import stateEquations
 from constants import *
 from scipy.integrate import romb as RombIntegrate
 
-def getBottomB(externalPressure:float, bottomPressure:float):
+def getBottomB(externalPressure:float, bottomPressure:float)->float:
     """
     straight up from the thin tube approximation
     """
     return np.sqrt(2*Cmu0*(externalPressure-bottomPressure))
 
-def getTopB():
+def getTopB()->float:
     """
     in the paper it is said that it is *typically* set to 2k G. Not sure what *typically* means tho lol
     """
     return 2e3 * CGauss
 
-def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocity:float, totalMagneticFlux:float):
+def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocity:float, totalMagneticFlux:float)->float:
     """
     boundary condition of pressure is only given on the bottom
     returns pressure at the bottom of the flux tube calculated from assumption that it should change based on the inflow of material trough the bottom boundary. Schüssler and Rempel 2018 eq 15

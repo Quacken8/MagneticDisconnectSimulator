@@ -44,13 +44,13 @@ class Data():
         self.values = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
 
 
-    def addDatapointAtIndex(self, datapoint : SingleTimeDatapoint, index : int):
+    def addDatapointAtIndex(self, datapoint : SingleTimeDatapoint, index : int) -> None:
         """
         adds SingleTimeDatapoint to the data at index
         """
         self.values[index] = datapoint
 
-    def saveToFolder(self, outputFolderName, rewriteFolder = False):
+    def saveToFolder(self, outputFolderName : str, rewriteFolder = False) -> None:
         """
         creates folder which contains csv files of the simulation
         """

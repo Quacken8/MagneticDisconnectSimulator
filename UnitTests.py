@@ -6,7 +6,7 @@ from constants import *
 import os
 
 
-def TestDataStractureSave():
+def TestDataStractureSave() -> None:
     # create mockup set of datapoints
 
     datapoint = mockupDataSetterUpper(zLengthPower= 4) # expected 2**4+1 = 17 datapoints
