@@ -49,6 +49,14 @@ class Data():
         adds SingleTimeDatapoint to the data at index
         """
         self.values[index] = datapoint
+    
+    def appendDatapoint(self, datapoint : SingleTimeDatapoint) -> None:
+        """
+        appends datapoint at the end of the data cube
+        """
+        index = np.argmax(self.values is None)
+        self.addDatapointAtIndex(datapoint=datapoint, index=index)
+
 
     def saveToFolder(self, outputFolderName : str, rewriteFolder = False) -> None:
         """
