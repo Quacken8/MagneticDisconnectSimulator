@@ -13,10 +13,10 @@ def TestDataStractureSave() -> None:
 
     data = Data(finalT=3*Chour, numberOfTSteps=4)
 
-    data.addDatapointAtIndex(datapoint, 0)
-    data.addDatapointAtIndex(datapoint, 1)
-    data.addDatapointAtIndex(datapoint, 2)
-    data.addDatapointAtIndex(datapoint, 3)
+    data.appendDatapoint(datapoint)
+    data.appendDatapoint(datapoint)
+    data.appendDatapoint(datapoint)
+    data.appendDatapoint(datapoint)
 
     foldername = "SaveTest"
     data.saveToFolder(foldername)

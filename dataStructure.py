@@ -42,21 +42,24 @@ class Data():
         self.numberOfTSteps = self.times.size
 
         self.values = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
+        self.occupiedElements = 0
 
 
     def addDatapointAtIndex(self, datapoint : SingleTimeDatapoint, index : int) -> None:
         """
         adds SingleTimeDatapoint to the data at index
         """
+        if index > self.occupiedElements: raise ValueError("You're trying to add a datapoint to an index while a previous one isn't filled")
         self.values[index] = datapoint
+        if index == self.occupiedElements:
+            self.occupiedElements += 1
     
     def appendDatapoint(self, datapoint : SingleTimeDatapoint) -> None:
         """
         appends datapoint at the end of the data cube
         """
-        raise NotImplementedError()
-        index = np.argmax(self.values is None)
-        self.addDatapointAtIndex(datapoint=datapoint, index=index)
+
+        self.addDatapointAtIndex(datapoint=datapoint, index=self.occupiedElements)
 
 
     def saveToFolder(self, outputFolderName : str, rewriteFolder = False) -> None:
