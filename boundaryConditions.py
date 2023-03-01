@@ -1,7 +1,7 @@
 import numpy as np
 from dataStructure import SingleTimeDatapoint
 import stateEquations
-from constants import *
+import constants as c
 from scipy.integrate import romb as RombIntegrate
 
 
@@ -9,13 +9,13 @@ def getBottomB(externalPressure: float | np.ndarray, bottomPressure: float | np.
     """
     straight up from the thin tube approximation
     """
-    return np.sqrt(2*Cmu0*(externalPressure-bottomPressure))
+    return np.sqrt(2*c.mu0*(externalPressure-bottomPressure))
 
 def getTopB()->float:
     """
     in the paper it is said that it is *typically* set to 2k G. Not sure what *typically* means tho lol
     """
-    return 2e3 * CGauss
+    return 2e3 * c.Gauss
 
 def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocity:float, totalMagneticFlux:float)->float:
     """

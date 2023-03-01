@@ -5,7 +5,7 @@ from initialConditionsSetterUpper import getInitialConditions
 from dataVisualisator import visualizeData
 from dataStructure import Data, SingleTimeDatapoint
 import solvers
-from constants import *
+import constants as c
 
 # EVERYTHING IN SI!!!!
 
@@ -30,7 +30,8 @@ from constants import *
 # velocity of the inflow which is in that eq also caculated form elsewhere, here the eq 17
 # after adjustment it has to be updated (i e integrated) throughout the whole tube
 
-def main(initialConditions, finalT = 100, dt = 1e-1, maxDepth = 100, dz = 1e-2, outputFolderName = "output"):
+
+def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, outputFolderName="output"):
     """
     integrates the whole thing
     ----
@@ -43,23 +44,23 @@ def main(initialConditions, finalT = 100, dt = 1e-1, maxDepth = 100, dz = 1e-2, 
     """
 
     # turn user input to SI
-    finalT *= Chour
-    dt *= Chour
-    maxDepth *= CMm
-    dz *= CMm
+    finalT *= c.hour
+    maxDepth *= c.Mm
 
     # create empty data structure with only initial conditions
-    data = Data(finalT=finalT, dt=dt, maxDepth=maxDepth, dz=dz)
+    data = Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
+    dt = data.dt
+
     numberOfTSteps = data.numberOfTSteps
     data.addDatapointAtIndex(initialConditions, 0)
 
-    ti = 0 # time index, not actual time
-    while (ti < numberOfTSteps): # hey, did you know that in python for cycles are just while cycles that interanlly increment their made up indeces?
+    timeIndex = 0 # time index, not actual time
+    while (timeIndex < numberOfTSteps): # hey, did you know that in python for cycles are just while cycles that interanlly increment their made up indeces?
 
-        currentState = data.values[ti]
+        currentState = data.values[timeIndex]
 
         newTs = solvers.getNewTs(currentState, dt)
-        newPs = solvers.getNewPs()
+        newPs = solvers.getNewPs(currentState, dt, upflowVelocity, totalMagneticFlux)
         newYs = solvers.getNewYs()
         newB_0s = newYs*newYs
         newF_cons = solvers.getNewF_cons()
@@ -68,8 +69,8 @@ def main(initialConditions, finalT = 100, dt = 1e-1, maxDepth = 100, dz = 1e-2, 
 
         newDatapoint = SingleTimeDatapoint(temperatures = newTs, pressures=newPs, B_0s=newB_0s, F_cons=newF_cons, F_rads=newF_rads)
 
-        ti += 1
-        data.addDatapointAtIndex(newDatapoint, ti)
+        timeIndex += 1
+        data.addDatapointAtIndex(newDatapoint, timeIndex)
 
     data.saveToFolder(outputFolderName)
     visualizeData(data)
@@ -77,11 +78,14 @@ def main(initialConditions, finalT = 100, dt = 1e-1, maxDepth = 100, dz = 1e-2, 
 
 
 if __name__ == "__main__":
-    initialConditions = getInitialConditions()
-    dt = 1e-3 # timestep in TBD units
-    finalT = 100 # final time in TBD units
 
-    maxDepth = 100 # depth in Mm
-    dz = 1e-2   # step in depth in Mm
+    maxDepth = 100  # depth in Mm
+    zPower = 5  # number of z steps is 1+2**zPower
 
-    main(initialConditions, finalT=finalT, dt=dt, maxDepth = maxDepth, dz = dz)
+    initialConditions = getInitialConditions(maxDepth = maxDepth, zPower = zPower)
+
+    finalT = 100 # final time in hours
+    numberOfTSteps = 32 # number of time steps
+
+    main(initialConditions, finalT=finalT, maxDepth=maxDepth,
+         numberOfTSteps=numberOfTSteps, outputFolderName="FirstTestHaha")
