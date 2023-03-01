@@ -48,10 +48,11 @@ def getBottomPressure(currentState:SingleTimeDatapoint, dt:float, zs, upflowVelo
     dz = currentState.dz
     dP = Solve(
         massAfterPressureAdjustment(
-            massOfFluxTube(currentRhos, currentBs, dx = dz, totalMagneticFlux), 
+            massOfFluxTube(currentRhos, currentBs, dz = dz, totalMagneticFlux = totalMagneticFlux), 
             bottomB, bottomRho, totalMagneticFlux, dt, upflowVelocity)
         ==
-        massOfFluxTube(currentRhos, Bs + deltaB(dP), dx = dz, totalMagneticFlux),
+        massOfFluxTube(currentRhos, Bs + deltaB(dP), dz=dz,
+                       totalMagneticFlux=totalMagneticFlux),
         dP
         )
 

@@ -1,4 +1,0 @@
-rm eos.pyf
-rm eos.so
-f2py -m eos IEOSxtrin.f -h eos.pyf
-f2py -c -m eos IEOSxtrin.f eos.pyf

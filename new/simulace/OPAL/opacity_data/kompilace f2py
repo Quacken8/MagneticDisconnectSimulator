@@ -1,4 +1,0 @@
-rm xzcotrin21.pyf
-rm xzcotrin21.so
-f2py3 -m xzcotrin21 xzcotrin21.f -h xzcotrin21.pyf
-f2py3 -c -m xzcotrin21 xzcotrin21.f xzcotrin21.pyf
