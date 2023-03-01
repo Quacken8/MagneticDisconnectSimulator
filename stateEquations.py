@@ -1,9 +1,10 @@
 import numpy as np
 from constants import *
 
-def idealGas(temperature:float, pressure:float) -> float:
+@np.vectorize
+def idealGas(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
     """
     returns density accotding to ideal gas law
     """
     raise NotImplementedError("What's the mean molecural weight u donkey, huh?")
-    return pressure/temperature*CMeanMolecularWeight/CBoltzmannConstant
+    return pressure/temperature*c.MeanMolecularWeight/c.BoltzmannConstant

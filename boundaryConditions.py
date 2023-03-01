@@ -4,7 +4,8 @@ import stateEquations
 from constants import *
 from scipy.integrate import romb as RombIntegrate
 
-def getBottomB(externalPressure:float, bottomPressure:float)->float:
+
+def getBottomB(externalPressure: float | np.ndarray, bottomPressure: float | np.ndarray) -> float | np.ndarray:
     """
     straight up from the thin tube approximation
     """

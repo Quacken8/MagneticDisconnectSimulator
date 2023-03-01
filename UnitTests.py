@@ -2,7 +2,7 @@
 from dataStructure import Data, SingleTimeDatapoint
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper
-from constants import *
+import constants as c
 import os
 
 
@@ -11,7 +11,7 @@ def TestDataStractureSave() -> None:
 
     datapoint = mockupDataSetterUpper(zLengthPower= 4) # expected 2**4+1 = 17 datapoints
 
-    data = Data(finalT=3*Chour, numberOfTSteps=4)
+    data = Data(finalT=3*c.hour, numberOfTSteps=4)
 
     data.appendDatapoint(datapoint)
     data.appendDatapoint(datapoint)
