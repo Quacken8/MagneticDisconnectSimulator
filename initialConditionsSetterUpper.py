@@ -4,12 +4,11 @@ from dataStructure import SingleTimeDatapoint
 import constants as c
 
 
-def getInitialConditions(zLengthPower: int, maxDepth: float) -> SingleTimeDatapoint:
+def getInitialConditions(numberOfZSteps: int, maxDepth: float) -> SingleTimeDatapoint:
     """
     
     """
     maxDepth *= c.Mm
-    numberOfZSteps = 2**zLengthPower + 1
     raise NotImplementedError()
 
 def mockupDataSetterUpper(zLength:int = 10) -> SingleTimeDatapoint:

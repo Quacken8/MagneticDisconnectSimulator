@@ -80,9 +80,9 @@ def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, out
 if __name__ == "__main__":
 
     maxDepth = 100  # depth in Mm
-    zPower = 5  # number of z steps is 1+2**zPower
+    numberOfZSteps = 100
 
-    initialConditions = getInitialConditions(maxDepth = maxDepth, zPower = zPower)
+    initialConditions = getInitialConditions(maxDepth = maxDepth, numberOfZSteps=numberOfZSteps)
 
     finalT = 100 # final time in hours
     numberOfTSteps = 32 # number of time steps

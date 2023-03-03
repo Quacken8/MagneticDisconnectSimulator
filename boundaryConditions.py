@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
 from dataStructure import SingleTimeDatapoint
-import stateEquations
+from stateEquations import IdealGas as StateEq
 import constants as c
-from scipy.integrate import romb as RombIntegrate
 
 def getBottomB(externalPressure: float | np.ndarray, bottomPressure: float | np.ndarray) -> float | np.ndarray:
     """
@@ -17,17 +16,17 @@ def getTopB()->float:
     """
     return 2e3 * c.Gauss
 
-def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocity:float, totalMagneticFlux:float)->float:
+def getBottomPressure(currentState:SingleTimeDatapoint, bottomExternalPressure:float, dt:float,  upflowVelocity:float, totalMagneticFlux:float)->float:
     """
     boundary condition of pressure is only given on the bottom
     returns pressure at the bottom of the flux tube calculated from assumption that it should change based on the inflow of material trough the bottom boundary. Schüssler and Rempel 2018 eq 15
     """
     
-    def massOfFluxTube(densities, Bs, dz, totalMagneticFlux):
+    def massOfFluxTube(densities, Bs, zs, totalMagneticFlux):
         """
         equation 13 in Schüssler and Rempel 2018
         """
-        return totalMagneticFlux*RombIntegrate(densities/Bs, dx = dz)
+        return totalMagneticFlux*Integrate(densities/Bs, zs)
 
     def massAfterPressureAdjustment(unadjustedMass, bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity):
         """
@@ -37,9 +36,11 @@ def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocit
         """
         return unadjustedMass + totalMagneticFlux*upflowVelocity*dt*bottomDensity/bottomB
 
+    zs = currentState.zs
     currentPs = currentState.pressures[:]
     currentTs = currentState.temperatures[:]
-    currentRhos = stateEquations.idealGas(pressure = currentPs, temperature = currentTs)
+    currentRhos = StateEq.density(pressure = currentPs, temperature = currentTs)
+    
     currentBs = currentState.B_0s[:]
 
 
@@ -50,14 +51,13 @@ def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocit
     arrayDelta = np.zeros(currentState.numberOfZSteps)
     arrayDelta[-1] = 1  # purpose of this variable is to have the change of a variable at the bottom of the flux tube; just multiply this by a scalar and you can add it to the whole array
 
-    currentBottomB = getBottomB()
-    dz = currentState.dz
+    currentBottomB = getBottomB(externalPressure=bottomExternalPressure, bottomPressure=currentPs[-1])
     dP = Solve(
         massAfterPressureAdjustment(
-            massOfFluxTube(currentRhos, currentBs, dz = dz, totalMagneticFlux = totalMagneticFlux), 
+            massOfFluxTube(currentRhos, currentBs, zs=zs, totalMagneticFlux = totalMagneticFlux), 
             currentBottomB, bottomRho, totalMagneticFlux, dt, upflowVelocity)
         ==
-        massOfFluxTube(currentRhos, currentBs + arrayDelta*dP, dz=dz,
+        massOfFluxTube(currentRhos, currentBs + arrayDelta*dP, zs=zs,
                        totalMagneticFlux=totalMagneticFlux),
         dP
         )
