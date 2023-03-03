@@ -12,11 +12,13 @@ def getInitialConditions(zLengthPower: int, maxDepth: float) -> SingleTimeDatapo
     numberOfZSteps = 2**zLengthPower + 1
     raise NotImplementedError()
 
-def mockupDataSetterUpper(zLengthPower:int = 10) -> SingleTimeDatapoint:
+def mockupDataSetterUpper(zLength:int = 10) -> SingleTimeDatapoint:
     """
     mockup data setter upper that just makes bunch of weird powers of ten instead of the pressures and other datapoints of length 1+2**zLengthPower
     """
-    ones = np.ones(2**zLengthPower + 1)
+    ones = np.ones(zLength)
     maxdepth = 4
-    toReturn = SingleTimeDatapoint(temperatures = ones, pressures = ones*10, B_0s = ones*100, F_rads = ones*1000, F_cons = ones*10000, maxDepth=maxdepth, numberOfZStepsPower= zLengthPower)
+    zs = np.linspace(0,maxdepth,num=zLength)
+
+    toReturn = SingleTimeDatapoint(temperatures = ones, pressures = ones*10, B_0s = ones*100, F_rads = ones*1000, F_cons = ones*10000, entropies=ones*2, nablaAds=ones*4, deltas=ones*6, zs = zs, rhos = ones*7, cps = ones*3, cvs = ones*11)
     return toReturn

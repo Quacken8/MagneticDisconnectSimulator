@@ -47,22 +47,20 @@ def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocit
 
     bottomRho = currentRhos[-1] # note that in "massAfterPressureAdjustment" we use the current density. Schüssler and Rempel 2018 explicitly argues that change of bottomP affects both bottomB and bottomRho, however the effect on magnetic field is much stronger than that on the density. Same reasoning applies to the first argument of the massOfFluxTube
     
-    bottomB = getBottomB()
+    arrayDelta = np.zeros(currentState.numberOfZSteps)
+    arrayDelta[-1] = 1  # purpose of this variable is to have the change of a variable at the bottom of the flux tube; just multiply this by a scalar and you can add it to the whole array
+
+    currentBottomB = getBottomB()
     dz = currentState.dz
     dP = Solve(
         massAfterPressureAdjustment(
             massOfFluxTube(currentRhos, currentBs, dz = dz, totalMagneticFlux = totalMagneticFlux), 
-            bottomB, bottomRho, totalMagneticFlux, dt, upflowVelocity)
+            currentBottomB, bottomRho, totalMagneticFlux, dt, upflowVelocity)
         ==
-        massOfFluxTube(currentRhos, Bs + deltaB(dP), dz=dz,
+        massOfFluxTube(currentRhos, currentBs + arrayDelta*dP, dz=dz,
                        totalMagneticFlux=totalMagneticFlux),
         dP
         )
-
-
-    # delta variables are just a bunch of zeros the length of the flux tube with a single nonzero delta value
-
-    # both bottomB(dP) and Bs + deltaB(dP) has to come from the differential eq, right? But in the old code it's only the latter that is calculated as function of dP? See line 267 of solvers.py: initial_mass is set static, outside the funcion func() that is solved in newton!!
 
     # returns the new bottom pressure
     return currentPs[-1] + dP

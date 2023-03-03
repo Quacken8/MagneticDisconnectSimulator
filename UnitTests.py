@@ -9,7 +9,7 @@ import os
 def TestDataStractureSave() -> None:
     # create mockup set of datapoints
 
-    datapoint = mockupDataSetterUpper(zLengthPower= 4) # expected 2**4+1 = 17 datapoints
+    datapoint = mockupDataSetterUpper(zLength= 17) 
 
     data = Data(finalT=3*c.hour, numberOfTSteps=4)
 

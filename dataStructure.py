@@ -11,18 +11,23 @@ class SingleTimeDatapoint():
     NumberOfZStepsPower: the number of steps in z direction will be 2^k + 1 where k is the NumberOfZStepsPower
     """
 
-    def __init__(self, temperatures, pressures, B_0s, F_rads, F_cons, maxDepth: float, numberOfZStepsPower: int,) -> None:
+    def __init__(self, temperatures: np.ndarray, pressures: np.ndarray, B_0s: np.ndarray, F_rads: np.ndarray, F_cons: np.ndarray, zs: np.ndarray, rhos: np.ndarray, entropies: np.ndarray, nablaAds: np.ndarray, cps: np.ndarray, cvs: np.ndarray, deltas: np.ndarray) -> None:
 
-        self.numberOfZSteps = 2**numberOfZStepsPower + 1
-        self.maxDepth = maxDepth
-        self.zs = np.linspace(start=0, stop=self.maxDepth,num=self.numberOfZSteps)
-        self.dz = self.zs[1]
-
+        self.zs = zs
+        self.numberOfZSteps = len(zs)
+        self.maxDepth = zs[-1]
         self.temperatures = temperatures
         self.pressures = pressures
+        self.rhos = rhos
         self.B_0s = B_0s
         self.F_rads = F_rads
         self.F_cons = F_cons
+        self.entropies = entropies
+        self.nablaAds = nablaAds
+        self.cps = cps
+        self.cvs = cvs
+        self.deltas = deltas
+
 
 class Data():
     """
@@ -71,11 +76,17 @@ class Data():
 
         temperatureFilename = f"{outputFolderName}/Temperature.csv"
         pressureFilename = f"{outputFolderName}/Pressure.csv"
+        densityFilename = f"{outputFolderName}/Density.csv"
         B_0Filename = f"{outputFolderName}/B_0.csv"
         timeFilename = f"{outputFolderName}/Time.csv"
         depthFilename = f"{outputFolderName}/Depth.csv"
         F_radFilename = f"{outputFolderName}/F_rad.csv"
         F_conFilename = f"{outputFolderName}/F_con.csv"
+        entropyFilename = f"{outputFolderName}/entropy.csv"
+        nablaAdFilename = f"{outputFolderName}/nablaAd.csv"
+        cpFilename = f"{outputFolderName}/cp.csv"
+        cvFilename = f"{outputFolderName}/cv.csv"
+        deltaFilename = f"{outputFolderName}/delta.csv"
 
         np.savetxt(timeFilename, self.times/c.hour, header="time [h]", delimiter=",")
 
@@ -84,24 +95,42 @@ class Data():
 
         numberOfZSteps = len(tosaveZs)
         toSaveTemperatures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSavePressures = np.zeros(
-            (self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveB_0s = np.zeros(
-            (self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSavePressures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveDensities = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveB_0s = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
         toSaveF_rads = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
         toSaveF_cons = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveEntropies = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSaveNablaAds = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSavecps = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSavecvs = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        toSavedeltas = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
+        
 
         for i, datapoint in enumerate(self.values):
             toSaveTemperatures[i] = datapoint.temperatures
             toSavePressures[i] = datapoint.pressures
+            toSaveDensities[i] = datapoint.rhos
             toSaveB_0s[i] = datapoint.B_0s
             toSaveF_rads[i] = datapoint.F_rads
             toSaveF_cons[i] = datapoint.F_cons
+            toSaveEntropies[i] = datapoint.entropies
+            toSaveNablaAds[i] = datapoint.nablaAds
+            toSavecps[i] = datapoint.cps
+            toSavecvs[i] = datapoint.cvs
+            toSavedeltas[i] = datapoint.deltas
+            
 
         np.savetxt(temperatureFilename, toSaveTemperatures.T, header="temperature [K], rows index depth, columns index time", delimiter=",")
         np.savetxt(pressureFilename, toSavePressures.T, header="pressure [Pa], rows index depth, columns index time", delimiter=",")
+        np.savetxt(densityFilename, toSaveDensities.T, header="density [kg/m^3], rows index depth, columns index time", delimiter=",")  # TBD these units
         np.savetxt(B_0Filename, toSaveB_0s.T/c.Gauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
-        np.savetxt(F_conFilename, toSaveF_cons.T, header="F_con [???], rows index depth, columns index time", delimiter=",")
-        np.savetxt(F_radFilename, toSaveF_rads.T,header="F_rad [???], rows index depth, columns index time", delimiter=",")
+        np.savetxt(F_conFilename, toSaveF_cons.T, header="F_con [???], rows index depth, columns index time", delimiter=",") # TBD these units
+        np.savetxt(F_radFilename, toSaveF_rads.T,header="F_rad [???], rows index depth, columns index time", delimiter=",") # TBD these units
+        np.savetxt(entropyFilename, toSaveEntropies.T,header="S [J/K], rows index depth, columns index time", delimiter=",")  # TBD these units
+        np.savetxt(nablaAdFilename, toSaveNablaAds.T,header="nablaAd [???], rows index depth, columns index time", delimiter=",") # TBD these units
+        np.savetxt(cpFilename, toSavecps.T,header="cp [J/K], rows index depth, columns index time", delimiter=",") # TBD these units
+        np.savetxt(cvFilename, toSavecvs.T,header="cv [J/K], rows index depth, columns index time", delimiter=",") # TBD these units
+        np.savetxt(deltaFilename, toSavedeltas.T, header="Delta [???], rows index depth, columns index time", delimiter=",") # TBD these units
         
         
