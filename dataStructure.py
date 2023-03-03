@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-from constants import *
+import constants as c
 import os
 
 class SingleTimeDatapoint():
@@ -77,10 +77,10 @@ class Data():
         F_radFilename = f"{outputFolderName}/F_rad.csv"
         F_conFilename = f"{outputFolderName}/F_con.csv"
 
-        np.savetxt(timeFilename, self.times/Chour, header="time [h]", delimiter=",")
+        np.savetxt(timeFilename, self.times/c.hour, header="time [h]", delimiter=",")
 
         tosaveZs = self.values[0].zs
-        np.savetxt(depthFilename, tosaveZs/CMm, header="depth [Mm]", delimiter=",")
+        np.savetxt(depthFilename, tosaveZs/c.Mm, header="depth [Mm]", delimiter=",")
 
         numberOfZSteps = len(tosaveZs)
         toSaveTemperatures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
@@ -100,7 +100,7 @@ class Data():
 
         np.savetxt(temperatureFilename, toSaveTemperatures.T, header="temperature [K], rows index depth, columns index time", delimiter=",")
         np.savetxt(pressureFilename, toSavePressures.T, header="pressure [Pa], rows index depth, columns index time", delimiter=",")
-        np.savetxt(B_0Filename, toSaveB_0s.T/CGauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
+        np.savetxt(B_0Filename, toSaveB_0s.T/c.Gauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
         np.savetxt(F_conFilename, toSaveF_cons.T, header="F_con [???], rows index depth, columns index time", delimiter=",")
         np.savetxt(F_radFilename, toSaveF_rads.T,header="F_rad [???], rows index depth, columns index time", delimiter=",")
         

@@ -1,9 +1,9 @@
+#!/usr/bin/env python3
 import numpy as np
 from dataStructure import SingleTimeDatapoint
 import stateEquations
 import constants as c
 from scipy.integrate import romb as RombIntegrate
-
 
 def getBottomB(externalPressure: float | np.ndarray, bottomPressure: float | np.ndarray) -> float | np.ndarray:
     """
@@ -58,6 +58,7 @@ def getBottomPressure(currentState:SingleTimeDatapoint, dt:float,  upflowVelocit
                        totalMagneticFlux=totalMagneticFlux),
         dP
         )
+
 
     # delta variables are just a bunch of zeros the length of the flux tube with a single nonzero delta value
 

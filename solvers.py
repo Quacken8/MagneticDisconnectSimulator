@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from dataStructure import SingleTimeDatapoint
 import boundaryConditions as bcs
+from gravity import gravity
 
 def getNewTs(currentState:SingleTimeDatapoint, dt:float):
     raise NotImplementedError()
@@ -12,11 +13,7 @@ def getNewPs(currentState:SingleTimeDatapoint, dt:float, upflowVelocity:float, t
     dp/dz = rho(p(z), T(z)) g(z)
     """
     bottomPressure = bcs.getBottomPressure(currentState=currentState, dt=dt, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux)
-    def g(z):
-        """
-        gravitational acceleration in m/s^2 z meters below the surface
-        """
-        raise NotImplementedError()
+    # g(z)
     
     raise NotImplementedError()
 
