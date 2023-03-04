@@ -6,6 +6,7 @@ from dataVisualisator import visualizeData
 from dataStructure import Data, SingleTimeDatapoint
 import solvers
 import constants as c
+from calmSun import getCalmSunDatapoint
 
 # EVERYTHING IN SI!!!!
 
@@ -46,6 +47,9 @@ def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, out
     # turn user input to SI
     finalT *= c.hour
     maxDepth *= c.Mm
+
+    # get the calm sun model
+    calmSun = getCalmSunDatapoint()
 
     # create empty data structure with only initial conditions
     data = Data(finalT=finalT, numberOfTSteps=numberOfTSteps)

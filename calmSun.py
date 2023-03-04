@@ -6,7 +6,7 @@ This script models stellar interior with absent flux tube
 
 import numpy as np
 from dataStructure import SingleTimeDatapoint
-from stateEquations import IdealGas as StateEq
+from stateEquations import MockupIdealGas as StateEq
 from gravity import gravity
 import warnings
 from scipy.integrate import ode as scipyODE
@@ -99,6 +99,24 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
     F_cons = StateEq.F_con(temperature=np.array(calmSunTs), pressure=calmSunPs)
     B_0s = np.zeros(len(calmSunZs)) # calm sun doesn't have these
 
-    # TBD all these undefined values should come from the state equations
     calmSun = SingleTimeDatapoint(temperatures=np.array(calmSunTs), zs = np.array(calmSunZs), pressures=np.exp(np.array(calmSunLogPs)), rhos=rhos, entropies=entropies, nablaAds=nablaAds, cps = cps, cvs=cvs, deltas = deltas, B_0s = B_0s, F_cons = F_cons, F_rads = F_rads)
     return calmSun
+
+def main():
+    """
+    debugging function for this model used to compare the outcomes to model S
+    """
+    dlogP = 0.1
+    surfaceTemperature = 3500
+    logSurfacePressure = np.log(1e4)
+    maxDepth = 13*c.Mm
+    calmSun = getCalmSunDatapoint(dlogP=dlogP, logSurfacePressure=logSurfacePressure, maxDepth=maxDepth, surfaceTemperature=surfaceTemperature)
+
+    from dataStructure import Data
+    data = Data(finalT=0,numberOfTSteps=1)
+    data.appendDatapoint(calmSun)
+    data.saveToFolder("calmSun")
+    
+
+if __name__ == "__main__":
+    main()
