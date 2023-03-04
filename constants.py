@@ -8,3 +8,4 @@ MH = 1.66053906660e-27  # mass of hydrogen atom
 MHe = 4*MH  # mass of helium atom
 meanMolecularWeight = 0.6*MH+0.4*MHe  # of solar matter
 mu0 = 1.25663706212e-6  # N/A^2 permeability of vacuum [CODATA 2018]
+G = 6.67430e10-11   # m^3/(kg s^2) gravitational constant [CODATA 2018]
