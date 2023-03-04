@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from dataStructure import SingleTimeDatapoint
 import boundaryConditions as bcs
-from gravity import gravity
+from gravity import g
 
 def getNewTs(currentState:SingleTimeDatapoint, dt:float):
     raise NotImplementedError()

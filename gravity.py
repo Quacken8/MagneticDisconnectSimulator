@@ -16,11 +16,11 @@ def volumeOfSphericalLayer(radius:float|np.ndarray, width:float|np.ndarray)->flo
     """
     return 4/3*np.pi * ((radius + width)*(radius + width)*(radius + width) - radius*radius*radius)
 
-modelZs   = np.loadtxt("model_s/model_S_raw.dat", usecols=0)
+modelZs   = np.loadtxt("model_S_raw.dat", usecols=0)
 rs = modelZs.max()-modelZs
 
 # the model indexes with depth, therefore the array has to be flipped
-modelRhos = np.loadtxt("model_s/model_S_raw.dat", usecols=3)[::-1]
+modelRhos = np.loadtxt("model_S_raw.dat", usecols=3)[::-1]
 masses = np.zeros(modelZs.size)
 
 for i in range(1, masses.size):

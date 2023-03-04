@@ -7,7 +7,7 @@ This script models stellar interior with absent flux tube
 import numpy as np
 from dataStructure import SingleTimeDatapoint
 from stateEquations import MockupIdealGas as StateEq
-from gravity import gravity
+from gravity import g
 import warnings
 from scipy.integrate import ode as scipyODE
 import constants as c
@@ -34,7 +34,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
             "Uses the ideal gas rn, change it to something sofisticated first")
         P = np.exp(logP)
         rho = StateEq.density(temperature = T, pressure = P) # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
-        H = P/(rho*gravity(z))
+        H = P/(rho*g(z))
         return H
     
     def advectiveGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
@@ -85,7 +85,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
 
         currentLogP += dlogP    # step into higher pressure
         ODEIntegrator.integrate(currentLogP)    # get new T and z from this
-        if not ODEIntegrator.successful(): raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
+        if not ODEIntegrator.successful(): break # TBD hey why is this not finishing a viable break condition viz old code ???? raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
 
     calmSunPs = np.exp(calmSunLogPs)
 
@@ -113,7 +113,8 @@ def main():
     calmSun = getCalmSunDatapoint(dlogP=dlogP, logSurfacePressure=logSurfacePressure, maxDepth=maxDepth, surfaceTemperature=surfaceTemperature)
 
     from dataStructure import Data
-    data = Data(finalT=0,numberOfTSteps=1)
+    data = Data(finalT=1,numberOfTSteps=2)
+    data.appendDatapoint(calmSun)
     data.appendDatapoint(calmSun)
     data.saveToFolder("calmSun")
     

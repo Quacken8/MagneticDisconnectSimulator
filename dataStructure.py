@@ -39,10 +39,10 @@ class Data():
     pressures, 2D np array of doubles: temperatures in TBD. First index stands for z index (i.e. depth), second for t index (i.e. time)
     """
 
-    def __init__(self, finalT : float, numberOfTSteps : int):
-
+    def __init__(self, finalT : float, numberOfTSteps : int, startT:float = 0):
+        if startT == finalT: raise ValueError("your start T equals end T")
         self.finalT = finalT
-        self.times = np.linspace(start = 0, stop = self.finalT, num = numberOfTSteps)
+        self.times = np.linspace(start=startT, stop=self.finalT, num=numberOfTSteps)
         self.dt = self.times[1]
         self.numberOfTSteps = self.times.size
 
