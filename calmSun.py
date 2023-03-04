@@ -8,7 +8,6 @@ import numpy as np
 from dataStructure import SingleTimeDatapoint
 from stateEquations import MockupIdealGas as StateEq
 from gravity import g
-import warnings
 from scipy.integrate import ode as scipyODE
 import constants as c
 
@@ -30,16 +29,12 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
         """
         returns the pressure scale height z meters below the surface if the pressure there is P = exp(log(P)). log is used cuz it's numerically more stable 
         """
-        warnings.warn(
-            "Uses the ideal gas rn, change it to something sofisticated first")
         P = np.exp(logP)
         rho = StateEq.density(temperature = T, pressure = P) # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
         H = P/(rho*g(z))
         return H
     
     def advectiveGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
-        warnings.warn(
-            "Uses the ideal gas rn, change it to something sofisticated first")
         # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
         P = np.exp(logP)
         return StateEq.convectiveGradient(temperature=T, pressure=P)
@@ -106,7 +101,7 @@ def main():
     """
     debugging function for this model used to compare the outcomes to model S
     """
-    dlogP = 1
+    dlogP = 0.001
     surfaceTemperature = 3500
     logSurfacePressure = np.log(1e4)
     maxDepth = 13*c.Mm

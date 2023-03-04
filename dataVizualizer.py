@@ -7,7 +7,7 @@ import numpy.typing as npt
 import constants as c
 
 def plotSingleTimeDatapoint(datapoint: SingleTimeDatapoint, toPlot: npt.ArrayLike, pltshow: bool = True) -> None:
-
+    raise NotImplementedError()
     zs = datapoint.zs/c.Mm
 
     for plot in toPlot:

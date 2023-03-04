@@ -47,6 +47,7 @@ class MockupIdealGas():
     @np.vectorize
     @staticmethod
     def convectiveGradient(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
+        raise NotImplementedError()
         return 0
 
     @np.vectorize
