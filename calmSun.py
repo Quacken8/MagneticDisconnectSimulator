@@ -106,7 +106,7 @@ def main():
     """
     debugging function for this model used to compare the outcomes to model S
     """
-    dlogP = 0.1
+    dlogP = 1
     surfaceTemperature = 3500
     logSurfacePressure = np.log(1e4)
     maxDepth = 13*c.Mm
@@ -116,7 +116,7 @@ def main():
     data = Data(finalT=1,numberOfTSteps=2)
     data.appendDatapoint(calmSun)
     data.appendDatapoint(calmSun)
-    data.saveToFolder("calmSun")
+    data.saveToFolder("calmSun", rewriteFolder=True)
     
 
 if __name__ == "__main__":
