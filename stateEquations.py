@@ -6,7 +6,7 @@ import warnings
 class MockupIdealGas():
     @np.vectorize
     @staticmethod
-    def density(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def density(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns density according to ideal gas law
         """
@@ -16,43 +16,43 @@ class MockupIdealGas():
     
     @np.vectorize
     @staticmethod
-    def entropy(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def entropy(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
 
     @np.vectorize
     @staticmethod
-    def cp(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def cp(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
 
     @np.vectorize
     @staticmethod
-    def cv(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def cv(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
 
     @np.vectorize
     @staticmethod
-    def delta(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def delta(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
     
     @np.vectorize
     @staticmethod
-    def F_rad(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def F_rad(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
     
     @np.vectorize
     @staticmethod
-    def F_con(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def F_con(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
 
     @np.vectorize
     @staticmethod
-    def convectiveLogGradient(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def convectiveLogGradient(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         raise NotImplementedError()
         return 0
 
     @np.vectorize
     @staticmethod
-    def adiabaticLogGradient(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def adiabaticLogGradient(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         return 0
 
 
@@ -60,7 +60,7 @@ class IdealGas():
     ## TBD it looks like most of these are useless? i mean the original code saves them but doesnt seem to use things like entropy or the weird delta
     @np.vectorize
     @staticmethod
-    def density(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def density(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns density according to ideal gas law
         """
@@ -71,7 +71,7 @@ class IdealGas():
 
     @np.vectorize
     @staticmethod
-    def convectiveLogGradient(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def convectiveLogGradient(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -80,7 +80,7 @@ class IdealGas():
     
     @np.vectorize
     @staticmethod
-    def entropy(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def entropy(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -89,7 +89,7 @@ class IdealGas():
     
     @np.vectorize
     @staticmethod
-    def adiabaticLogGradient(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def adiabaticLogGradient(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -98,7 +98,7 @@ class IdealGas():
     
     @np.vectorize
     @staticmethod
-    def cp(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def cp(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -107,7 +107,7 @@ class IdealGas():
     
     @np.vectorize
     @staticmethod
-    def cv(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def cv(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -116,7 +116,7 @@ class IdealGas():
 
     @np.vectorize
     @staticmethod
-    def delta(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def delta(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -125,7 +125,7 @@ class IdealGas():
 
     @np.vectorize
     @staticmethod
-    def F_rad(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def F_rad(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """
@@ -134,7 +134,7 @@ class IdealGas():
 
     @np.vectorize
     @staticmethod
-    def F_con(temperature: float | np.ndarray[float], pressure: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def F_con(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
         """

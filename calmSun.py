@@ -25,7 +25,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
     """
     maxDepth *= c.Mm
 
-    def pressureScaleHeight(logP:float|np.ndarray, z:float|np.ndarray, T:float|np.ndarray) -> float | np.ndarray[float]:
+    def pressureScaleHeight(logP:float|np.ndarray, z:float|np.ndarray, T:float|np.ndarray) -> float | np.ndarray:
         """
         returns the pressure scale height z meters below the surface if the pressure there is P = exp(log(P)). log is used cuz it's numerically more stable 
         """
@@ -34,7 +34,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
         H = P/(rho*g(z))
         return H
     
-    def advectiveGradient(logP: float | np.ndarray[float], z: float | np.ndarray[float], T: float | np.ndarray[float]) -> float | np.ndarray[float]:
+    def advectiveGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
         # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
         P = np.exp(logP)
         return StateEq.convectiveLogGradient(temperature=T, pressure=P)

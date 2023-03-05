@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
-from dataStructure import SingleTimeDatapoint
+from dataStructure import SingleTimeDatapoint, Data
 import constants as c
-
 
 def getInitialConditions(numberOfZSteps: int, maxDepth: float) -> SingleTimeDatapoint:
     """
@@ -13,7 +12,7 @@ def getInitialConditions(numberOfZSteps: int, maxDepth: float) -> SingleTimeData
 
 def mockupDataSetterUpper(zLength:int = 10) -> SingleTimeDatapoint:
     """
-    mockup data setter upper that just makes bunch of weird powers of ten instead of the pressures and other datapoints of length 1+2**zLengthPower
+    mockup data setter upper that just makes bunch of weird powers of ten instead of the pressures and other datapoints of length zLength
     """
     ones = np.ones(zLength)
     maxdepth = 4

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from dataStructure import Data, SingleTimeDatapoint
+from dataStructure import Data, SingleTimeDatapoint, createDataFromFolder, dictionaryOfVariables
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper
 import constants as c
@@ -19,18 +19,19 @@ def TestDataStractureSave() -> None:
     data.appendDatapoint(datapoint)
 
     foldername = "SaveTest"
-    data.saveToFolder(foldername)
+    try:
+        data.saveToFolder(foldername)
 
-    loadedbs = np.loadtxt(foldername+"/B_0.csv", delimiter = ",", skiprows = 1)
-    loadedTemperatures = np.loadtxt(foldername+"/Temperature.csv", delimiter=",", skiprows=1)
-    loadedPressures = np.loadtxt(foldername+"/Pressure.csv", delimiter = ",", skiprows = 1)
-    loadedF_rads = np.loadtxt(foldername+"/F_rad.csv", delimiter = ",", skiprows = 1)
-    loadedF_cons = np.loadtxt(foldername+"/F_con.csv", delimiter=",", skiprows=1)
-    loadedTimes = np.loadtxt(foldername+"/Time.csv",
-                             delimiter=",", skiprows=1)
-    loadedDepths = np.loadtxt(foldername+"/Depth.csv", delimiter=",", skiprows=1)
+        loadedbs = np.loadtxt(foldername+"/B_0.csv", delimiter = ",", skiprows = 1)
+        loadedTemperatures = np.loadtxt(foldername+"/Temperature.csv", delimiter=",", skiprows=1)
+        loadedPressures = np.loadtxt(foldername+"/Pressure.csv", delimiter = ",", skiprows = 1)
+        loadedF_rads = np.loadtxt(foldername+"/F_rad.csv", delimiter = ",", skiprows = 1)
+        loadedF_cons = np.loadtxt(foldername+"/F_con.csv", delimiter=",", skiprows=1)
+        loadedTimes = np.loadtxt(foldername+"/Time.csv",
+                                 delimiter=",", skiprows=1)
+        loadedDepths = np.loadtxt(foldername+"/Depth.csv", delimiter=",", skiprows=1)
 
-    os.system(f"rm -r {foldername}")
+    finally: os.system(f"rm -r {foldername}")
     
 
     ### expected values
@@ -131,9 +132,35 @@ def TestDataStractureSave() -> None:
     assert np.array_equal(loadedPressures, pressures)
     assert np.array_equal(loadedTimes, times)
 
+def TestDataStructureLoad() -> None:
+    datapoint = mockupDataSetterUpper(zLength=17)
+
+    data = Data(finalT=3*c.hour, numberOfTSteps=4)
+
+    data.appendDatapoint(datapoint)
+    data.appendDatapoint(datapoint)
+    data.appendDatapoint(datapoint)
+    data.appendDatapoint(datapoint)
+
+    foldername = "LoadTest"
+    try:
+        data.saveToFolder(foldername)
+        loaded = createDataFromFolder(foldername=foldername)
+    finally: os.system(f"rm -r {foldername}")
+
+    for i, _ in enumerate(data.times):
+        try:
+            savedVariables = dictionaryOfVariables(data.values[i])
+            loadedVariables = dictionaryOfVariables(loaded.values[i])
+        except AttributeError:
+            break
+        for key, saved, loaded in zip(savedVariables.keys(), savedVariables.values(), loadedVariables.values()):
+            assert np.array_equal(saved, loaded)
+
 
 def main():
     TestDataStractureSave()
+    TestDataStructureLoad()
 
     print("Tests passed :)")
 
