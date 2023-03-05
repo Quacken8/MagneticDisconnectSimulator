@@ -145,15 +145,14 @@ def TestDataStructureLoad() -> None:
     foldername = "LoadTest"
     try:
         data.saveToFolder(foldername)
-        loaded = createDataFromFolder(foldername=foldername)
+        loadedData = createDataFromFolder(foldername=foldername)
     finally: os.system(f"rm -r {foldername}")
 
     for i, _ in enumerate(data.times):
-        try:
-            savedVariables = dictionaryOfVariables(data.values[i])
-            loadedVariables = dictionaryOfVariables(loaded.values[i])
-        except AttributeError:
-            break
+            
+        savedVariables = dictionaryOfVariables(data.values[i])
+        loadedVariables = dictionaryOfVariables(loadedData.values[i])
+
         for key, saved, loaded in zip(savedVariables.keys(), savedVariables.values(), loadedVariables.values()):
             assert np.array_equal(saved, loaded)
 
