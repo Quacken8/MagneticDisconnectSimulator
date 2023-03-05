@@ -12,7 +12,7 @@ def dictionaryOfVariables(A: object) -> dict:
 
 
 unitsDictionary = {
-    "time" : "h"
+    "time" : "h",
     "depth": "mM",
     "numberOfZSteps": "1",
     "maxDepth": "mM",
@@ -115,10 +115,10 @@ class Data():
         cvFilename = f"{outputFolderName}/cv.csv"
         deltaFilename = f"{outputFolderName}/delta.csv"
 
-        np.savetxt(timeFilename, self.times/c.hour, header=f"time [{unitsDictionary["time"]}]", delimiter=",")
+        np.savetxt(timeFilename, self.times/c.hour, header=f"time [{unitsDictionary['time']}]", delimiter=",")
 
         tosaveZs = self.values[0].zs
-        np.savetxt(depthFilename, tosaveZs/c.Mm, header=f"depth [{unitsDictionary["depth"]}]", delimiter=",")
+        np.savetxt(depthFilename, tosaveZs/c.Mm, header=f"depth [{unitsDictionary['depth']}]", delimiter=",")
 
         numberOfZSteps = len(tosaveZs)
         toSaveTemperatures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
