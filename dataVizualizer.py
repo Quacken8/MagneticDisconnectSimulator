@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 from dataStructure import Data, SingleTimeDatapoint, dictionaryOfVariables, unitsDictionary
 import numpy.typing as npt
 import constants as c
+from typing import Iterable
         
 
-def plotSingleTimeDatapoint(datapoint: SingleTimeDatapoint, toPlot: npt.ArrayLike, pltshow: bool = True) -> None:
+def plotSingleTimeDatapoint(datapoint: SingleTimeDatapoint, toPlot: Iterable[str], pltshow: bool = True) -> None:
 
     zs = datapoint.zs/c.Mm
     variables = dictionaryOfVariables(datapoint)

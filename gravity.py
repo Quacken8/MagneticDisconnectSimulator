@@ -10,7 +10,7 @@ uses the model S
 """
 
 
-def volumeOfSphericalLayer(radius:float|np.ndarray, width:float|np.ndarray)->float|np.ndarray:
+def volumeOfSphericalLayer(radius:float|np.ndarray, width:float|np.ndarray)->float|np.ndarray):
     """
     volume of a spherical layer which's (??english?) bottom boundary has radius r and the top boundary has radius r+width
     """
