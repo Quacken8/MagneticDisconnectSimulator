@@ -37,7 +37,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
     def advectiveGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
         # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
         P = np.exp(logP)
-        return StateEq.convectiveGradient(temperature=T, pressure=P)
+        return StateEq.convectiveLogGradient(temperature=T, pressure=P)
     
     # the two above functions are actually right hand sides of differential equations dz/dlogP and dT/dlogP respectively. They share the independedt variable logP. To solve them we put them together into one array and use scipy integrator
 

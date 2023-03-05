@@ -3,6 +3,33 @@ import numpy as np
 import constants as c
 import os
 
+def dictionaryOfVariables(A: object) -> dict:
+    """makes dictionary of name value pairs of a class"""
+    dic = {key: value for key, value in A.__dict__.items(
+    ) if not key.startswith('__') and not callable(key)}
+
+    return dic
+
+
+unitsDictionary = {
+    "time" : "h"
+    "depth": "mM",
+    "numberOfZSteps": "1",
+    "maxDepth": "mM",
+    "temperatures": "K",
+    "pressures": "Pa",
+    "rhos": "kg/m^3",
+    "B_0s": "T",
+    "F_rads": "W/m^2",
+    "F_cons": "W/m^2",
+    "entropies": "J/K",
+    "nablaAds": "log(Pa)/m", # TBD this aint correct lol
+    "cps": "J/(kg.K)",
+    "cvs": "J/(kg.K)",
+    "deltas": "" # the fuck is delta TBD
+}
+
+
 class SingleTimeDatapoint():
     """
     class that saves an instanteanous state of the simulation. Similar to Data class, but only for one t
@@ -88,10 +115,10 @@ class Data():
         cvFilename = f"{outputFolderName}/cv.csv"
         deltaFilename = f"{outputFolderName}/delta.csv"
 
-        np.savetxt(timeFilename, self.times/c.hour, header="time [h]", delimiter=",")
+        np.savetxt(timeFilename, self.times/c.hour, header=f"time [{unitsDictionary["time"]}]", delimiter=",")
 
         tosaveZs = self.values[0].zs
-        np.savetxt(depthFilename, tosaveZs/c.Mm, header="depth [Mm]", delimiter=",")
+        np.savetxt(depthFilename, tosaveZs/c.Mm, header=f"depth [{unitsDictionary["depth"]}]", delimiter=",")
 
         numberOfZSteps = len(tosaveZs)
         toSaveTemperatures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
@@ -121,16 +148,15 @@ class Data():
             toSavedeltas[i] = datapoint.deltas
             
 
-        np.savetxt(temperatureFilename, toSaveTemperatures.T, header="temperature [K], rows index depth, columns index time", delimiter=",")
-        np.savetxt(pressureFilename, toSavePressures.T, header="pressure [Pa], rows index depth, columns index time", delimiter=",")
-        np.savetxt(densityFilename, toSaveDensities.T, header="density [kg/m^3], rows index depth, columns index time", delimiter=",")  # TBD these units
-        np.savetxt(B_0Filename, toSaveB_0s.T/c.Gauss, header="B_0 [Gauss], rows index depth, columns index time", delimiter=",")
-        np.savetxt(F_conFilename, toSaveF_cons.T, header="F_con [???], rows index depth, columns index time", delimiter=",") # TBD these units
-        np.savetxt(F_radFilename, toSaveF_rads.T,header="F_rad [???], rows index depth, columns index time", delimiter=",") # TBD these units
-        np.savetxt(entropyFilename, toSaveEntropies.T,header="S [J/K], rows index depth, columns index time", delimiter=",")  # TBD these units
-        np.savetxt(nablaAdFilename, toSaveNablaAds.T,header="nablaAd [???], rows index depth, columns index time", delimiter=",") # TBD these units
-        np.savetxt(cpFilename, toSavecps.T,header="cp [J/K], rows index depth, columns index time", delimiter=",") # TBD these units
-        np.savetxt(cvFilename, toSavecvs.T,header="cv [J/K], rows index depth, columns index time", delimiter=",") # TBD these units
-        np.savetxt(deltaFilename, toSavedeltas.T, header="Delta [???], rows index depth, columns index time", delimiter=",") # TBD these units
-        
+        np.savetxt(temperatureFilename, toSaveTemperatures.T, header=f"temperature [{unitsDictionary['temperatures']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(pressureFilename, toSavePressures.T, header=f"pressure [{unitsDictionary['pressures']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(densityFilename, toSaveDensities.T, header=f"density [{unitsDictionary['rhos']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(B_0Filename, toSaveB_0s.T/c.Gauss, header=f"B_0 [{unitsDictionary['B_0s']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(F_conFilename, toSaveF_cons.T, header=f"F_con [{unitsDictionary['F_cons']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(F_radFilename, toSaveF_rads.T, header=f"F_rad [{unitsDictionary['F_rads']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(entropyFilename, toSaveEntropies.T, header=f"S [{unitsDictionary['entropies']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(nablaAdFilename, toSaveNablaAds.T, header=f"nablaAd [{unitsDictionary['nablaAds']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(cpFilename, toSavecps.T, header=f"cp [{unitsDictionary['cps']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(cvFilename, toSavecvs.T, header=f"cv [{unitsDictionary['cvs']}], rows index depth, columns index time", delimiter=",")
+        np.savetxt(deltaFilename, toSavedeltas.T, header=f"Delta [{unitsDictionary['deltas']}], rows index depth, columns index time", delimiter=",")
         
