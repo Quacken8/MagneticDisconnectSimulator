@@ -11,6 +11,10 @@ from gravity import g
 from scipy.integrate import ode as scipyODE
 import constants as c
 
+
+#FIXME - this is made regarding the log of pressure however the new state eq tables will probably work with T and Rho as their variables; therefore the of integration dP/dz should rly go to dP/drho dRho/dz cuz the new tables also support dp/drho
+# FIXME - or rather dlogP/dP dP/drho drho/dz of course
+
 def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperature:float, maxDepth:float) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to calm sun (i.e. one without the flux tube). This model (especially the pressure) is necessary for the calculation of B. It integrates hydrostatic equilibrium (which boils down to solving a set of two ODEs that are a function of logP)
@@ -30,12 +34,12 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
         returns the pressure scale height z meters below the surface if the pressure there is P = exp(log(P)). log is used cuz it's numerically more stable 
         """
         P = np.exp(logP)
-        rho = StateEq.density(temperature = T, pressure = P) # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
+        rho = StateEq.density(temperature = T, pressure = P) # TODO at first im just working with this simple  eq, later to be replaced with the sophisticated thing
         H = P/(rho*g(z))
         return H
     
-    def advectiveGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
-        # TBD at first im just working with this simple  eq, later to be replaced with the sophisticated thing
+    def adviabaticGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
+        # TODO at first im just working with this simple  eq, later to be replaced with the sophisticated thing
         P = np.exp(logP)
         return StateEq.convectiveLogGradient(temperature=T, pressure=P)
     
@@ -52,16 +56,16 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
         T = zTArray[1]
 
         H = pressureScaleHeight(logP, z, T)
-        nablaAdj = advectiveGradient(logP, z, T)
+        nablaAdj = adviabaticGradient(logP, z, T)
 
         return np.array([H, nablaAdj])
     
     ODEIntegrator = scipyODE(setOfODEs)
-    ODEIntegrator.set_integrator("dopri5") # this is the RK integrator of order (4)5. Is this the best option? TBD
+    ODEIntegrator.set_integrator("dopri5") # TODO this is the RK integrator of order (4)5. Is this the best option?
 
     surfaceZTValues = np.array([0, surfaceTemperature]) # z = 0 is the definition of surface
     ODEIntegrator.set_initial_value(surfaceZTValues, logSurfacePressure)
-    
+
     # now for each logP (by stepping via dlogP) we find T and z and save them to these arrays
 
     calmSunZs = []
@@ -69,7 +73,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
     calmSunLogPs = []
 
     currentZ = 0
-    while (currentZ < maxDepth):  # can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs? TBD
+    while (currentZ < maxDepth):  # TODO can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs?
 
         currentZ = ODEIntegrator.y[0]
         currentT = ODEIntegrator.y[1]
@@ -80,7 +84,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
 
         currentLogP += dlogP    # step into higher pressure
         ODEIntegrator.integrate(currentLogP)    # get new T and z from this
-        if not ODEIntegrator.successful(): break # TBD hey why is this not finishing a viable break condition viz old code ???? raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
+        if not ODEIntegrator.successful(): break # TODO hey why is this not finishing a viable break condition viz old code ???? raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
 
     calmSunPs = np.exp(calmSunLogPs)
 

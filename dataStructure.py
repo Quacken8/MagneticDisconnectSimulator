@@ -25,10 +25,10 @@ unitsDictionary = {
     "F_rads": "W/m^2",
     "F_cons": "W/m^2",
     "entropies": "J/K",
-    "nablaAds": "log(Pa)/m", # TBD this aint correct lol
+    "nablaAds": "log(Pa)/m", # TODO this aint correct lol
     "cps": "J/(kg.K)",
     "cvs": "J/(kg.K)",
-    "deltas": "" # the fuck is delta TBD
+    "deltas": "" # TODO the fuck is delta
 }
 
 
@@ -65,7 +65,7 @@ class Data():
     VARIABLES
     ----
     Ts, 2D np array of doubles: temperatures in Kelvin. First index stands for z index (i.e. depth), second for t index (i.e. time)
-    pressures, 2D np array of doubles: temperatures in TBD. First index stands for z index (i.e. depth), second for t index (i.e. time)
+    pressures, 2D np array of doubles: temperatures in Kelvin. First index stands for z index (i.e. depth), second for t index (i.e. time)
     """
 
     def __init__(self, finalT : float, numberOfTSteps : int, startT:float = 0):

@@ -12,9 +12,9 @@ def getInitialConditions(numberOfZSteps: int, maxDepth: float) -> SingleTimeData
 
 def mockupDataSetterUpper(zLength:int = 10) -> SingleTimeDatapoint:
     """
-    mockup data setter upper that just makes bunch of weird powers of ten instead of the pressures and other datapoints of length zLength
+    mockup data setter upper that just makes bunch of weird datapoints instead of the pressures and other datapoints of length zLength
     """
-    ones = np.ones(zLength)
+    ones = np.arange(zLength)
     maxdepth = 4
     zs = np.linspace(0,maxdepth,num=zLength)
 

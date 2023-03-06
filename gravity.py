@@ -9,7 +9,6 @@ gravitational acceleration in m/s^2 z meters below the surface
 uses the model S 
 """
 
-
 def volumeOfSphericalLayer(radius:float|np.ndarray, width:float|np.ndarray)->float|np.ndarray:
     """
     volume of a spherical layer which's (??english?) bottom boundary has radius r and the top boundary has radius r+width
@@ -29,4 +28,7 @@ for i in range(1, masses.size):
 gravitationalAccelerations = (c.G*masses/(rs*rs))[::-1]
 # reversed back so it can be used with depths z again
 
-g = ScipySpline(modelZs, gravitationalAccelerations, s=0, k=1)  # linearni interpolace
+"""
+linear interpolation of Sun's gravity z meters below the surface
+"""
+g = ScipySpline(modelZs, gravitationalAccelerations, s=0, k=1)
