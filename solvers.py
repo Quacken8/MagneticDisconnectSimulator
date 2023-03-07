@@ -36,6 +36,28 @@ def oldYSolver(innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float
 
     it tries to solve the equation
     A y_n+1 = b_n = y^3_n - 2mu/y(p_e-p_i)
+
+    it works according to this flowchart
+
+                   ┌─────────────────────┐
+                   │                     │
+              ┌────▼─┐                   │
+              │get ys│                   │
+        ┌─────┴┬─┬───┴──────────────┐    │
+        │try Ay│ │try y^3-2mu/y(p-p)│    │
+        ├──────┴─┴────┬─────────────┘    │
+        │correction = │                  │
+        │             └──────────────┐   │
+        │Solve(Ay'=y-(y^3-2mu/y(p-p))│   │
+        ├──────────────────────┬─────┘   │
+    ┌──►│y_new = y + corrFac*y'│         │
+    │   ├──────────────────────┴──────┐  │
+    │   │try Ay'  try  y'^3-2mu/y'p-p)│  │
+    │   └─┬─────────────┬─────────────┘  │
+    │     │ Worse?      │Better?         │
+    │   ┌─▼──────────┐  └────────────────┘
+    └───┤corrFac*=0.5│
+        └────────────┘
     """
 
     numberOfZSteps = yGuess.size
@@ -56,7 +78,7 @@ def oldYSolver(innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float
     correctionFactor = 1
     while guessError > tolerance:
 
-        changeInbetweenSteps = scipySparseSolve(matrixOfSecondDifferences, guessRightSide)
+        changeInbetweenSteps = scipySparseSolve(matrixOfSecondDifferences, rightSide-guessRightSide)
         changeInbetweenSteps[0] = 0
         changeInbetweenSteps[-1] = 0
 
