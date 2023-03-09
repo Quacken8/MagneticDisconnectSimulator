@@ -12,7 +12,7 @@ from scipy.integrate import ode as scipyODE
 import constants as c
 
 
-#FIXME - this is made regarding the log of pressure however the new state eq tables will probably work with T and Rho as their variables; therefore the of integration dP/dz should rly go to dP/drho dRho/dz cuz the new tables also support dp/drho
+# FIXME - this is made regarding the log of pressure however the new state eq tables will probably work with T and Rho as their variables; therefore the of integration dP/dz should rly go to dP/drho dRho/dz cuz the new tables also support dp/drho
 # FIXME - or rather dlogP/dP dP/drho drho/dz of course
 
 def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperature:float, maxDepth:float) -> SingleTimeDatapoint:
@@ -39,7 +39,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
         return H
     
     def adviabaticGradient(logP: float | np.ndarray, z: float | np.ndarray, T: float | np.ndarray) -> float | np.ndarray:
-        # TODO at first im just working with this simple  eq, later to be replaced with the sophisticated thing
+        # TODO at first im just working with this simple eq, later to be replaced with the sophisticated thing
         P = np.exp(logP)
         return StateEq.convectiveLogGradient(temperature=T, pressure=P)
     
@@ -49,7 +49,7 @@ def getCalmSunDatapoint(dlogP:float, logSurfacePressure:float, surfaceTemperatur
         """
         the set of ODEs that tie logP, T and z together
         dz/dlogP = H(T, P, z)
-        dT/dlogP = ∇(T, P)
+        dT/dlogP = ∇(T, P, z)
         first index corresponds to z/(logP), second index to function of T(logP)
         """
         z = zTArray[0]

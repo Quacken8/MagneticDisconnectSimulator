@@ -29,7 +29,7 @@ def getNewYs(innerPs, outerPs, totalMagneticFlux):
     raise NotImplementedError()
 
 
-def oldYSolver(innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float, yGuess : np.ndarray, tolerance : float = 1e-5) -> np.ndarray:
+def oldYSolver(zs : np.ndarray, innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float, yGuess : np.ndarray, tolerance : float = 1e-5) -> np.ndarray:
     """
     solver of the differential equation taken from the bc thesis using tridiagonal matrix
     this may be very slow cuz it's of the first order
@@ -47,24 +47,26 @@ def oldYSolver(innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float
         │try Ay│ │try y^3-2mu/y(p-p)│    │
         ├──────┴─┴────┬─────────────┘    │
         │correction = │                  │
-        │             └──────────────┐   │
+        │   = y' =    └──────────────┐   │
         │Solve(Ay'=y-(y^3-2mu/y(p-p))│   │
         ├──────────────────────┬─────┘   │
     ┌──►│y_new = y + corrFac*y'│         │
-    │   ├──────────────────────┴──────┐  │
-    │   │try Ay'  try  y'^3-2mu/y'p-p)│  │
-    │   └─┬─────────────┬─────────────┘  │
+    │   ├───────┬─┬────────────┴──────┐  │
+    │   │try Ayn│ │try yn^3-2mu/ynp-p)│  │
+    │   └─┬─────┴─┴─────┬─────────────┘  │
     │     │ Worse?      │Better?         │
     │   ┌─▼──────────┐  └────────────────┘
     └───┤corrFac*=0.5│
         └────────────┘
     """
 
-    numberOfZSteps = yGuess.size
+    numberOfZSteps = zs.size
+    stepsizes = zs[:-1]-zs[1:]
+
     matrixOfSecondDifferences = 0.5*totalMagneticFlux/np.pi * scipyDiagsMatrix(
-        [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps))  # ye idk what this error is about, it works
-
-
+        [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps))  # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works
+    #FIXME - add division by step size
+    raise NotImplementedError("division by stepsizes is missing; is the second derivative in the thesis just wrong?")
     P_eMinusP_i = outerPs - innerPs
 
     def exactRightHandSide(y:np.ndarray)->np.ndarray:
@@ -74,7 +76,7 @@ def oldYSolver(innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float
     guessRightSide = matrixOfSecondDifferences@yGuess
 
     guessError = np.linalg.norm(rightSide - guessRightSide)
-    #TODO - comment this section properly 
+
     correctionFactor = 1
     while guessError > tolerance:
 
@@ -87,12 +89,13 @@ def oldYSolver(innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float
         newRightSide = exactRightHandSide(newYGuess)
         newGuessRightSide = matrixOfSecondDifferences@newYGuess
 
-        if np.linalg.norm(newGuessRightSide - guessRightSide) < guessError:
+        newGuessError = np.linalg.norm(newGuessRightSide - guessRightSide)
+
+        if newGuessError < guessError:
             yGuess = newYGuess
             rightSide = newRightSide
             guessRightSide = newGuessRightSide
-            
-            guessError = np.linalg.norm(rightSide - guessRightSide)
+            guessError = newGuessError
 
             correctionFactor *= 1.1
         else:
