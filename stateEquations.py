@@ -2,6 +2,7 @@
 import numpy as np
 import constants as c
 import warnings
+from gravity import massBelowZ
 
 class MockupIdealGas():
     @np.vectorize
@@ -54,7 +55,15 @@ class MockupIdealGas():
     @staticmethod
     def adiabaticLogGradient(temperature: float | np.ndarray, density: float | np.ndarray) -> float | np.ndarray:
         return 0
-
+    
+    @np.vectorize
+    @staticmethod
+    def radiativeLogGradient(temperature: float | np.ndarray, density: float | np.ndarray, z: float | np.ndarray) -> float | np.ndarray:
+        P = MockupIdealGas.pressure(temperature=temperature, density=density)
+        luminostiy = c.solarLuminosity
+        kappa = opacity
+        Mr = massBelowZ(z)
+        return 3*kappa*P*luminostiy/(16*np.pi*a*C*c.G*Mr*temperature**4)
 
 class IdealGas():
     ## TODO it looks like most of these are useless? i mean the original code saves them but doesnt seem to use things like entropy or the weird delta

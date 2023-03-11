@@ -8,6 +8,9 @@ from scipy.sparse.linalg import spsolve as scipySparseSolve
 import constants as c
 
 def getNewTs(currentState:SingleTimeDatapoint, dt:float):
+    """
+    integrates differential equation dT/dt = -1/(rho cp)(F_rad+F_conv)
+    """
     raise NotImplementedError()
 
 
@@ -64,7 +67,7 @@ def oldYSolver(zs : np.ndarray, innerPs: np.ndarray, outerPs: np.ndarray, totalM
     stepsizes = zs[:-1]-zs[1:]
 
     matrixOfSecondDifferences = 0.5*totalMagneticFlux/np.pi * scipyDiagsMatrix(
-        [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps))  # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works
+        [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps))  # type: ignore # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works: that's why the type: ignore
     #FIXME - add division by step size
     raise NotImplementedError("division by stepsizes is missing; is the second derivative in the thesis just wrong?")
     P_eMinusP_i = outerPs - innerPs
@@ -102,3 +105,16 @@ def oldYSolver(zs : np.ndarray, innerPs: np.ndarray, outerPs: np.ndarray, totalM
             correctionFactor*=0.5
 
     return yGuess
+
+def main():
+    """ test code for this file """
+    length = 5
+    zs = np.linspace(0, 50, length)
+    innerPs = np.ones(length)*3
+    outerPs = np.ones(length)*5
+    totalMagneticflux = 4
+    yGuess = zs[:]
+    oldYSolver(zs, innerPs, outerPs, totalMagneticflux, yGuess)
+
+if __name__ == "__main__":
+    main()

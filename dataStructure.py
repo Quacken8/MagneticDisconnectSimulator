@@ -2,9 +2,10 @@
 import numpy as np
 import constants as c
 import os
+import warnings
 
 def dictionaryOfVariables(A: object) -> dict:
-    """makes dictionary of name value pairs of a class"""
+    """makes dictionary of variableName value pairs of a class"""
     dic = {key: value for key, value in A.__dict__.items(
     ) if not key.startswith('__') and not callable(key)}
 
@@ -72,8 +73,9 @@ class Data():
         if startT == finalT: raise ValueError("your start T equals end T")
         self.finalT = finalT
         self.times = np.linspace(start=startT, stop=self.finalT, num=numberOfTSteps)
-        self.dt = self.times[1]
-        self.numberOfTSteps = self.times.size
+        self.dt = self.times[1] #TODO - uniform timestep might not be the smartest
+        warnings.warn("Assuming uniform timestep when creating data")
+        self.numberOfTSteps = numberOfTSteps
 
         self.values = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
         self.occupiedElements = 0

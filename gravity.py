@@ -15,15 +15,21 @@ def volumeOfSphericalLayer(radius:float|np.ndarray, width:float|np.ndarray)->flo
     """
     return 4/3*np.pi * ((radius + width)*(radius + width)*(radius + width) - radius*radius*radius)
 
-modelZs   = np.loadtxt("model_S_raw.dat", usecols=0)
+modelZs   = np.loadtxt("model_S_raw.dat", usecols=0, skiprows=1)
 rs = modelZs.max()-modelZs
 
 # the model indexes with depth, therefore the array has to be flipped
-modelRhos = np.loadtxt("model_S_raw.dat", usecols=3)[::-1]
+modelRhos = np.loadtxt("model_S_raw.dat", usecols=3, skiprows=1)[::-1]
 masses = np.zeros(modelZs.size)
 
 for i in range(1, masses.size):
     masses[i] = masses[i-1] + modelRhos[i] * volumeOfSphericalLayer(rs[i], rs[i]-rs[i-1])
+
+
+"""
+linear interpolation of tota mass of the Sun below z depth
+"""
+massBelowZ = ScipySpline(modelZs, masses[::-1], s = 0, k = 1)
 
 gravitationalAccelerations = (c.G*masses/(rs*rs))[::-1]
 # reversed back so it can be used with depths z again
