@@ -8,7 +8,7 @@ import constants as c
 from typing import Iterable
         
 
-def plotSingleTimeDatapoint(datapoint: SingleTimeDatapoint, toPlot: Iterable[str], pltshow: bool = True) -> None:
+def plotSingleTimeDatapoint(datapoint: SingleTimeDatapoint, toPlot: Iterable[str], pltshow: bool = True, log = False) -> None:
 
     zs = datapoint.zs/c.Mm
 
@@ -19,23 +19,28 @@ def plotSingleTimeDatapoint(datapoint: SingleTimeDatapoint, toPlot: Iterable[str
         plot = plot.lower()
         fig, ax = plt.subplots()
         dataToPlot = variables[plot]
-        ax.plot(zs, dataToPlot, label=plot)
-        ax.set_xlabel(f"z [{unitsDictionary['depth']}]")
-        ax.set_ylabel(f"{plot} [{unitsDictionary[plot]}]")
-
-    plt.legend()
+        if log:
+            ax.loglog(zs, dataToPlot, label=plot)
+        else:
+            ax.plot(zs, dataToPlot, label=plot)
+        ax.set_xlabel(
+            f"z [{unitsDictionary['depth']}]")
+        ax.set_ylabel(
+            f"{plot} [{unitsDictionary[plot]}]")
+        plt.legend()
+    
     if pltshow: plt.show()
 
 def main():
     """
     test program
     """
-    from initialConditionsSetterUpper import mockupDataSetterUpper
-    datapoint = mockupDataSetterUpper(5)
+    from initialConditionsSetterUpper import modelSLoader
+    datapoint = modelSLoader(500)
 
-    toPlot = ["temperatures", "pressures"]
+    toPlot = ["temperatures", "pressures", "rhos"]
 
-    plotSingleTimeDatapoint(datapoint, toPlot)
+    plotSingleTimeDatapoint(datapoint, toPlot, log=True)
 
 if __name__ == "__main__":
     main()

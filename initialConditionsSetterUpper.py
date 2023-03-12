@@ -26,19 +26,22 @@ def mockupDataSetterUpper(zLength: int = 10) -> SingleTimeDatapoint:
 
 
 def modelSLoader(length: int) -> SingleTimeDatapoint:
+    """
+    loads model S into a single time datapoint of length length
+    """
     pathToModelS = "model_S_raw.dat"
     zeros = np.zeros(length)  # FIXME used for all unknown cols from model S
-    zs = np.loadtxt(pathToModelS, skiprows=1, delimiter="   ", usecols=0)
+    zs = np.loadtxt(pathToModelS, skiprows=1, usecols=0)
     lengthOfSModel = len(zs)
     skippingIndex = lengthOfSModel//length
 
-    zs = zs[::skippingIndex]
-    Ts = np.loadtxt(pathToModelS, skiprows=1, delimiter="   ",
-                    usecols=1)[::skippingIndex]
-    Ps = np.loadtxt(pathToModelS, skiprows=1, delimiter="   ",
-                    usecols=2)[::skippingIndex]
-    rhos = np.loadtxt(pathToModelS, skiprows=1, delimiter="   ", usecols=3)[
-        ::skippingIndex]
+    zs = zs[::skippingIndex][:length]
+    Ts = np.loadtxt(pathToModelS, skiprows=1,
+                    usecols=1)[::skippingIndex][:length]
+    Ps = np.loadtxt(pathToModelS, skiprows=1,
+                    usecols=2)[::skippingIndex][:length]
+    rhos = np.loadtxt(pathToModelS, skiprows=1, usecols=3)[
+        ::skippingIndex][:length]
     datapoint = SingleTimeDatapoint(temperatures=Ts, pressures=Ps, zs=zs, rhos=rhos, B_0s=zeros,
                                     F_rads=zeros, F_cons=zeros, entropies=zeros, nablaAds=zeros, cps=zeros, cvs=zeros, deltas=zeros)
 

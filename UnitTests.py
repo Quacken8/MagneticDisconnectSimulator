@@ -3,6 +3,7 @@ from dataStructure import Data, SingleTimeDatapoint, createDataFromFolder, dicti
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper
 from solvers import oldYSolver
+from initialConditionsSetterUpper import modelSLoader
 import constants as c
 import os
 
@@ -36,10 +37,16 @@ def TestDataStructureSaveLoad() -> None:
 def TestDiffEqBasedOnModelSData() -> None:
     #TODO - implement this
     # load model S data
-    zs = 
-    p_outer
+    length = 30
+    datapoint = modelSLoader(length)
+    internalPressure = ???
+    totalMagneticFlux = 1e13    #some weird ass number the other guy used
+    upperB = 0.2    #same lol
+    lowerB = 5*upperB
+    yGuess = np.linspace(upperB, lowerB, num=length)
     # run the diff eq
-    oldYSolver(zs, innerPs, outerPs, totalMagneticFlux, yGuess)
+    oldYSolver(datapoint.zs, internalPressure,
+               datapoint.pressures, totalMagneticFlux, yGuess)
 
     # have a look at it with your peepers
 
