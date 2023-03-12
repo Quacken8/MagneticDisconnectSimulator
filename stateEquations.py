@@ -63,7 +63,7 @@ class MockupIdealGas():
         luminostiy = c.solarLuminosity
         kappa = opacity
         Mr = massBelowZ(z)
-        return 3*kappa*P*luminostiy/(16*np.pi*a*C*c.G*Mr*temperature**4)
+        return 3*kappa*P*luminostiy/(16*np.pi*a*c.speedOfLight*c.G*Mr*temperature**4)
 
 class IdealGas():
     ## TODO it looks like most of these are useless? i mean the original code saves them but doesnt seem to use things like entropy or the weird delta

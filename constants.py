@@ -13,3 +13,4 @@ meanMolecularWeight = 0.6*MH+0.4*MHe  # of solar matter
 mu0 = 1.25663706212e-6  # N/A^2 permeability of vacuum [CODATA 2018]
 G = 6.67430e10-11   # m^3/(kg s^2) gravitational constant [CODATA 2018]
 solarLuminosity = 3.828e26  # W [IAU 2015]
+speedOfLight = 299792458 # m/s [CODATA 2018]

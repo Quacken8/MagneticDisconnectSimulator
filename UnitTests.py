@@ -2,6 +2,7 @@
 from dataStructure import Data, SingleTimeDatapoint, createDataFromFolder, dictionaryOfVariables
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper
+from solvers import oldYSolver
 import constants as c
 import os
 
@@ -35,8 +36,10 @@ def TestDataStructureSaveLoad() -> None:
 def TestDiffEqBasedOnModelSData() -> None:
     #TODO - implement this
     # load model S data
-
+    zs = 
+    p_outer
     # run the diff eq
+    oldYSolver(zs, innerPs, outerPs, totalMagneticFlux, yGuess)
 
     # have a look at it with your peepers
 

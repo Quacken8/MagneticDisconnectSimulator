@@ -58,6 +58,12 @@ class SingleTimeDatapoint():
         self.cvs = cvs
         self.deltas = deltas
 
+        allVariables = dictionaryOfVariables(self)
+        for variableName, variableValue in zip(allVariables.keys(), allVariables.values()):
+            if len(variableValue) != self.numberOfZSteps:
+                raise ValueError(
+                    f"Some of your variables ({variableName}) have the wrong length ({len(variableName)})")
+
 
 class Data():
     """
