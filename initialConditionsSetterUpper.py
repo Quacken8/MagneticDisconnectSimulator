@@ -35,7 +35,7 @@ def modelSLoader(length: int) -> SingleTimeDatapoint:
     lengthOfSModel = len(zs)
     skippingIndex = lengthOfSModel//length
 
-    zs = zs[::skippingIndex][:length]
+    zs = zs[::skippingIndex][:length] #FIXME - this doesnt properly downsample the data
     Ts = np.loadtxt(pathToModelS, skiprows=1,
                     usecols=1)[::skippingIndex][:length]
     Ps = np.loadtxt(pathToModelS, skiprows=1,

@@ -7,22 +7,36 @@ from scipy.sparse import diags as scipyDiagsMatrix
 from scipy.sparse.linalg import spsolve as scipySparseSolve
 import constants as c
 
-def getNewTs(currentState:SingleTimeDatapoint, dt:float):
+
+def getNewTs(currentState: SingleTimeDatapoint, dt: float):
     """
     integrates differential equation dT/dt = -1/(rho cp)(F_rad+F_conv)
     """
     raise NotImplementedError()
 
 
-def getNewPs(currentState:SingleTimeDatapoint, dt:float, upflowVelocity:float, totalMagneticFlux:float, bottomExternalPressure:float):
+def getNewPs(
+    currentState: SingleTimeDatapoint,
+    dt: float,
+    upflowVelocity: float,
+    totalMagneticFlux: float,
+    bottomExternalPressure: float,
+):
     """
     integrates pressure from the assumption of hydrostatic equilibrium (eq 6)
     dp/dz = rho(p(z), T(z)) g(z)
     """
-    bottomPressure = bcs.getBottomPressure(currentState=currentState, dt=dt, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, bottomExternalPressure=bottomExternalPressure)
+    bottomPressure = bcs.getBottomPressure(
+        currentState=currentState,
+        dt=dt,
+        upflowVelocity=upflowVelocity,
+        totalMagneticFlux=totalMagneticFlux,
+        bottomExternalPressure=bottomExternalPressure,
+    )
     # g(z)
-    
+
     raise NotImplementedError()
+
 
 def getNewYs(innerPs, outerPs, totalMagneticFlux):
     """
@@ -32,7 +46,14 @@ def getNewYs(innerPs, outerPs, totalMagneticFlux):
     raise NotImplementedError()
 
 
-def oldYSolver(zs : np.ndarray, innerPs: np.ndarray, outerPs: np.ndarray, totalMagneticFlux:float, yGuess : np.ndarray, tolerance : float = 1e-5) -> np.ndarray:
+def oldYSolver(
+    zs: np.ndarray,
+    innerPs: np.ndarray,
+    outerPs: np.ndarray,
+    totalMagneticFlux: float,
+    yGuess: np.ndarray,
+    tolerance: float = 1e-5,
+) -> np.ndarray:
     """
     solver of the differential equation taken from the bc thesis using tridiagonal matrix
     this may be very slow cuz it's of the first order
@@ -64,33 +85,43 @@ def oldYSolver(zs : np.ndarray, innerPs: np.ndarray, outerPs: np.ndarray, totalM
     """
 
     numberOfZSteps = zs.size
-    stepsizes = zs[:-1]-zs[1:]
+    stepsizes = zs[:-1] - zs[1:]
 
-    matrixOfSecondDifferences = 0.5*totalMagneticFlux/np.pi * scipyDiagsMatrix(
-        [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps))  # type: ignore # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works: that's why the type: ignore
-    #FIXME - add division by step size
-    raise NotImplementedError("division by stepsizes is missing; is the second derivative in the thesis just wrong?")
+    matrixOfSecondDifferences = (
+        0.5
+        * totalMagneticFlux
+        / np.pi
+        * scipyDiagsMatrix(
+            [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps)
+        )
+    )  # type: ignore # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works: that's why the type: ignore
+    # FIXME - add division by step size
+    raise NotImplementedError(
+        "division by stepsizes is missing; is the second derivative in the thesis just wrong?"
+    )
     P_eMinusP_i = outerPs - innerPs
 
-    def exactRightHandSide(y:np.ndarray)->np.ndarray:
-        return y*y*y - 2*c.mu0*P_eMinusP_i/y
-    
+    def exactRightHandSide(y: np.ndarray) -> np.ndarray:
+        return y * y * y - 2 * c.mu0 * P_eMinusP_i / y
+
     rightSide = exactRightHandSide(yGuess)
-    guessRightSide = matrixOfSecondDifferences@yGuess
+    guessRightSide = matrixOfSecondDifferences @ yGuess
 
     guessError = np.linalg.norm(rightSide - guessRightSide)
 
     correctionFactor = 1
     while guessError > tolerance:
 
-        changeInbetweenSteps = scipySparseSolve(matrixOfSecondDifferences, rightSide-guessRightSide)
+        changeInbetweenSteps = scipySparseSolve(
+            matrixOfSecondDifferences, rightSide - guessRightSide
+        )
         changeInbetweenSteps[0] = 0
         changeInbetweenSteps[-1] = 0
 
-        newYGuess = yGuess + correctionFactor*changeInbetweenSteps
+        newYGuess = yGuess + correctionFactor * changeInbetweenSteps
 
         newRightSide = exactRightHandSide(newYGuess)
-        newGuessRightSide = matrixOfSecondDifferences@newYGuess
+        newGuessRightSide = matrixOfSecondDifferences @ newYGuess
 
         newGuessError = np.linalg.norm(newGuessRightSide - guessRightSide)
 
@@ -102,19 +133,21 @@ def oldYSolver(zs : np.ndarray, innerPs: np.ndarray, outerPs: np.ndarray, totalM
 
             correctionFactor *= 1.1
         else:
-            correctionFactor*=0.5
+            correctionFactor *= 0.5
 
     return yGuess
 
+
 def main():
-    """ test code for this file """
+    """test code for this file"""
     length = 5
     zs = np.linspace(0, 50, length)
-    innerPs = np.ones(length)*3
-    outerPs = np.ones(length)*5
+    innerPs = np.ones(length) * 3
+    outerPs = np.ones(length) * 5
     totalMagneticflux = 4
     yGuess = zs[:]
     oldYSolver(zs, innerPs, outerPs, totalMagneticflux, yGuess)
+
 
 if __name__ == "__main__":
     main()
