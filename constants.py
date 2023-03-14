@@ -4,6 +4,8 @@ fundamental constants and some used units for the code with their units and sour
 """
 hour = 60 * 60  # seconds in an hour
 Mm = 1e6  # meters in megameter Mm
+cm = 1e-2 # meters in a centimeter
+gram = 1e-3 # kilgrams in a gram
 Gauss = 1e-4  # Gausses in one Tesla
 BoltzmannConstant = 1.380649e-23  # J/K [CODATA 2018]
 gasConstant = 8.314462618  # J/K/mol [CODATA 2018]
