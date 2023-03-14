@@ -184,6 +184,7 @@ class IdealGas:
         returns convectiveGradient according to ideal gas law
         """
         warnings.warn("Ur using ideal gas")
+        
         raise NotImplementedError()
 
     @np.vectorize

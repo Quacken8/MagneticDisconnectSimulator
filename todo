@@ -1,3 +1,4 @@
 //TODO - find out what the fuck the columns in model S are
 //TODO - test y solver
 //TODO - test T solver
+//TODO - solve the opacity weirdness - why doesnt mesa return some grid and only a weird curve in the logRho logT space?

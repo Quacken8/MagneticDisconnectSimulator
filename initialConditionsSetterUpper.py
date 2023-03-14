@@ -29,7 +29,7 @@ def modelSLoader(length: int) -> SingleTimeDatapoint:
     """
     loads model S into a single time datapoint of length length
     """
-    pathToModelS = "model_S_raw.dat"
+    pathToModelS = "externalData/model_S_raw.dat"
     zeros = np.zeros(length)  # FIXME used for all unknown cols from model S
     zs = np.loadtxt(pathToModelS, skiprows=1, usecols=0)
     lengthOfSModel = len(zs)
