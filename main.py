@@ -2,11 +2,14 @@
 
 import numpy as np
 from initialConditionsSetterUpper import getInitialConditions
-from dataVisualisator import visualizeData
+from dataVizualizer import visualizeData
 from dataStructure import Data, SingleTimeDatapoint
-import solvers
 import constants as c
 from calmSun import getCalmSunDatapoint
+
+# Choise of solvers:
+from solvers import firstOrderTSolver as getNewTs
+from solvers import oldYSolver as getNewYs
 
 # EVERYTHING IN SI!!!!
 
@@ -63,9 +66,9 @@ def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, out
 
         currentState = data.values[timeIndex]
 
-        newTs = solvers.getNewTs(currentState, dt)
-        newPs = solvers.getNewPs(currentState, dt, upflowVelocity, totalMagneticFlux)
-        newYs = solvers.getNewYs()
+        newTs = getNewTs(currentState, dt)
+        newPs = getNewPs(currentState, dt, upflowVelocity, totalMagneticFlux)
+        newYs = getNewYs()
         newB_0s = newYs*newYs
         newF_cons = solvers.getNewF_cons()
         newF_rads = solvers.getNewF_rads()

@@ -6,14 +6,65 @@ import numpy as np
 from scipy.sparse import diags as scipyDiagsMatrix
 from scipy.sparse.linalg import spsolve as scipySparseSolve
 import constants as c
+import warnings
 
 
-def getNewTs(currentState: SingleTimeDatapoint, dt: float):
+def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     """
-    integrates differential equation dT/dt = -1/(rho cp)(F_rad+F_conv)
+    solves the T equation 
+    dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
+    using scipys ODE integrator
     """
-    raise NotImplementedError()
 
+    zs = currentState.zs
+    Ts = currentState.temperatures
+    rhos = currentState.rhos
+    F_cons = currentState.F_cons
+    F_rads = currentState.F_rads
+    cps = currentState.cps
+
+    stepsizes = zs[1:] - zs[:-1]
+    dF_rads = np.concatenate( (
+        [(F_rads[1]-F_rads[0])/stepsizes[0]],
+        (F_rads[2:]-F_rads[:-2])/(stepsizes[:-1] + stepsizes[1:]),
+        [(F_rads[-1]-F_rads[-2])/stepsizes[-1]]) )
+    dF_cons = np.concatenate( (
+        [(F_cons[1]-F_cons[0])/stepsizes[0]],
+        (F_cons[2:]-F_cons[:-2])/(stepsizes[:-1] + stepsizes[1:]),
+        [(F_cons[-1]-F_cons[-2])/stepsizes[-1]]) )
+
+    dTdt = -1/(rhos*cps) * (dF_cons + dF_rads)
+
+    warnings.warn("This is just first order solver")
+    return Ts + dt*dTdt
+
+def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
+    """
+    solves the T equation the same way Bárta did
+    by solving 
+    Mb = 0
+    where M is a tridiag matrix
+    b is 
+    """
+    warnings.warn("Ur using the old T solver based on Bárta's work")
+    zs = currentState.zs
+    Ts = currentState.temperatures
+    Ps = currentState.pressures
+    rhos = currentState.rhos
+    F_cons = currentState.F_cons
+    F_rads = currentState.F_rads
+    cps = currentState.cps
+    opacities = ???
+
+    stepsizes = zs[1:] - zs[:-1]
+
+    B = 16*c.SteffanBoltzmann*Ts*Ts*Ts/(3*opacities*rhos) # -coefficient in front of dT/dz in F_rad, i.e. F_rad = -B dT/dz
+
+    A = np.concatenate( (
+        [(B[1]-B[0])/stepsizes[0]],
+        (B[2:]-B[:-2])/(stepsizes[:-1] + stepsizes[1:]),
+        [(B[-1]-B[-2])/stepsizes[-1]]) )    # this is an array of centered differences used to approximate first derivatives
+    
 
 def getNewPs(
     currentState: SingleTimeDatapoint,
@@ -83,6 +134,8 @@ def oldYSolver(
     └───┤corrFac*=0.5│
         └────────────┘
     """
+
+    warnings.warn("Ur using the old Y solver based on Bárta's work")
 
     numberOfZSteps = zs.size
     stepsizes = zs[:-1] - zs[1:]
