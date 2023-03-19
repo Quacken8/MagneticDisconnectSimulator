@@ -8,7 +8,6 @@ from scipy.sparse.linalg import spsolve as scipySparseSolve
 import constants as c
 import warnings
 
-
 def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     """
     solves the T equation 
@@ -138,20 +137,25 @@ def oldYSolver(
     warnings.warn("Ur using the old Y solver based on Bárta's work")
 
     numberOfZSteps = zs.size
-    stepsizes = zs[:-1] - zs[1:]
+    stepsizes = zs[1:] - zs[:-1]
+
+    # setup of matrix of centered differences; after semicolon is the part that takes care of border elements: one sided differencees
+
+    underDiag = -1/(stepsizes[:-1]+stepsizes[1:]); underDiag = np.append(underDiag, -1/stepsizes[-1])
+    overDiag = 1/(stepsizes[:-1]+stepsizes[1:]); overDiag = np.insert(overDiag, 0, 1/stepsizes[0])
+    diag = np.zeros(numberOfZSteps); diag[0] = -1; diag[-1] = 1
+
+    centeredDifferences = scipyDiagsMatrix(
+            [underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps)
+        )
 
     matrixOfSecondDifferences = (
         0.5
         * totalMagneticFlux
         / np.pi
-        * scipyDiagsMatrix(
-            [1, -2, 1], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps)
-        )
+        * centeredDifferences@centeredDifferences
     )  # type: ignore # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works: that's why the type: ignore
-    # FIXME - add division by step size
-    raise NotImplementedError(
-        "division by stepsizes is missing; is the second derivative in the thesis just wrong?"
-    )
+
     P_eMinusP_i = outerPs - innerPs
 
     def exactRightHandSide(y: np.ndarray) -> np.ndarray:
