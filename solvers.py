@@ -143,11 +143,13 @@ def oldYSolver(
 
     underDiag = -1/(stepsizes[:-1]+stepsizes[1:]); underDiag = np.append(underDiag, -1/stepsizes[-1])
     overDiag = 1/(stepsizes[:-1]+stepsizes[1:]); overDiag = np.insert(overDiag, 0, 1/stepsizes[0])
-    diag = np.zeros(numberOfZSteps); diag[0] = -1; diag[-1] = 1
+    diag = np.zeros(numberOfZSteps); diag[0] = -1/stepsizes[0]; diag[-1] = 1/stepsizes[-1]
 
     centeredDifferences = scipyDiagsMatrix(
             [underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps)
         )
+
+    
 
     matrixOfSecondDifferences = (
         0.5
@@ -155,6 +157,7 @@ def oldYSolver(
         / np.pi
         * centeredDifferences@centeredDifferences
     )  # type: ignore # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works: that's why the type: ignore
+    raise NotImplementedError("Hey u sure this is mathematically correct?")
 
     P_eMinusP_i = outerPs - innerPs
 
