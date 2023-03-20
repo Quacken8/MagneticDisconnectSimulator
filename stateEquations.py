@@ -3,6 +3,7 @@ import numpy as np
 import constants as c
 import warnings
 from gravity import massBelowZ
+from scipy.optimize import fsolve as scipyFSolve
 
 
 class MockupIdealGas:
@@ -138,9 +139,31 @@ class IdealGas:
     ) -> float | np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
+        according to Denizer 1965 eq 10
         """
+        x = IdealGas.degreeOfIonization(temperature, density)
+        chi = c.ionizationEnergyOfHydrogen
         warnings.warn("Ur using ideal gas")
-        raise NotImplementedError()
+        toReturn = (2+x*(1-x)*(2.5+chi/(c.BoltzmannConstant*temperature)))/(5+x*(1-x)*(2.5+chi/(c.BoltzmannConstant*temperature))*(2.5+chi/(c.BoltzmannConstant*temperature)))
+        return toReturn
+    
+    @staticmethod
+    def meanMolecularWeight(temperature: float | np.ndarray, density: float | np.ndarray)-> float | np.ndarray:
+        x = IdealGas.degreeOfIonization(temperature, density)
+        toReturn = c.meanMolecularWeight/(1+x)
+        return toReturn
+
+    @np.vectorize
+    @staticmethod
+    def radiativeLogGradient(
+        temperature: float | np.ndarray, density: float | np.ndarray, gravitationalAcceleration: float | np.ndarray
+    ) -> float | np.ndarray:   
+        """returns radiative log gradient according to denizer 1965"""
+        warnings.warn("Ur using ideal gas")
+        meanMolecularWeight = IdealGas.meanMolecularWeight(temperature, density)
+        H = IdealGas.pressureScaleHeight(temperature, gravitationalAcceleration, meanMolecularWeight)
+        toReturn = 3/16 * opacity*density*H/(c.SteffanBoltzmann*temperature*temperature*temperature*temperature)
+        return toReturn
 
     @np.vectorize
     @staticmethod
@@ -148,10 +171,37 @@ class IdealGas:
         temperature: float | np.ndarray, density: float | np.ndarray
     ) -> float | np.ndarray:
         """
-        returns convectiveGradient according to ideal gas law
+        returns c_p according to denizer 1965
         """
         warnings.warn("Ur using ideal gas")
-        raise NotImplementedError()
+        mu = IdealGas.meanMolecularWeight(temperature, density)
+        x = IdealGas.degreeOfIonization(temperature, density)
+        chi = c.ionizationEnergyOfHydrogen
+        toReturn = c.gasConstant/mu * (2.5 +0.5*x*(1-x)*(2.5+chi/(c.BoltzmannConstant*temperature))*(2.5+chi/(c.BoltzmannConstant*temperature)))
+        return toReturn
+    
+    @staticmethod
+    def degreeOfIonization(temperature: float | np.ndarray, density: float | np.ndarray
+    ) -> float | np.ndarray:
+        """
+        returns degree of ionization according to denizer 1965
+        """
+        warnings.warn("Ur using ideal gas")
+
+        rootFinderConstantPart = -2.5 * np.log10(temperature) + (13.53*5040)/temperature +0.48+np.log10(c.massFractionOfHydrogen) + np.log10(pressure) + np.log10(c.meanMolecularWeight)
+
+        def toFindRoot(x):
+            return np.log10(x*x/(1-x*x)) + rootFinderConstantPart
+        
+        sizeOfInput = np.array(temperature).size
+        startingEstimate = 4.07e-4 * np.ones(sizeOfInput) # just some estimate based on ionization of photosphere (Gingerich Jager 1967)
+        result = scipyFSolve(toFindRoot, startingEstimate)
+
+        if result[2] != 1: raise RuntimeError("Search for degree of ionization wasnt succesful")
+        toReturn = result[0]
+        return toReturn
+
+
 
     @np.vectorize
     @staticmethod
@@ -175,7 +225,12 @@ class IdealGas:
         warnings.warn("Ur using ideal gas")
         raise NotImplementedError()
 
-
+    @staticmethod
+    def pressureScaleHeight(temperature: float | np.ndarray, gravitationalAcceleration: float | np.ndarray, meanMolecularWeight: float|np.ndarray) -> float | np.ndarray:
+        """
+        pressure scale height according to denizer 1965 eq 8
+        """
+        return c.gasConstant*temperature/(meanMolecularWeight*gravitationalAcceleration)
 
 
 def F_rad(
