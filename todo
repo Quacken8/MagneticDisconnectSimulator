@@ -2,3 +2,8 @@
 //TODO - test y solver
 //TODO - test T solver
 //TODO - solve the opacity weirdness - why doesnt mesa return some grid and only a weird curve in the logRho logT space?
+//TODO - MESA kappas are actually kappa(z) and the P T rho are just along for the ride!!!
+//TODO - also wathc out mesa calulates these kappas based on star thats almost two solar masses!!!!! Look into that .model file!!!!!!!
+//TODO - find out what the deltas are, theyre used in the old fconv method
+//TODO - find out about mixing length -- is it just a parameter as the schussler paper says?
+//TODO - make sure u understand ideal gas (i e the function density)
