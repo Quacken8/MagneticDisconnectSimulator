@@ -64,6 +64,8 @@ def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
         (B[2:]-B[:-2])/(stepsizes[:-1] + stepsizes[1:]),
         [(B[-1]-B[-2])/stepsizes[-1]]) )    # this is an array of centered differences used to approximate first derivatives
     
+    raise NotImplementedError()
+    
 
 def getNewPs(
     currentState: SingleTimeDatapoint,

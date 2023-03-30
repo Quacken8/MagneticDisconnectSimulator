@@ -7,3 +7,6 @@
 //TODO - find out what the deltas are, theyre used in the old fconv method
 //TODO - find out about mixing length -- is it just a parameter as the schussler paper says?
 //TODO - make sure u understand ideal gas (i e the function density)
+//TODO - the eos isnt returning mean molecular value, but number densities? it just doesnt do what the documentation says it returns
+//TODO -  make the fortran code just return an array and organize it in python
+//TODO - AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA V SAMPLE EOS JE eosPT_get COŽ JE PRESSURE TEMPERATURE EOS AAAAAAAAAAAA
