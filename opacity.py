@@ -21,20 +21,31 @@ kappas  *= c.cm**2/c.gram
 
 
 
+modelSPath = "externalData/model_S.dat"
+Ts, Ps, kappas = np.loadtxt(modelSPath, skiprows=1, usecols=(1,2,4)).T
+from scipy.interpolate import NearestNDInterpolator
+inteprloatedKappas = NearestNDInterpolator(list(zip(Ts, Ps)), kappas)
+def modelSNearestOpacity(temperature:float|np.ndarray, pressure:float|np.ndarray)->float|np.ndarray:
+    return inteprloatedKappas(temperature, pressure)
+
+
 
 def main():
     """debugging function for this file"""
     import matplotlib.pyplot as plt
-    from mpl_toolkits import mplot3d
+    resolution = 100
+    Ts = np.logspace(3, 7, num = resolution)
+    Ps = np.logspace(1, 16, num = resolution)
 
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.scatter(Ts, Rhos, kappas)
-    # ax.scatter(np.log10(Ts), np.log10(Rhos), np.log10(kappas))
-    ax.set_xlabel("Ts [K]")
-    ax.set_ylabel("Rhos [kg/m^3]")
-    ax.set_zlabel("Kappas [m^2/kg]")
-    
+    TMesh, PMesh = np.meshgrid(Ts, Ps)
+    plotkappas = modelSNearestOpacity(TMesh, PMesh)
+
+    plt.pcolormesh(TMesh, PMesh, plotkappas, shading="auto")
+    plt.plot(Ts, Ps, "ok", label="input point")
+    plt.xlabel("Temperature [K]")
+    plt.ylabel("Pressure [Pa]")
+    plt.legend()  
+    plt.colorbar()
     plt.show()
 
 

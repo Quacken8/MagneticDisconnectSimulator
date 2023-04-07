@@ -2,10 +2,11 @@
 from dataStructure import Data, SingleTimeDatapoint, createDataFromFolder, dictionaryOfVariables
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper
-from solvers import oldYSolver
+#from solvers import oldYSolver
 from initialConditionsSetterUpper import modelSLoader
 import constants as c
 import os
+from matplotlib import pyplot as plt
 
 
 def TestDataStructureSaveLoad() -> None:
@@ -34,26 +35,17 @@ def TestDataStructureSaveLoad() -> None:
             assert np.array_equal(saved, loaded)
 
 
-def TestDiffEqBasedOnModelSData() -> None:
-    #TODO - implement this
-    # load model S data
-    length = 30
-    datapoint = modelSLoader(length)
-    internalPressure = ???
-    totalMagneticFlux = 1e13    #some weird ass number the other guy used
-    upperB = 0.2    #same lol
-    lowerB = 5*upperB
-    yGuess = np.linspace(upperB, lowerB, num=length)
-    # run the diff eq
-    oldYSolver(datapoint.zs, internalPressure,
-               datapoint.pressures, totalMagneticFlux, yGuess)
-
+def TestCalmSunBasedOnModelSData() -> None:
+    # get calm sun datapoint
+    # get model S datapoint
+    # compare them
     # have a look at it with your peepers
+    pass
 
 
 def main():
     TestDataStructureSaveLoad()
-    TestDiffEqBasedOnModelSData()
+    TestCalmSunBasedOnModelSData()
 
     print("Tests passed :)")
 
