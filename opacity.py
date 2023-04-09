@@ -8,45 +8,54 @@ import constants as c
 
 pathToOpacityTable = "externalData/kappasFromMESA"
 
-logTs, logRhos, kappas = np.loadtxt(pathToOpacityTable, skiprows=1, usecols=(1,2,3)).T
+logTs, logRhos, modelKappas = np.loadtxt(pathToOpacityTable, skiprows=1, usecols=(1,2,3)).T
 
 #TODO - maybe unnecessary? maybe working in logs will be better?
 # convert to straight variables
-Ts = np.power(10, logTs)
+modelTs = np.power(10, logTs)
 Rhos = np.power(10, logRhos)
 
 # convert to SI from cgs
 Rhos *= c.gram/(c.cm**3)
-kappas  *= c.cm**2/c.gram
+modelKappas  *= c.cm**2/c.gram
 
 
 
 modelSPath = "externalData/model_S.dat"
-Ts, Ps, kappas = np.loadtxt(modelSPath, skiprows=1, usecols=(1,2,4)).T
+modelTs, modelPs, modelKappas = np.loadtxt(modelSPath, skiprows=1, usecols=(1,2,4)).T
+# given the structure of the data, it's much better for the nearest interpolation algorithm to work on logs and then exp it later
+logmodelTs, logmodelPs, logmodelKappas = np.log(modelTs), np.log(modelPs), np.log(modelKappas)
 from scipy.interpolate import NearestNDInterpolator
-inteprloatedKappas = NearestNDInterpolator(list(zip(Ts, Ps)), kappas)
+inteprloatedKappas = NearestNDInterpolator(list(zip(logmodelTs, logmodelPs)), logmodelKappas)
+
 def modelSNearestOpacity(temperature:float|np.ndarray, pressure:float|np.ndarray)->float|np.ndarray:
-    return inteprloatedKappas(temperature, pressure)
+    """just interpolates using nearest neighbour from the model S kappas"""
+    return np.exp(inteprloatedKappas(np.log(temperature), np.log(pressure)))
 
 
 
 def main():
     """debugging function for this file"""
     import matplotlib.pyplot as plt
+
     resolution = 100
-    Ts = np.logspace(3, 7, num = resolution)
-    Ps = np.logspace(1, 16, num = resolution)
+    TMesh = np.logspace(np.log10(modelTs[0]), np.log10(modelTs[-1]), num = resolution)
+    PMesh = np.logspace(np.log10(modelPs[0]), np.log10(modelPs[-1]), num = resolution)
+    TMesh, PMesh = np.meshgrid(TMesh, PMesh)
+    kappaMesh = modelSNearestOpacity(TMesh, PMesh)
 
-    TMesh, PMesh = np.meshgrid(Ts, Ps)
-    plotkappas = modelSNearestOpacity(TMesh, PMesh)
-
-    plt.pcolormesh(TMesh, PMesh, plotkappas, shading="auto")
-    plt.plot(Ts, Ps, "ok", label="input point")
+    
+    plt.pcolormesh(TMesh, PMesh, kappaMesh, shading="auto")
+    plt.plot(modelTs, modelPs, "ok", label="input point")
+    plt.yscale("log")
+    plt.xscale("log")
     plt.xlabel("Temperature [K]")
     plt.ylabel("Pressure [Pa]")
     plt.legend()  
     plt.colorbar()
     plt.show()
+    
+    
 
 
 if __name__ == "__main__":

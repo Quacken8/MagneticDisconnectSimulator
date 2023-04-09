@@ -4,6 +4,8 @@ import constants as c
 import warnings
 from gravity import massBelowZ
 from scipy.optimize import fsolve as scipyFSolve
+warnings.warn("Ur using the model S opacity here")
+from opacity import modelSNearestOpacity as opacity
 
 class IdealGas:
     ## TODO it looks like most of these are useless? i mean the original code saves them but doesnt seem to use things like entropy or the weird delta
@@ -71,7 +73,7 @@ class IdealGas:
         warnings.warn("Ur using ideal gas")
         density = IdealGas.density(temperature, pressure)
         H = IdealGas.pressureScaleHeight(temperature= temperature, pressure=pressure , gravitationalAcceleration=gravitationalAcceleration)
-        toReturn = 3/16 * opacity * density*H/(c.SteffanBoltzmann*temperature*temperature*temperature*temperature)
+        toReturn = 3/16 * opacity(temperature, pressure) * density*H/(c.SteffanBoltzmann*temperature*temperature*temperature*temperature)
         return toReturn
 
     @staticmethod
@@ -160,7 +162,7 @@ def F_con(
 
     realGradient = np.minimum(radiativeGrad, adiabaticGrad) # TODO check
 
-    kappa = opacity
+    kappa = opacity(temperature, pressure)
 
     # these are parameters of convection used in Schüssler & Rempel 2005
     a = 0.125   # TODO maybe precalculating these could be useful?
