@@ -198,11 +198,14 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure:
         calmSunLogPs.append(currentLogP)
 
         currentLogP += dlogP    # step into higher pressure
-        ODEIntegrator.integrate(currentLogP)    # get new T and z from this
+        try:
+            ODEIntegrator.integrate(currentLogP)    # get new T and z from this
+        except Exception as ex:
+            print(f"last known z = {currentZ}, last known logP = {currentLogP}")
+            raise ex
         if not ODEIntegrator.successful():
             # TODO hey why is this not finishing a viable break condition viz old code ???? 
             raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
-            break
 
     calmSunPs = np.exp(calmSunLogPs)
     calmSunTs = np.array(calmSunTs)
@@ -242,9 +245,8 @@ def main():
 
     dlogP = 0.01
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
-    maxDepth = 13*c.Mm # just some housenumero hehe
-    convectiveAlpha = 0.3 # this value comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3 
-
+    maxDepth = 3*c.Mm # just some housenumero hehe
+    convectiveAlpha = 0.3 # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3 
     calmSun = getCalmSunDatapoint(dlogP=dlogP, logSurfacePressure=logSurfacePressure,
                                   maxDepth=maxDepth, surfaceTemperature=surfaceTemperature, convectiveAlpha=convectiveAlpha)
 

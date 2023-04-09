@@ -7,7 +7,7 @@
 //TODO - find out what the deltas are, theyre used in the old fconv method
 //TODO - find out about mixing length -- is it just a parameter as the schussler paper says?
 //TODO - ask about the inconsistency in Bárta's paper that says ∇=min(∇rad, ∇conv) but never specifies ∇conv and harmanec brož use ∇ad instead (eq 4.152)
-//TODO - ask about the barye in degreeOfIonization in state equations
+//TODO - ask about the barye in degreeOfIonization in state equations; even without it it leads to not being able to find ionization at ~5.6 Mm
 
 //TODO - make sure u understand ideal gas (i e the function density)
 //TODO - the eos isnt returning mean molecular value, but number densities? it just doesnt do what the documentation says it returns
