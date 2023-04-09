@@ -21,7 +21,7 @@ modelKappas  *= c.cm**2/c.gram
 
 
 
-modelSPath = "externalData/model_S.dat"
+modelSPath = "externalData/model_S_new.dat"
 modelTs, modelPs, modelKappas = np.loadtxt(modelSPath, skiprows=1, usecols=(1,2,4)).T
 # given the structure of the data, it's much better for the nearest interpolation algorithm to work on logs and then exp it later
 logmodelTs, logmodelPs, logmodelKappas = np.log(modelTs), np.log(modelPs), np.log(modelKappas)

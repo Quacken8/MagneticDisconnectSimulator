@@ -5,8 +5,10 @@ This script models stellar interior with absent flux tube
 """
 
 import numpy as np
+import warnings
 from dataStructure import SingleTimeDatapoint
 from stateEquations import IdealGas as StateEq
+warnings.warn("Ur using ideal gas here")
 from stateEquations import F_con, F_rad
 from gravity import g
 from scipy.integrate import ode as scipyODE
@@ -121,7 +123,7 @@ import constants as c
 #     return calmSun
 
 
-def getCalmSunDatapoint(convectiveLength:float, dlogP: float, logSurfacePressure: float, surfaceTemperature: float, maxDepth: float) -> SingleTimeDatapoint:
+def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure: float, surfaceTemperature: float, maxDepth: float) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to calm sun (i.e. one without the flux tube). This model (especially the pressure) is necessary for the calculation of B. It integrates hydrostatic equilibrium (which boils down to solving a set of two ODEs that are a function of logP)
 
@@ -218,7 +220,7 @@ def getCalmSunDatapoint(convectiveLength:float, dlogP: float, logSurfacePressure
     Hps = StateEq.pressureScaleHeight(temperature=calmSunTs, pressure=calmSunPs, gravitationalAcceleration=gs)
     mus = StateEq.meanMolecularWeight(calmSunTs, calmSunPs)
 
-    F_cons = F_con(temperature=calmSunTs, pressure=calmSunPs, c_p = cps, gravitationalAcceleration=gs, radiativeGrad=nablaRads, adiabaticGrad=nablaAds, meanMolecularWeight=mus, pressureScaleHeight=Hps, convectiveLength=convectiveLength)
+    F_cons = F_con(temperature=calmSunTs, pressure=calmSunPs, c_p = cps, gravitationalAcceleration=gs, radiativeGrad=nablaRads, adiabaticGrad=nablaAds, meanMolecularWeight=mus, pressureScaleHeight=Hps, convectiveAlpha=convectiveAlpha)
 
     B_0s = np.zeros(len(calmSunZs))  # calm sun doesn't have these
 
@@ -233,16 +235,16 @@ def main():
 
     # load model S data
 
-    modelSFilename = "externalData/model_S.dat"
+    modelSFilename = "externalData/model_S_new.dat"
     surfaceTemperature = np.loadtxt(modelSFilename, skiprows=1, usecols=1)[0]
 
-    dlogP = 0.001
+    dlogP = 0.01
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
     maxDepth = 13*c.Mm # just some housenumero hehe
-    convectimeMixingLength = ???
+    convectiveAlpha = 0.3 # this value comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3 
 
     calmSun = getCalmSunDatapoint(dlogP=dlogP, logSurfacePressure=logSurfacePressure,
-                                  maxDepth=maxDepth, surfaceTemperature=surfaceTemperature, convectiveLength=convectimeMixingLength)
+                                  maxDepth=maxDepth, surfaceTemperature=surfaceTemperature, convectiveAlpha=convectiveAlpha)
 
     from dataStructure import Data
     data = Data(finalT=1, numberOfTSteps=2)
