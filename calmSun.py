@@ -143,7 +143,8 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure:
         """
         gravitationalAcc = g(z)
         P = np.exp(logP)
-        return StateEq.pressureScaleHeight(temperature = T, pressure = P, gravitationalAcceleration=gravitationalAcc) # type: ignore oh my GOD why is pylance so bad at scipy
+        H = StateEq.pressureScaleHeight(temperature = T, pressure = P, gravitationalAcceleration=gravitationalAcc) # type: ignore oh my GOD why is pylance so bad at scipy
+        return H
 
     def actualLogGradient(logP: np.ndarray, z: np.ndarray, T: np.ndarray) -> np.ndarray:
         """
@@ -151,7 +152,7 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure:
         """
         gravitationalAcc = g(z)
         P = np.exp(logP)
-        convectiveG = StateEq.convectiveLogGradient(temperature=T, pressure=P)
+        convectiveG = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
         radiativeG = StateEq.radiativeLogGradient(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc) # type: ignore oh my GOD why is pylance so bad at scipy
         return np.minimum(radiativeG, convectiveG)
 
@@ -199,7 +200,8 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure:
         currentLogP += dlogP    # step into higher pressure
         ODEIntegrator.integrate(currentLogP)    # get new T and z from this
         if not ODEIntegrator.successful():
-            # TODO hey why is this not finishing a viable break condition viz old code ???? raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
+            # TODO hey why is this not finishing a viable break condition viz old code ???? 
+            raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
             break
 
     calmSunPs = np.exp(calmSunLogPs)

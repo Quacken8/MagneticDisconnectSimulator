@@ -2,7 +2,6 @@
 import numpy as np
 import constants as c
 import warnings
-from gravity import massBelowZ
 from scipy.optimize import fsolve as scipyFSolve
 
 warnings.warn("Ur using the model S opacity here")
@@ -37,7 +36,7 @@ class IdealGas:
     @staticmethod
     def entropy(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
-        returns convectiveGradient according to ideal gas law
+        returns entropy according to ideal gas law
         """
         warnings.warn("Ur using ideal gas")
         raise NotImplementedError()
@@ -191,7 +190,7 @@ class IdealGas:
 
 def F_rad(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
     """
-    returns convectiveGradient according to ideal gas law
+    returns radiative flux according to ideal gas law
     """
     # TODO equation 9 from rempel schussler
     raise NotImplementedError()

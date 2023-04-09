@@ -9,34 +9,67 @@ gravitational acceleration in m/s^2 z meters below the surface
 uses the model S 
 """
 
-def volumeOfSphericalLayer(radius:float|np.ndarray, width:float|np.ndarray)->float|np.ndarray:
+def volumeOfSphericalLayer(topRadius:float|np.ndarray, width:float|np.ndarray)->float|np.ndarray:
     """
-    volume of a spherical layer which's (??english?) bottom boundary has radius r and the top boundary has radius r+width
+    volume of a spherical layer which's (??english?) top boundary has radius r and the top boundary has radius r+width
     """
-    return 4/3*np.pi * ((radius + width)*(radius + width)*(radius + width) - radius*radius*radius)
+    return 4/3*np.pi * (topRadius*topRadius*topRadius - (topRadius - width)*(topRadius - width)*(topRadius - width))
 
-pathToModelS = "externalData/model_S_raw.dat"
+pathToModeS = "externalData/model_S_new.dat"
+modelRs, modelRhos = np.loadtxt(pathToModeS, skiprows=1, usecols=(0,3)).T
+modelLength = len(modelRs)
+assert modelLength == len(modelRhos)
 
-modelZs   = np.loadtxt(pathToModelS, usecols=0, skiprows=1)
-rs = modelZs.max()-modelZs
+massesBelowR = np.zeros(modelLength)
 
-# the model indexes with depth, therefore the array has to be flipped
-modelRhos = np.loadtxt(pathToModelS, usecols=3, skiprows=1)[::-1]
-masses = np.zeros(modelZs.size)
+modelRs = modelRs[::-1]
+modelRhos = modelRhos[::-1]
 
-for i in range(1, masses.size):
-    masses[i] = masses[i-1] + modelRhos[i] * volumeOfSphericalLayer(rs[i], rs[i]-rs[i-1])
+for i in range(1, modelLength):
+    """
+    ─────R[i+1]──────────────────────────M[i+1]─
+                    ▲                      │
+        Rho[i+1]    │ W[i+1]               │
+                    ▼                      │
+    ──────R[i]───────────────────────M[i]──┼────
+                    ▲                  │   │
+         Rho[i]     │ W[i]             │   │
+                    ▼                  │   │
+    ─────R[i-1]─────────────────M[i-1]─┼───┼────
+                                   │   │   │
+                                   ▼   ▼   ▼
+        """
 
+    currentTopRadius = modelRs[i]
+    currentWidth = modelRs[i]-modelRs[i-1]
+    currentVolume = volumeOfSphericalLayer(currentTopRadius, currentWidth)
+    currentDensity = modelRhos[i] #TODO - ask about where in the cell of model S the radius R is cuz rn im expecting it to be at the top
+    currentMass = currentVolume*currentDensity
 
-"""
-linear interpolation of tota mass of the Sun below z depth
-"""
-massBelowZ = ScipySpline(modelZs, masses[::-1], s = 0, k = 1)
+    massesBelowR[i] = massesBelowR[i-1] + currentMass
 
-gravitationalAccelerations = (c.G*masses/(rs*rs))[::-1]
-# reversed back so it can be used with depths z again
+gravitationalAccelerations = c.G*massesBelowR/(modelRs*modelRs)
 
+modelZs = modelRs
+gravitationalAccelerationsInZs = gravitationalAccelerations[::-1]
 """
 linear interpolation of Sun's gravity z meters below the surface
 """
-g = ScipySpline(modelZs, gravitationalAccelerations, s=0, k=1)
+g = ScipySpline(modelZs, gravitationalAccelerationsInZs, s=0, k=1, ext=3)
+
+def main():
+    """debug function for the gravity code"""
+
+    print(gravitationalAccelerations.max())
+
+    import matplotlib.pyplot as plt
+
+    plt.plot(modelZs, gravitationalAccelerationsInZs)
+    plt.plot()
+    plotZs = np.linspace(0, 1e6)
+    toplot = g(plotZs)
+    plt.plot(plotZs, toplot)
+    plt.show()
+
+if __name__ == "__main__":
+    main()
