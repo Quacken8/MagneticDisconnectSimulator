@@ -123,7 +123,7 @@ import constants as c
 #     return calmSun
 
 
-def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure: float, surfaceTemperature: float, maxDepth: float) -> SingleTimeDatapoint:
+def getCalmSunDatapoint(convectiveAlpha:float, dlnP: float, logSurfacePressure: float, surfaceTemperature: float, maxDepth: float) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to calm sun (i.e. one without the flux tube). This model (especially the pressure) is necessary for the calculation of B. It integrates hydrostatic equilibrium (which boils down to solving a set of two ODEs that are a function of logP)
 
@@ -185,29 +185,29 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlogP: float, logSurfacePressure:
 
     calmSunZs = []
     calmSunTs = []
-    calmSunLogPs = []
+    calmSunLnPs = []
 
     currentZ = 0
     while (currentZ < maxDepth):  # TODO can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs?
 
         currentZ = ODEIntegrator.y[0]
         currentT = ODEIntegrator.y[1]
-        currentLogP = ODEIntegrator.t
+        currentLnP = ODEIntegrator.t
         calmSunZs.append(currentZ)
         calmSunTs.append(currentT)
-        calmSunLogPs.append(currentLogP)
+        calmSunLnPs.append(currentLnP)
 
-        currentLogP += dlogP    # step into higher pressure
+        currentLnP += dlnP    # step into higher pressure
         try:
-            ODEIntegrator.integrate(currentLogP)    # get new T and z from this
+            ODEIntegrator.integrate(currentLnP)    # get new T and z from this
         except Exception as ex:
-            print(f"last known z = {currentZ}, last known logP = {currentLogP}")
+            print(f"last known z = {currentZ}, last known lnP = {currentLnP}")
             raise ex
         if not ODEIntegrator.successful():
             # TODO hey why is this not finishing a viable break condition viz old code ???? 
-            raise RuntimeError(f"Integration didn't complete correctly at logP = {currentLogP}")
+            raise RuntimeError(f"Integration didn't complete correctly at lnP = {currentLnP}")
 
-    calmSunPs = np.exp(calmSunLogPs)
+    calmSunPs = np.exp(calmSunLnPs)
     calmSunTs = np.array(calmSunTs)
 
     rhos = StateEq.density(temperature=calmSunTs, pressure=calmSunPs)
@@ -243,11 +243,11 @@ def main():
     modelSFilename = "externalData/model_S_new.dat"
     surfaceTemperature = np.loadtxt(modelSFilename, skiprows=1, usecols=1)[0]
 
-    dlogP = 0.01
+    dlnP = 0.1
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
-    maxDepth = 3*c.Mm # just some housenumero hehe
+    maxDepth = 5 # Mm just some housenumero hehe
     convectiveAlpha = 0.3 # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3 
-    calmSun = getCalmSunDatapoint(dlogP=dlogP, logSurfacePressure=logSurfacePressure,
+    calmSun = getCalmSunDatapoint(dlnP=dlnP, logSurfacePressure=logSurfacePressure,
                                   maxDepth=maxDepth, surfaceTemperature=surfaceTemperature, convectiveAlpha=convectiveAlpha)
 
     from dataStructure import Data

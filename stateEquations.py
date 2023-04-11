@@ -2,7 +2,7 @@
 import numpy as np
 import constants as c
 import warnings
-from scipy.optimize import fsolve as scipyFSolve
+from scipy.optimize import newton as scipyFSolve
 
 warnings.warn("Ur using the model S opacity here")
 from opacity import modelSNearestOpacity as opacity
@@ -128,33 +128,24 @@ class IdealGas:
     @staticmethod
     def degreeOfIonization(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
-        returns degree of ionization according to denizer 1965
+        returns degree of ionization according to denizer 1965, resp  Kippenhahn, Temesvary, and Biermann (1958)
+        which states that log(x^2/(1-x^2)) + C(T, P) = 0
+        solution to that equation is 
+        sqrt(10^(-C))/sqrt(1+10^(-C))
         """
         warnings.warn("Ur using ideal gas")
 
-        rootFinderConstantPart = (
+        C = (
             -2.5 * np.log10(temperature)
             + (13.53 * 5040) / temperature
             + 0.48
             + np.log10(c.massFractionOfHydrogen)
-            + np.log10(pressure)    # FIXME AAAAAAAAAAAA IS THERE A BARYE (CGS UNIT FOR PRESSURE) HERE OR NOT AAAA
+            + np.log10(pressure*c.barye)    # FIXME AAAAAAAAAAAA IS THERE A BARYE (CGS UNIT FOR PRESSURE) HERE OR NOT AAAA
             + np.log10(c.meanMolecularWeight * c.gram)
         )
 
-        def toFindRoot(x):
-            return np.log10(x * x / (1 - x * x)) + rootFinderConstantPart
-
-        import matplotlib.pyplot as plt
-
-        sizeOfInput = np.array(temperature).size
-        startingEstimate = 4.07e-4 * np.ones(
-            sizeOfInput
-        )  # just some estimate based on ionization of photosphere (Gingerich Jager 1967)
-        result = scipyFSolve(toFindRoot, startingEstimate, full_output=True)
-
-        if result[2] != 1:
-            raise RuntimeError("Search for degree of ionization wasnt succesful")
-        toReturn = result[0]
+        tenPower = np.float_power(10, -C)
+        toReturn = np.sqrt(tenPower/(1+tenPower))
         return toReturn
 
     @np.vectorize

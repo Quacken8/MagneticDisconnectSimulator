@@ -15,3 +15,5 @@
 //TODO - AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA V SAMPLE EOS JE eosPT_get COŽ JE PRESSURE TEMPERATURE EOS AAAAAAAAAAAA
 
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
+
+//FIXME - rn děláš calm sun a teď se ti to neuloží páč nemáš implementovaný některý věci co chceš ukládat (entropie etc). Předělej to tak aby se variables ukládaly do dictionary aby nezáleželo kolik jich tam dáš a jen ty důležitý se uloží
