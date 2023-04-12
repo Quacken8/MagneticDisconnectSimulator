@@ -15,18 +15,18 @@ def dictionaryOfVariables(A: object) -> dict:
 this dictionary is used to put units next to values that come up in the simulatuin. It is expected that the units went through UX parse, i.e. units as hours and megameters are used for readibility
 """
 unitsDictionary = {
-    "time" : "h",
-    "depth": "Mm",
-    "numberOfZSteps": "1",
-    "maxDepth": "Mm",
+    "times" : "h",
+    "zs": "Mm",
+    "numberofzsteps": "1",
+    "maxdepth": "Mm",
     "temperatures": "K",
     "pressures": "Pa",
     "rhos": "kg/m^3",
-    "B_0s": "T",
-    "F_rads": "W/m^2",
-    "F_cons": "W/m^2",
+    "b_0s": "T",
+    "f_rads": "W/m^2",
+    "f_cons": "W/m^2",
     "entropies": "J/K",
-    "nablaAds": "log(Pa)/m", # TODO this aint correct lol
+    "nablaads": "log(Pa)/m", # TODO this aint correct lol
     "cps": "J/(kg.K)",
     "cvs": "J/(kg.K)",
     "deltas": "" # TODO the fuck is delta
@@ -41,31 +41,39 @@ class SingleTimeDatapoint():
     NumberOfZStepsPower: the number of steps in z direction will be 2^k + 1 where k is the NumberOfZStepsPower
     """
 
-    def __init__(self, temperatures: np.ndarray, pressures: np.ndarray, B_0s: np.ndarray, F_rads: np.ndarray, F_cons: np.ndarray, zs: np.ndarray, rhos: np.ndarray, entropies: np.ndarray, nablaAds: np.ndarray, cps: np.ndarray, cvs: np.ndarray, deltas: np.ndarray) -> None:
+    derivedQuantities = {}
+
+    def __init__(self, temperatures: np.ndarray, pressures: np.ndarray, zs: np.ndarray, rhos: np.ndarray, **kwargs) -> None:
 
         self.zs = zs
         self.numberOfZSteps = len(zs)
-        self.maxDepth = zs[-1]
         self.temperatures = temperatures
         self.pressures = pressures
-        self.rhos = rhos
-        self.B_0s = B_0s
-        self.F_rads = F_rads
-        self.F_cons = F_cons
-        self.entropies = entropies
-        self.nablaAds = nablaAds
-        self.cps = cps
-        self.cvs = cvs
-        self.deltas = deltas
+        self.rhos = rhos # later get only pressure and temperature in mandatory thingies, rest can be deduced from state eq
+        fundamentalVariables = dictionaryOfVariables(self)
 
-        allVariables = dictionaryOfVariables(self)
-        for variableName, variableValue in zip(allVariables.keys(), allVariables.values()):
+        for key, value in kwargs.items():
+            self.derivedQuantities[key] = value
+        self.maxDepth = zs[-1]
+
+        self.allVariables = fundamentalVariables | self.derivedQuantities # that '|' is just yummy python syntax sugar merging two dicts
+
+        # check whether all arrays have the same length
+        for variableName, variableValue in self.allVariables.items():
             try:
                 if len(variableValue) != self.numberOfZSteps:
                     raise ValueError(
                         f"Some of your variables ({variableName}) have the wrong length ({len(variableValue)})")
             except TypeError: # so scalars dont get tested for length
                 pass
+        
+        # check whether we have units for all variables
+
+        for variableName in self.allVariables.keys():
+            try:
+                unitsDictionary[variableName.lower()]
+            except KeyError:
+                raise ValueError(f"We don't have units for {variableName} defined!")
 
 
 class Data():
@@ -86,7 +94,7 @@ class Data():
         warnings.warn("Assuming uniform timestep when creating data")
         self.numberOfTSteps = numberOfTSteps
 
-        self.values = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
+        self.datapoints = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)
         self.occupiedElements = 0
 
 
@@ -95,7 +103,7 @@ class Data():
         adds SingleTimeDatapoint to the data at index
         """
         if index > self.occupiedElements: raise ValueError("You're trying to add a datapoint to an index while a previous one isn't filled")
-        self.values[index] = datapoint
+        self.datapoints[index] = datapoint
         if index == self.occupiedElements:
             self.occupiedElements += 1
     
@@ -114,93 +122,62 @@ class Data():
         if rewriteFolder: os.system(f"rm -r {outputFolderName}")
         os.mkdir(outputFolderName)
 
-        temperatureFilename = f"{outputFolderName}/Temperature.csv"
-        pressureFilename = f"{outputFolderName}/Pressure.csv"
-        densityFilename = f"{outputFolderName}/Density.csv"
-        B_0Filename = f"{outputFolderName}/B_0.csv"
-        timeFilename = f"{outputFolderName}/Time.csv"
-        depthFilename = f"{outputFolderName}/Depth.csv"
-        F_radFilename = f"{outputFolderName}/F_rad.csv"
-        F_conFilename = f"{outputFolderName}/F_con.csv"
-        entropyFilename = f"{outputFolderName}/Entropy.csv"
-        nablaAdFilename = f"{outputFolderName}/nablaAd.csv"
-        cpFilename = f"{outputFolderName}/cp.csv"
-        cvFilename = f"{outputFolderName}/cv.csv"
-        deltaFilename = f"{outputFolderName}/Delta.csv"
+        superDictionary = {} # this dictionary is just like the "allVariables" dictionary of the single time datapoint but these contain cubes of data
+        superDictionary.update({"times" : self.times})
+        firstDatapoint = self.datapoints[0]
+        superDictionary.update(firstDatapoint.allVariables)
+        for datapoint in self.datapoints[1:]:
+            for variableName, variableArray in datapoint.allVariables.items():
+                # to variableName key in superDictionary append variableArray
+                superDictionary[variableName] = np.vstack((superDictionary[variableName], variableArray))
 
-        np.savetxt(timeFilename, self.times/c.hour, header=f"time [{unitsDictionary['time']}]", delimiter=",")
+        # now that all the data is in the one dict, save it
+        for variableName, variableArray in superDictionary.items():
+            filename = f"{outputFolderName}/{variableName}.csv"
 
-        tosaveZs = self.values[0].zs
-        np.savetxt(depthFilename, tosaveZs/c.Mm, header=f"depth [{unitsDictionary['depth']}]", delimiter=",")
+            # unit conversion
+            unitConversionFactor = 1
+            if "times" in variableName: unitConversionFactor = 1/c.hour
+            if "zs" in variableName: unitConversionFactor = 1/c.Mm
 
-        numberOfZSteps = len(tosaveZs)
-        toSaveTemperatures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSavePressures = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveDensities = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveB_0s = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveF_rads = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveF_cons = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveEntropies = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSaveNablaAds = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSavecps = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSavecvs = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        toSavedeltas = np.zeros((self.numberOfTSteps, numberOfZSteps), dtype=float)
-        
+            # headers
+            if np.ndim(variableArray) == 0: continue
+            if np.ndim(variableArray) == 1:
+                header = f"{variableName} [{unitsDictionary[variableName.lower()]}]"
+            elif np.ndim(variableArray) == 2:
+                header = f"{variableName} [{unitsDictionary[variableName.lower()]}], rows index depth, columns index time"
+            else: raise ValueError(f"Weird dimension of {variableName} array ({np.ndim(variableArray)})")
 
-        for i, datapoint in enumerate(self.values):
-            toSaveTemperatures[i] = datapoint.temperatures
-            toSavePressures[i] = datapoint.pressures
-            toSaveDensities[i] = datapoint.rhos
-            toSaveB_0s[i] = datapoint.B_0s
-            toSaveF_rads[i] = datapoint.F_rads
-            toSaveF_cons[i] = datapoint.F_cons
-            toSaveEntropies[i] = datapoint.entropies
-            toSaveNablaAds[i] = datapoint.nablaAds
-            toSavecps[i] = datapoint.cps
-            toSavecvs[i] = datapoint.cvs
-            toSavedeltas[i] = datapoint.deltas
-            
-
-        np.savetxt(temperatureFilename, toSaveTemperatures.T, header=f"temperature [{unitsDictionary['temperatures']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(pressureFilename, toSavePressures.T, header=f"pressure [{unitsDictionary['pressures']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(densityFilename, toSaveDensities.T, header=f"density [{unitsDictionary['rhos']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(B_0Filename, toSaveB_0s.T/c.Gauss, header=f"B_0 [{unitsDictionary['B_0s']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(F_conFilename, toSaveF_cons.T, header=f"F_con [{unitsDictionary['F_cons']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(F_radFilename, toSaveF_rads.T, header=f"F_rad [{unitsDictionary['F_rads']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(entropyFilename, toSaveEntropies.T, header=f"S [{unitsDictionary['entropies']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(nablaAdFilename, toSaveNablaAds.T, header=f"nablaAd [{unitsDictionary['nablaAds']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(cpFilename, toSavecps.T, header=f"cp [{unitsDictionary['cps']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(cvFilename, toSavecvs.T, header=f"cv [{unitsDictionary['cvs']}], rows index depth, columns index time", delimiter=",")
-        np.savetxt(deltaFilename, toSavedeltas.T, header=f"Delta [{unitsDictionary['deltas']}], rows index depth, columns index time", delimiter=",")
-        
+            # and save
+            np.savetxt(filename, variableArray.T*unitConversionFactor, header=header, delimiter=',')
 
 def createDataFromFolder(foldername: str) -> Data:
     """
     creates a data cube from a folder
     """
 
-    times = np.loadtxt(f"{foldername}/Time.csv", skiprows=1, delimiter = ",")*c.hour
+    times = np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter = ",")*c.hour
 
     toReturn = Data(finalT=times[-1], numberOfTSteps=len(times), startT=times[0])
 
-    zs = np.loadtxt(f"{foldername}/Depth.csv")*c.Mm
+    zs = np.loadtxt(f"{foldername}/zs.csv", skiprows=1, delimiter=',')*c.Mm
 
-    Temperatures = np.loadtxt(f"{foldername}/Temperature.csv", skiprows=1, delimiter=",")
-    Pressures = np.loadtxt(f"{foldername}/Pressure.csv", skiprows=1, delimiter=",")
-    Densities = np.loadtxt(f"{foldername}/Density.csv", skiprows=1, delimiter=",")
-    B_0s = np.loadtxt(f"{foldername}/B_0.csv", skiprows=1, delimiter=",") * c.Gauss
-    F_cons = np.loadtxt(f"{foldername}/F_con.csv", skiprows=1, delimiter=",")
-    F_rads = np.loadtxt(f"{foldername}/F_rad.csv", skiprows=1, delimiter=",")
-    Entropies = np.loadtxt(f"{foldername}/Entropy.csv", skiprows=1, delimiter=",")
-    NablaAds = np.loadtxt(f"{foldername}/nablaAd.csv", skiprows=1, delimiter=",")
-    cps = np.loadtxt(f"{foldername}/cp.csv", skiprows=1, delimiter=",")
-    cvs = np.loadtxt(f"{foldername}/cv.csv", skiprows=1, delimiter=",")
-    deltas = np.loadtxt(f"{foldername}/Delta.csv", skiprows=1, delimiter=",")
+    Temperatures = np.loadtxt(f"{foldername}/temperatures.csv", skiprows=1, delimiter=",")
+    Pressures = np.loadtxt(f"{foldername}/pressures.csv", skiprows=1, delimiter=",")
+    Densities = np.loadtxt(f"{foldername}/rhos.csv", skiprows=1, delimiter=",")
+    B_0s = np.loadtxt(f"{foldername}/B_0s.csv", skiprows=1, delimiter=",")
+    F_cons = np.loadtxt(f"{foldername}/F_cons.csv", skiprows=1, delimiter=",")
+    F_rads = np.loadtxt(f"{foldername}/F_rads.csv", skiprows=1, delimiter=",")
+    Entropies = np.loadtxt(f"{foldername}/entropies.csv", skiprows=1, delimiter=",")
+    NablaAds = np.loadtxt(f"{foldername}/nablaAds.csv", skiprows=1, delimiter=",")
+    cps = np.loadtxt(f"{foldername}/cps.csv", skiprows=1, delimiter=",")
+    cvs = np.loadtxt(f"{foldername}/cvs.csv", skiprows=1, delimiter=",")
+    deltas = np.loadtxt(f"{foldername}/deltas.csv", skiprows=1, delimiter=",")
 
 
     for i, _ in enumerate(times):
         newDatapoint = SingleTimeDatapoint(
-            zs = zs[:],
+            zs = zs[:, i],
             temperatures=Temperatures[:, i],
             pressures=Pressures[:, i],
             rhos=Densities[:, i],

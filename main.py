@@ -64,7 +64,7 @@ def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, out
     timeIndex = 0 # time index, not actual time
     while (timeIndex < numberOfTSteps): # hey, did you know that in python for cycles are just while cycles that interanlly increment their made up indeces?
 
-        currentState = data.values[timeIndex]
+        currentState = data.datapoints[timeIndex]
 
         newTs = getNewTs(currentState, dt)
         newPs = getNewPs(currentState, dt, upflowVelocity, totalMagneticFlux)
