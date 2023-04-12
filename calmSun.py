@@ -8,6 +8,7 @@ import numpy as np
 import warnings
 from dataStructure import SingleTimeDatapoint
 from stateEquations import IdealGas as StateEq
+
 warnings.warn("Ur using ideal gas here")
 from stateEquations import F_con, F_rad
 from gravity import g
@@ -42,7 +43,7 @@ import constants as c
 #         convectiveG = StateEq.convectiveLogGradient(temperature=T, density=Rho)
 #         radiativeG = StateEq.radiativeLogGradient(temperature=T, density=Rho, gravitationalAcceleration=gravitationalAcc) # type: ignore oh my GOD why is pylance so bad at scipy
 #         return np.minimum(radiativeG, convectiveG)
-    
+
 #     def nabTP(logRho: np.ndarray, z: np.ndarray, T: np.ndarray, P: np.ndarray) -> np.ndarray:
 #         nabla = actualLogGradient(logRho, z, T)
 #         return nabla*T/P
@@ -123,7 +124,13 @@ import constants as c
 #     return calmSun
 
 
-def getCalmSunDatapoint(convectiveAlpha:float, dlnP: float, logSurfacePressure: float, surfaceTemperature: float, maxDepth: float) -> SingleTimeDatapoint:
+def getCalmSunDatapoint(
+    convectiveAlpha: float,
+    dlnP: float,
+    logSurfacePressure: float,
+    surfaceTemperature: float,
+    maxDepth: float,
+) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to calm sun (i.e. one without the flux tube). This model (especially the pressure) is necessary for the calculation of B. It integrates hydrostatic equilibrium (which boils down to solving a set of two ODEs that are a function of logP)
 
@@ -137,13 +144,15 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlnP: float, logSurfacePressure: 
     """
     maxDepth *= c.Mm
 
-    def pressureScaleHeight(logP: np.ndarray, z: np.ndarray, T: np.ndarray) -> np.ndarray:
+    def pressureScaleHeight(
+        logP: np.ndarray, z: np.ndarray, T: np.ndarray
+    ) -> np.ndarray:
         """
-        returns the pressure scale height z meters below the surface if the pressure there is P = exp(log(P)). log is used cuz it's numerically more stable 
+        returns the pressure scale height z meters below the surface if the pressure there is P = exp(log(P)). log is used cuz it's numerically more stable
         """
         gravitationalAcc = g(z)
         P = np.exp(logP)
-        H = StateEq.pressureScaleHeight(temperature = T, pressure = P, gravitationalAcceleration=gravitationalAcc) # type: ignore oh my GOD why is pylance so bad at scipy
+        H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc)  # type: ignore oh my GOD why is pylance so bad at scipy
         return H
 
     def actualLogGradient(logP: np.ndarray, z: np.ndarray, T: np.ndarray) -> np.ndarray:
@@ -153,7 +162,7 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlnP: float, logSurfacePressure: 
         gravitationalAcc = g(z)
         P = np.exp(logP)
         convectiveG = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
-        radiativeG = StateEq.radiativeLogGradient(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc) # type: ignore oh my GOD why is pylance so bad at scipy
+        radiativeG = StateEq.radiativeLogGradient(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc)  # type: ignore oh my GOD why is pylance so bad at scipy
         return np.minimum(radiativeG, convectiveG)
 
     # the two above functions are actually right hand sides of differential equations dz/dlogP and dT/dlogP respectively. They share the independedt variable logP. To solve them we put them together into one array and use scipy integrator
@@ -188,8 +197,9 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlnP: float, logSurfacePressure: 
     calmSunLnPs = []
 
     currentZ = 0
-    while (currentZ < maxDepth):  # TODO can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs?
-
+    while (
+        currentZ < maxDepth
+    ):  # TODO can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs?
         currentZ = ODEIntegrator.y[0]
         currentT = ODEIntegrator.y[1]
         currentLnP = ODEIntegrator.t
@@ -197,39 +207,31 @@ def getCalmSunDatapoint(convectiveAlpha:float, dlnP: float, logSurfacePressure: 
         calmSunTs.append(currentT)
         calmSunLnPs.append(currentLnP)
 
-        currentLnP += dlnP    # step into higher pressure
+        currentLnP += dlnP  # step into higher pressure
         try:
-            ODEIntegrator.integrate(currentLnP)    # get new T and z from this
+            ODEIntegrator.integrate(currentLnP)  # get new T and z from this
         except Exception as ex:
             print(f"last known z = {currentZ}, last known lnP = {currentLnP}")
             raise ex
         if not ODEIntegrator.successful():
-            # TODO hey why is this not finishing a viable break condition viz old code ???? 
-            raise RuntimeError(f"Integration didn't complete correctly at lnP = {currentLnP}")
+            # TODO hey why is this not finishing a viable break condition viz old code ????
+            raise RuntimeError(
+                f"Integration didn't complete correctly at lnP = {currentLnP}"
+            )
 
     calmSunPs = np.exp(calmSunLnPs)
     calmSunTs = np.array(calmSunTs)
 
     rhos = StateEq.density(temperature=calmSunTs, pressure=calmSunPs)
-    entropies = StateEq.entropy(
-        temperature=calmSunTs, pressure=calmSunPs)
-    nablaAds = StateEq.adiabaticLogGradient(
-        temperature=calmSunTs, pressure=calmSunPs)
-    cps = StateEq.cp(temperature=calmSunTs, pressure=calmSunPs)
-    cvs = StateEq.cv(temperature=calmSunTs, pressure=calmSunPs)
-    deltas = StateEq.delta(temperature=calmSunTs, pressure=calmSunPs)
-    F_rads = F_rad(temperature=calmSunTs, pressure=calmSunPs)
+    nablaAds = StateEq.adiabaticLogGradient(temperature=calmSunTs, pressure=calmSunPs)
 
-    gs = np.array(g(calmSunZs))
-    nablaRads = StateEq.radiativeLogGradient(temperature = calmSunTs, pressure = calmSunPs, gravitationalAcceleration=gs)
-    Hps = StateEq.pressureScaleHeight(temperature=calmSunTs, pressure=calmSunPs, gravitationalAcceleration=gs)
-    mus = StateEq.meanMolecularWeight(calmSunTs, calmSunPs)
-
-    F_cons = F_con(temperature=calmSunTs, pressure=calmSunPs, c_p = cps, gravitationalAcceleration=gs, radiativeGrad=nablaRads, adiabaticGrad=nablaAds, meanMolecularWeight=mus, pressureScaleHeight=Hps, convectiveAlpha=convectiveAlpha)
-
-    B_0s = np.zeros(len(calmSunZs))  # calm sun doesn't have these
-
-    calmSun = SingleTimeDatapoint(temperatures=calmSunTs, zs=np.array(calmSunZs), pressures=calmSunPs, rhos=rhos, entropies=entropies, nablaAds=nablaAds, cps=cps, cvs=cvs, deltas=deltas, B_0s=B_0s, F_cons=F_cons, F_rads=F_rads)
+    calmSun = SingleTimeDatapoint(
+        temperatures=calmSunTs,
+        zs=np.array(calmSunZs),
+        pressures=calmSunPs,
+        rhos=rhos,
+        nablaAds=nablaAds,
+    )
     return calmSun
 
 
@@ -245,12 +247,18 @@ def main():
 
     dlnP = 0.1
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
-    maxDepth = 5 # Mm just some housenumero hehe
-    convectiveAlpha = 0.3 # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3 
-    calmSun = getCalmSunDatapoint(dlnP=dlnP, logSurfacePressure=logSurfacePressure,
-                                  maxDepth=maxDepth, surfaceTemperature=surfaceTemperature, convectiveAlpha=convectiveAlpha)
+    maxDepth = 5  # Mm just some housenumero hehe
+    convectiveAlpha = 0.3  # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3
+    calmSun = getCalmSunDatapoint(
+        dlnP=dlnP,
+        logSurfacePressure=logSurfacePressure,
+        maxDepth=maxDepth,
+        surfaceTemperature=surfaceTemperature,
+        convectiveAlpha=convectiveAlpha,
+    )
 
     from dataStructure import Data
+
     data = Data(finalT=1, numberOfTSteps=2)
     data.appendDatapoint(calmSun)
     data.appendDatapoint(calmSun)

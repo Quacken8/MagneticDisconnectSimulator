@@ -5,6 +5,19 @@ import os
 import warnings
 
 
+def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarray:
+    """
+    returns a subsampled 1D array that has the desiredNumberOfElements
+    """
+    if np.ndim(array) != 1:
+        raise ValueError("array must be 1D")
+    if len(array) < desiredNumberOfElements:
+        return array
+    else:
+        indices = np.linspace(0, len(array) - 1, desiredNumberOfElements, dtype=int)
+        return array[indices]
+
+
 def dictionaryOfVariables(A: object) -> dict:
     """makes dictionary of variableName value pairs of a class"""
     dic = {
@@ -35,6 +48,8 @@ unitsDictionary = {
     "cps": "J/(kg.K)",
     "cvs": "J/(kg.K)",
     "deltas": "",  # TODO the fuck is delta
+    "kappas": "m^2/kg",
+    "gamma1s": "", # TODO
 }
 
 
@@ -208,9 +223,19 @@ def createDataFromFolder(foldername: str) -> Data:
     for i, _ in enumerate(times):
         thisTimesVariables = {}
         for key, value in loadedVariables.items():
-            if np.ndim(value) == 0 or np.ndim(value) == 1: continue
-            thisTimesVariables[key] = value[i,:]
+            if np.ndim(value) == 0 or np.ndim(value) == 1:
+                continue
+            thisTimesVariables[key] = value[i, :]
         newDatapoint = SingleTimeDatapoint(**thisTimesVariables)
         toReturn.appendDatapoint(newDatapoint)
 
     return toReturn
+
+
+def loadOneTimeDatapoint(foldername: str, time: float = 0.0) -> SingleTimeDatapoint:
+    """
+    loads a single time datapoint from the data folder. If no time is given, loads the first one
+    """
+    loadedDataCube = createDataFromFolder(foldername)
+    timeIndex = np.argmin(np.abs(loadedDataCube.times - time))
+    return loadedDataCube.datapoints[timeIndex]

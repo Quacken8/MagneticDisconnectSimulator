@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-from dataStructure import SingleTimeDatapoint, Data
+from dataStructure import SingleTimeDatapoint, Data, subsampleArray
 import constants as c
 
 
@@ -29,20 +29,31 @@ def modelSLoader(length: int) -> SingleTimeDatapoint:
     """
     loads model S into a single time datapoint of length length
     """
-    pathToModelS = "model_S_raw.dat"
-    zeros = np.zeros(length)  # FIXME used for all unknown cols from model S
-    zs = np.loadtxt(pathToModelS, skiprows=1, usecols=0)
-    lengthOfSModel = len(zs)
-    skippingIndex = lengthOfSModel//length
+    pathToModelS = "externalData/model_S_new.dat"
+    unitSymbolBracket = '['
+    header = np.loadtxt(pathToModelS, dtype=str, max_rows=1)
+    variableNames = []
+    for word in header:
+        variableNames.append(word.split(unitSymbolBracket)[0])
+    
+    allLoadedData = np.loadtxt(pathToModelS, skiprows=1)
+    variablesDictionary = {}
+    for i, variableName in enumerate(variableNames):
+        variablesDictionary[variableName] = subsampleArray(allLoadedData[:,i], length)
+        if variableName == 'r':
+            variablesDictionary['zs'] = variablesDictionary[variableName][0] - variablesDictionary[variableName]
+            variablesDictionary.pop('r')
 
-    zs = zs[::skippingIndex][:length] #FIXME - this doesnt properly downsample the data
-    Ts = np.loadtxt(pathToModelS, skiprows=1,
-                    usecols=1)[::skippingIndex][:length]
-    Ps = np.loadtxt(pathToModelS, skiprows=1,
-                    usecols=2)[::skippingIndex][:length]
-    rhos = np.loadtxt(pathToModelS, skiprows=1, usecols=3)[
-        ::skippingIndex][:length]
-    datapoint = SingleTimeDatapoint(temperatures=Ts, pressures=Ps, zs=zs, rhos=rhos, B_0s=zeros,
-                                    F_rads=zeros, F_cons=zeros, entropies=zeros, nablaAds=zeros, cps=zeros, cvs=zeros, deltas=zeros)
+
+    datapoint = SingleTimeDatapoint(**variablesDictionary)
 
     return datapoint
+
+def main():
+    """debugging"""
+    datapoint = modelSLoader(5)
+    for key, value in datapoint.allVariables.items():
+        print(key, value)
+
+if __name__ == "__main__":
+    main()

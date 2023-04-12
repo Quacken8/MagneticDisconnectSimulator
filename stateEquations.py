@@ -130,7 +130,7 @@ class IdealGas:
         """
         returns degree of ionization according to denizer 1965, resp  Kippenhahn, Temesvary, and Biermann (1958)
         which states that log(x^2/(1-x^2)) + C(T, P) = 0
-        solution to that equation is 
+        solution to that equation is
         1/sqrt(1+10^C)
         """
         warnings.warn("Ur using ideal gas")
@@ -140,12 +140,14 @@ class IdealGas:
             + (13.53 * 5040) / temperature
             + 0.48
             + np.log10(c.massFractionOfHydrogen)
-            + np.log10(pressure*c.barye)    # FIXME AAAAAAAAAAAA IS THERE A BARYE (CGS UNIT FOR PRESSURE) HERE OR NOT AAAA
+            + np.log10(
+                pressure * c.barye
+            )  # FIXME AAAAAAAAAAAA IS THERE A BARYE (CGS UNIT FOR PRESSURE) HERE OR NOT AAAA
             + np.log10(c.meanMolecularWeight * c.gram)
         )
 
         tenPower = np.float_power(10, C)
-        toReturn = 1/np.sqrt(1+tenPower)
+        toReturn = 1 / np.sqrt(1 + tenPower)
         return toReturn
 
     @np.vectorize
