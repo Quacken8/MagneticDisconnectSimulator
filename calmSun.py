@@ -178,9 +178,9 @@ def getCalmSunDatapoint(
         T = zTArray[1]
 
         H = pressureScaleHeight(logP, z, T)
-        nablaAdj = actualLogGradient(logP, z, T)
+        TNabla = T*actualLogGradient(logP, z, T)
 
-        return np.array([H, nablaAdj])
+        return np.array([H, TNabla])
 
     ODEIntegrator = scipyODE(setOfODEs)
     # TODO this is the RK integrator of order (4)5. Is this the best option?

@@ -73,17 +73,23 @@ def testModelSDensity() -> None:
     test that the density of model S is similar to the density from ideal gas
     """
     modelSDatapoint = loadModelS(1000)
-    modelSrho = modelSDatapoint.rhos
-    modelSzs = modelSDatapoint.zs
     modelSpressure = modelSDatapoint.pressures
     modelStemperature = modelSDatapoint.temperatures
     idealRhos = IdealGas.density(modelStemperature, modelSpressure)
 
-    # plot both rhos vs z in one figure
-    plt.loglog(modelSzs, modelSrho, label="modelS")
-    plt.loglog(modelSzs, idealRhos, label="ideal")
+    axs = plotSingleTimeDatapoint(modelSDatapoint, ["rhos"], pltshow=False)
+    axs["rhos"].loglog(modelSDatapoint.zs / c.Mm, idealRhos, label="ideal")
     plt.legend()
     plt.show()
+
+def testVizualization() -> None:
+    from initialConditionsSetterUpper import loadModelS
+
+    datapoint = loadModelS(500)
+
+    toPlot = ["temperatures", "pressures", "rhos"]
+
+    plotSingleTimeDatapoint(datapoint, toPlot, log=True)
 
 def testModelSVSCalmSun() -> None:
     
@@ -95,7 +101,7 @@ def testModelSVSCalmSun() -> None:
     dlnP = 0.001
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
     maxDepth = 12  # Mm just some housenumero hehe
-    convectiveAlpha = 2  # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3
+    convectiveAlpha = 0.3  # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3
     calmSun = getCalmSunDatapoint(
         dlnP=dlnP,
         logSurfacePressure=logSurfacePressure,
@@ -110,26 +116,18 @@ def testModelSVSCalmSun() -> None:
 
     modelS = loadModelS(500)
 
-
-    plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S")
-    plotSingleTimeDatapoint(calmSun, toPlot, label="calmSun")
-
-def testVizualization() -> None:
-    from initialConditionsSetterUpper import loadModelS
-
-    datapoint = loadModelS(500)
-
-    toPlot = ["temperatures", "pressures", "rhos"]
-
-    plotSingleTimeDatapoint(datapoint, toPlot, log=True)
+    axs = plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S")
+    plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="calmSun")
 
 def main():
     testDataStructureSaveLoad()
     testCalmSunBasedOnModelSData()
 
     print("Tests passed :)")
-    testModelSDensity()
-    testAdiabaticGradientBasedOnModelS()
+    #testModelSDensity()
+    #testAdiabaticGradientBasedOnModelS()
+    testModelSVSCalmSun()
+
 
 
 if __name__ == "__main__":
