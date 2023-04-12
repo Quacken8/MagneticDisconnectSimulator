@@ -171,7 +171,7 @@ def getCalmSunDatapoint(
         """
         the set of ODEs that tie logP, T and z together
         dz/dlogP = H(T, P, z)
-        dT/dlogP = ∇(T, P, z)
+        dT/dlogP = T∇(T, P, z)
         first index corresponds to z/(logP), second index to function of T(logP)
         """
         z = zTArray[0]
