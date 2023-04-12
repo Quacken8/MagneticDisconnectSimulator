@@ -12,13 +12,14 @@ import numpy.typing as npt
 import constants as c
 from typing import Iterable
 
-
 def plotSingleTimeDatapoint(
     datapoint: SingleTimeDatapoint,
     toPlot: Iterable[str],
     pltshow: bool = True,
-    log=False,
+    log: bool=True,
+    label: str = "",
 ) -> None:
+    label += " "
     zs = datapoint.zs / c.Mm
 
     variables = dictionaryOfVariables(datapoint)
@@ -33,8 +34,9 @@ def plotSingleTimeDatapoint(
             ax.loglog(zs, dataToPlot, label=plot)
         else:
             ax.plot(zs, dataToPlot, label=plot)
-        ax.set_xlabel(f"z [{unitsDictionary['depth']}]")
+        ax.set_xlabel(f"z [{unitsDictionary['zs']}]")
         ax.set_ylabel(f"{plot} [{unitsDictionary[plot]}]")
+        ax.set_title(f"{label}{plot} vs depth")
         plt.legend()
 
     if pltshow:
@@ -42,17 +44,7 @@ def plotSingleTimeDatapoint(
 
 
 def main():
-    """
-    test program
-    """
-    from initialConditionsSetterUpper import modelSLoader
-
-    datapoint = modelSLoader(500)
-
-    toPlot = ["temperatures", "pressures", "rhos"]
-
-    plotSingleTimeDatapoint(datapoint, toPlot, log=True)
-
+    pass
 
 if __name__ == "__main__":
     main()

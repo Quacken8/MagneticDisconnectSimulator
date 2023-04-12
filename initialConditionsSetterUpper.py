@@ -21,11 +21,11 @@ def mockupDataSetterUpper(zLength: int = 10) -> SingleTimeDatapoint:
     zs = np.linspace(0, maxdepth, num=zLength)
 
     toReturn = SingleTimeDatapoint(temperatures=ones, pressures=ones*10, B_0s=ones*100, F_rads=ones*1000, F_cons=ones *
-                                   10000, entropies=ones*2, nablaAds=ones*4, deltas=ones*6, zs=zs, rhos=ones*7, cps=ones*3, cvs=ones*11)
+                                   10000, entropies=ones*2, nablaads=ones*4, deltas=ones*6, zs=zs, rhos=ones*7, cps=ones*3, cvs=ones*11)
     return toReturn
 
 
-def modelSLoader(length: int) -> SingleTimeDatapoint:
+def loadModelS(length: int) -> SingleTimeDatapoint:
     """
     loads model S into a single time datapoint of length length
     """
@@ -50,10 +50,7 @@ def modelSLoader(length: int) -> SingleTimeDatapoint:
     return datapoint
 
 def main():
-    """debugging"""
-    datapoint = modelSLoader(5)
-    for key, value in datapoint.allVariables.items():
-        print(key, value)
+    pass
 
 if __name__ == "__main__":
     main()

@@ -61,7 +61,7 @@ class SingleTimeDatapoint:
     NumberOfZStepsPower: the number of steps in z direction will be 2^k + 1 where k is the NumberOfZStepsPower
     """
 
-    derivedQuantities = {}
+    
 
     def __init__(
         self,
@@ -77,6 +77,7 @@ class SingleTimeDatapoint:
         self.pressures = pressures
         self.rhos = rhos  # later get only pressure and temperature in mandatory thingies, rest can be deduced from state eq
         fundamentalVariables = dictionaryOfVariables(self)
+        self.derivedQuantities = {}
 
         for key, value in kwargs.items():
             self.derivedQuantities[key] = value

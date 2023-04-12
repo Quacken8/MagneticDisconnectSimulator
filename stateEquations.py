@@ -19,7 +19,7 @@ class IdealGas:
         warnings.warn("Ur using ideal gas")
         # TODO -  is this real?
         mu = IdealGas.meanMolecularWeight(temperature, pressure)
-        return mu * pressure / (temperature * c.BoltzmannConstant)
+        return mu * pressure / (temperature * c.gasConstant)
 
     @np.vectorize
     @staticmethod
@@ -41,7 +41,6 @@ class IdealGas:
         warnings.warn("Ur using ideal gas")
         raise NotImplementedError()
 
-    @np.vectorize
     @staticmethod
     def adiabaticLogGradient(
         temperature: np.ndarray, pressure: np.ndarray

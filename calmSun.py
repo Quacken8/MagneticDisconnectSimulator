@@ -223,47 +223,20 @@ def getCalmSunDatapoint(
     calmSunTs = np.array(calmSunTs)
 
     rhos = StateEq.density(temperature=calmSunTs, pressure=calmSunPs)
-    nablaAds = StateEq.adiabaticLogGradient(temperature=calmSunTs, pressure=calmSunPs)
+    nablaads = StateEq.adiabaticLogGradient(temperature=calmSunTs, pressure=calmSunPs)
 
     calmSun = SingleTimeDatapoint(
         temperatures=calmSunTs,
         zs=np.array(calmSunZs),
         pressures=calmSunPs,
         rhos=rhos,
-        nablaAds=nablaAds,
+        nablaads=nablaads,
     )
     return calmSun
 
 
 def main():
-    """
-    debugging function for this model used to compare the outcomes to model S
-    """
-
-    # load model S data
-
-    modelSFilename = "externalData/model_S_new.dat"
-    surfaceTemperature = np.loadtxt(modelSFilename, skiprows=1, usecols=1)[0]
-
-    dlnP = 0.1
-    logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
-    maxDepth = 5  # Mm just some housenumero hehe
-    convectiveAlpha = 0.3  # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3
-    calmSun = getCalmSunDatapoint(
-        dlnP=dlnP,
-        logSurfacePressure=logSurfacePressure,
-        maxDepth=maxDepth,
-        surfaceTemperature=surfaceTemperature,
-        convectiveAlpha=convectiveAlpha,
-    )
-
-    from dataStructure import Data
-
-    data = Data(finalT=1, numberOfTSteps=2)
-    data.appendDatapoint(calmSun)
-    data.appendDatapoint(calmSun)
-    data.saveToFolder("calmSun", rewriteFolder=True)
-
+    pass
 
 if __name__ == "__main__":
     main()
