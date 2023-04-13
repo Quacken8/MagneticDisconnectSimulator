@@ -55,16 +55,18 @@ def testCalmSunBasedOnModelSData() -> None:
     pass
 
 def testAdiabaticGradientBasedOnModelS() -> None:
-    modelTs, modelPs, modelNablas = np.loadtxt(
-        pathToModelS, skiprows=1, usecols=(1, 2, 6)
-    ).T
+    modelS = loadModelS(1000)
+
+    modelTs = modelS.temperatures
+    modelPs = modelS.pressures
+    modelZs = modelS.zs
+    modelNablas = modelS.derivedQuantities["nablaads"]
     from stateEquations import IdealGas
 
     idealNablas = IdealGas.adiabaticLogGradient(temperature=modelTs, pressure=modelPs)
 
-    indeces = np.arange(len(modelNablas))
-    plt.scatter(indeces, modelNablas, label="model")
-    plt.scatter(indeces, idealNablas, label="ideal")
+    plt.scatter(modelZs, modelNablas, label="model")
+    plt.scatter(modelZs, idealNablas, label="ideal")
     plt.legend()
     plt.show()
 
@@ -91,23 +93,30 @@ def testVizualization() -> None:
 
     plotSingleTimeDatapoint(datapoint, toPlot, log=True)
 
-def testModelSVSCalmSun() -> None:
-    
+def testModelSVSCalmSunVSHybrid() -> None:
     # load model S data
 
     modelSFilename = "externalData/model_S_new.dat"
     surfaceTemperature = np.loadtxt(modelSFilename, skiprows=1, usecols=1)[0]
 
-    dlnP = 0.001
+    dlnP = 1e-3
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
     maxDepth = 12  # Mm just some housenumero hehe
-    convectiveAlpha = 0.3  # value of 0.3 comes from Schüssler Rempel 2018 section 3.2, harmanec brož (stavba a vývoj hvězd) speak of alpha = 2 in section 1.3
+    from stateEquations import IdealGas
     calmSun = getCalmSunDatapoint(
+        StateEq=IdealGas,
         dlnP=dlnP,
         logSurfacePressure=logSurfacePressure,
         maxDepth=maxDepth,
         surfaceTemperature=surfaceTemperature,
-        convectiveAlpha=convectiveAlpha,
+    )
+    from stateEquations import IdealGasWithModelSNablaAd
+    calmSunHybrid = getCalmSunDatapoint(
+        StateEq=IdealGasWithModelSNablaAd,
+        dlnP=dlnP,
+        logSurfacePressure=logSurfacePressure,
+        maxDepth=maxDepth,
+        surfaceTemperature=surfaceTemperature,
     )
 
     toPlot = ["temperatures", "pressures", "rhos"]
@@ -117,16 +126,43 @@ def testModelSVSCalmSun() -> None:
     modelS = loadModelS(500)
 
     axs = plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S")
-    plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="calmSun")
+    axs = plotSingleTimeDatapoint(calmSunHybrid, toPlot, pltshow=False, label="Ideal gas with model S ∇ad", axs=axs)
+    plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="Ideal gas")
+    plt.legend()
+
+def testModelSBasedIdealGas() -> None:
+    resolition = 100
+
+    modelS = loadModelS()
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+    from stateEquations import IdealGasWithModelSNablaAd
+    
+    temperatures = np.logspace(np.log10(modelSTemperature[0]), np.log10(modelSTemperature[-1]), num = resolition)
+    pressures = np.logspace(np.log10(modelSPressure[0]), np.log10(modelSPressure[-1]), num = resolition)
+
+    TMesh, PMesh = np.meshgrid(temperatures, pressures)
+    nablaAdMesh = IdealGasWithModelSNablaAd.adiabaticLogGradient(TMesh, PMesh)
+
+    plt.pcolormesh(TMesh, PMesh, nablaAdMesh, shading="auto")
+    
+    plt.loglog(modelSTemperature, modelSPressure, "ok", label="input point")
+    plt.xlabel("Temperature [K]")
+    plt.ylabel("Pressure [Pa]")
+    plt.legend()
+    plt.colorbar()
+    plt.show()
 
 def main():
+
     testDataStructureSaveLoad()
     testCalmSunBasedOnModelSData()
 
     print("Tests passed :)")
-    #testModelSDensity()
-    #testAdiabaticGradientBasedOnModelS()
-    testModelSVSCalmSun()
+    testModelSBasedIdealGas()
+    testModelSDensity()
+    testAdiabaticGradientBasedOnModelS()
+    testModelSVSCalmSunVSHybrid()
 
 
 

@@ -47,6 +47,7 @@ def modelSNearestOpacity(
 def main():
     """debugging function for this file"""
     import matplotlib.pyplot as plt
+    from matplotlib.colors import LogNorm
 
     resolution = 100
     TMesh = np.logspace(np.log10(modelTs[0]), np.log10(modelTs[-1]), num=resolution)
@@ -54,10 +55,9 @@ def main():
     TMesh, PMesh = np.meshgrid(TMesh, PMesh)
     kappaMesh = modelSNearestOpacity(TMesh, PMesh)
 
-    plt.pcolormesh(TMesh, PMesh, kappaMesh, shading="auto")
-    plt.plot(modelTs, modelPs, "ok", label="input point")
-    plt.yscale("log")
-    plt.xscale("log")
+    plt.pcolormesh(TMesh, PMesh, kappaMesh, shading="auto", norm=LogNorm())
+    
+    plt.loglog(modelTs, modelPs, "ok", label="input point")
     plt.xlabel("Temperature [K]")
     plt.ylabel("Pressure [Pa]")
     plt.legend()

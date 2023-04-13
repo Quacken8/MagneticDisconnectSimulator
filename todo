@@ -4,16 +4,8 @@
 //TODO - MESA kappas are actually kappa(z) and the P T rho are just along for the ride!!!
 //TODO - also wathc out mesa calulates these kappas based on star thats almost two solar masses!!!!! Look into that .model file!!!!!!!
 
-//TODO - find out what the deltas are, theyre used in the old fconv method
-//TODO - find out about mixing length -- is it just a parameter as the schussler paper says?
-//TODO - ask about the inconsistency in Bárta's paper that says ∇=min(∇rad, ∇conv) but never specifies ∇conv and harmanec brož use ∇ad instead (eq 4.152)
-//TODO - ask about the barye in degreeOfIonization in state equations; even without it it leads to not being able to find ionization at ~5.6 Mm
-
-//TODO - make sure u understand ideal gas (i e the function density)
 //TODO - the eos isnt returning mean molecular value, but number densities? it just doesnt do what the documentation says it returns
-//TODO -  make the fortran code just return an array and organize it in python
+//TODO - make the fortran code just return an array and organize it in python
 //TODO - AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA V SAMPLE EOS JE eosPT_get COŽ JE PRESSURE TEMPERATURE EOS AAAAAAAAAAAA
 
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
-
-//FIXME - rn děláš calm sun a teď se ti to neuloží páč nemáš implementovaný některý věci co chceš ukládat (entropie etc). Předělej to tak aby se variables ukládaly do dictionary aby nezáleželo kolik jich tam dáš a jen ty důležitý se uloží

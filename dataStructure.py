@@ -14,7 +14,7 @@ def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarra
     if len(array) < desiredNumberOfElements:
         return array
     else:
-        indices = np.linspace(0, len(array) - 1, desiredNumberOfElements, dtype=int)
+        indices = np.linspace(0, len(array) - 1, desiredNumberOfElements, endpoint=True, dtype=int)
         return array[indices]
 
 

@@ -7,13 +7,14 @@ This script models stellar interior with absent flux tube
 import numpy as np
 import warnings
 from dataStructure import SingleTimeDatapoint
-from stateEquations import IdealGas as StateEq
+from stateEquations import StateEquationInterface
 
 warnings.warn("Ur using ideal gas here")
 from stateEquations import F_con, F_rad
 from gravity import g
 from scipy.integrate import ode as scipyODE
 import constants as c
+from typing import Type
 
 
 # FIXME - this is made regarding the log of pressure however the new state eq tables will probably work with T and Rho as their variables; therefore the of integration dP/dz should rly go to dP/drho dRho/dz cuz the new tables also support dp/drho
@@ -125,7 +126,7 @@ import constants as c
 
 
 def getCalmSunDatapoint(
-    convectiveAlpha: float,
+    StateEq: Type[StateEquationInterface],
     dlnP: float,
     logSurfacePressure: float,
     surfaceTemperature: float,
@@ -137,6 +138,7 @@ def getCalmSunDatapoint(
     ----------
     Parameters
     ----------
+    stateEq: a class with static functions that return the thermodynamic quantities as a function of temperature and pressure; see StateEquations.py for an example
     dlogP : [Pa] step in pressure gradient by which the integration happens
     logSurfacePressure : [Pa] boundary condition of surface pressure
     surfaceTemperature : [K] boundary condition of surface temperature
@@ -167,44 +169,45 @@ def getCalmSunDatapoint(
 
     # the two above functions are actually right hand sides of differential equations dz/dlogP and dT/dlogP respectively. They share the independedt variable logP. To solve them we put them together into one array and use scipy integrator
 
-    def setOfODEs(logP: np.ndarray, zTArray: np.ndarray) -> np.ndarray:
+    def setOfODEs(logP: np.ndarray, zlnTArray: np.ndarray) -> np.ndarray:
         """
-        the set of ODEs that tie logP, T and z together
-        dz/dlogP = H(T, P, z)
-        dT/dlogP = T∇(T, P, z)
-        first index corresponds to z/(logP), second index to function of T(logP)
+        the set of ODEs that tie lnP, lnT and z together
+        dz/dlnP = H(T, P, z)
+        dlnT/dlnP = ∇(T, P, z)
+        first index corresponds to z(lnP), second index to function of lnT(lnP)
         """
-        z = zTArray[0]
-        T = zTArray[1]
+        z = zlnTArray[0]
+        T = np.exp(zlnTArray[1])
 
         H = pressureScaleHeight(logP, z, T)
-        TNabla = T*actualLogGradient(logP, z, T)
+        nabla = actualLogGradient(logP, z, T)
 
-        return np.array([H, TNabla])
+        return np.array([H, nabla])
 
     ODEIntegrator = scipyODE(setOfODEs)
     # TODO this is the RK integrator of order (4)5. Is this the best option?
     ODEIntegrator.set_integrator("dopri5")
 
     # z = 0 is the definition of surface
-    surfaceZTValues = np.array([0, surfaceTemperature])
+    surfaceZTValues = np.array([0, np.log(surfaceTemperature)])
     ODEIntegrator.set_initial_value(surfaceZTValues, logSurfacePressure)
 
-    # now for each logP (by stepping via dlogP) we find T and z and save them to these arrays
+    # now for each lnP (by stepping via dlnP) we find T and z and save them to these arrays
 
     calmSunZs = []
-    calmSunTs = []
+    calmSunLnTs = []
     calmSunLnPs = []
 
     currentZ = 0
+    
     while (
         currentZ < maxDepth
     ):  # TODO can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs?
         currentZ = ODEIntegrator.y[0]
-        currentT = ODEIntegrator.y[1]
+        currentLnT = ODEIntegrator.y[1]
         currentLnP = ODEIntegrator.t
         calmSunZs.append(currentZ)
-        calmSunTs.append(currentT)
+        calmSunLnTs.append(currentLnT)
         calmSunLnPs.append(currentLnP)
 
         currentLnP += dlnP  # step into higher pressure
@@ -220,7 +223,7 @@ def getCalmSunDatapoint(
             )
 
     calmSunPs = np.exp(calmSunLnPs)
-    calmSunTs = np.array(calmSunTs)
+    calmSunTs = np.exp(calmSunLnTs)
 
     rhos = StateEq.density(temperature=calmSunTs, pressure=calmSunPs)
     nablaads = StateEq.adiabaticLogGradient(temperature=calmSunTs, pressure=calmSunPs)

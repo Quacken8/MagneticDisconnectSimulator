@@ -2,14 +2,88 @@
 import numpy as np
 import constants as c
 import warnings
-from scipy.optimize import newton as scipyFSolve
+from scipy.interpolate import NearestNDInterpolator
 
 warnings.warn("Ur using the model S opacity here")
 from opacity import modelSNearestOpacity as opacity
+from initialConditionsSetterUpper import loadModelS
+import abc
 
+class StateEquationInterface(metaclass=abc.ABCMeta):
+    @staticmethod
+    @abc.abstractmethod
+    def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+        """
+        returns density
+        """
+        pass
 
-class IdealGas:
-    ## TODO it looks like most of these are useless? i mean the original code saves them but doesnt seem to use things like entropy or the weird delta
+    @staticmethod
+    @abc.abstractmethod
+    def convectiveLogGradient(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        """
+        returns convectiveGradient
+        """
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def adiabaticLogGradient(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        """
+        returns convectiveGradient
+        """
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def meanMolecularWeight(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        "returns mean molecular weight"
+
+    @staticmethod
+    @abc.abstractmethod
+    def radiativeLogGradient(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
+    ) -> np.ndarray:
+        """returns radiative log gradient"""
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+        """
+        returns c_p
+        """
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def degreeOfIonization(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+        """
+        returns degree of ionization
+        """
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def pressureScaleHeight(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
+    ) -> np.ndarray:
+        """
+        returns pressure scale height
+        """
+        pass
+
+class IdealGas(StateEquationInterface):
     @np.vectorize
     @staticmethod
     def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
@@ -17,7 +91,6 @@ class IdealGas:
         returns density according to ideal gas law
         """
         warnings.warn("Ur using ideal gas")
-        # TODO -  is this real?
         mu = IdealGas.meanMolecularWeight(temperature, pressure)
         return mu * pressure / (temperature * c.gasConstant)
 
@@ -28,15 +101,6 @@ class IdealGas:
     ) -> np.ndarray:
         """
         returns convectiveGradient according to ideal gas law
-        """
-        warnings.warn("Ur using ideal gas")
-        raise NotImplementedError()
-
-    @np.vectorize
-    @staticmethod
-    def entropy(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
-        """
-        returns entropy according to ideal gas law
         """
         warnings.warn("Ur using ideal gas")
         raise NotImplementedError()
@@ -141,31 +205,13 @@ class IdealGas:
             + np.log10(c.massFractionOfHydrogen)
             + np.log10(
                 pressure * c.barye
-            )  # FIXME AAAAAAAAAAAA IS THERE A BARYE (CGS UNIT FOR PRESSURE) HERE OR NOT AAAA
+            )
             + np.log10(c.meanMolecularWeight * c.gram)
         )
 
         tenPower = np.float_power(10, C)
         toReturn = 1 / np.sqrt(1 + tenPower)
         return toReturn
-
-    @np.vectorize
-    @staticmethod
-    def cv(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
-        """
-        returns convectiveGradient according to ideal gas law
-        """
-        warnings.warn("Ur using ideal gas")
-        raise NotImplementedError()
-
-    @np.vectorize
-    @staticmethod
-    def delta(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
-        """
-        returns convectiveGradient according to ideal gas law
-        """
-        warnings.warn("Ur using ideal gas")
-        raise NotImplementedError()
 
     @staticmethod
     def pressureScaleHeight(
@@ -178,6 +224,25 @@ class IdealGas:
         """
         mu = IdealGas.meanMolecularWeight(temperature, pressure)
         return c.gasConstant * temperature / (mu * gravitationalAcceleration)
+
+## Cache the model S data
+modelS = loadModelS()
+
+modelSPressures = modelS.pressures
+modelSTemperatures = modelS.temperatures
+modelSNablaAds = modelS.derivedQuantities["nablaads"]
+interpolatedNablaAd = NearestNDInterpolator(list(zip(modelSTemperatures, modelSPressures)), modelSNablaAds)
+class IdealGasWithModelSNablaAd(IdealGas):
+    @staticmethod
+    def adiabaticLogGradient(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        """
+        returns adiabatic log gradient according derived using nearest neighbor of model S
+        """
+
+        return interpolatedNablaAd(temperature, pressure)
+        
 
 
 def F_rad(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:

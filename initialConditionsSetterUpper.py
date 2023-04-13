@@ -25,9 +25,9 @@ def mockupDataSetterUpper(zLength: int = 10) -> SingleTimeDatapoint:
     return toReturn
 
 
-def loadModelS(length: int) -> SingleTimeDatapoint:
+def loadModelS(length: int | None = None) -> SingleTimeDatapoint:
     """
-    loads model S into a single time datapoint of length length
+    loads model S into a single time datapoint of length length. If left at None, load the whole array
     """
     pathToModelS = "externalData/model_S_new.dat"
     unitSymbolBracket = '['
@@ -37,6 +37,8 @@ def loadModelS(length: int) -> SingleTimeDatapoint:
         variableNames.append(word.split(unitSymbolBracket)[0])
     
     allLoadedData = np.loadtxt(pathToModelS, skiprows=1)
+    if length is None:
+        length = len(allLoadedData[:,0])+1
     variablesDictionary = {}
     for i, variableName in enumerate(variableNames):
         variablesDictionary[variableName] = subsampleArray(allLoadedData[:,i], length)

@@ -75,7 +75,7 @@ g = ScipySpline(modelZs, gravitationalAccelerationsInZs, s=0, k=1, ext=3)
 def main():
     """debug function for the gravity code"""
 
-    print(gravitationalAccelerations.max())
+    print(massesBelowR[-1])
 
     import matplotlib.pyplot as plt
 
