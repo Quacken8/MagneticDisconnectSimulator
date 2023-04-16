@@ -1,5 +1,5 @@
 # MagneticDisconnectSimulator
-Python simulator of disconnection of solar magnetic field from its roots inpsired by Schüssler and Rempel (2018). It is a University Thesis project that involves the use of Python and third-party software packages such as MESA and PyMESA. The project is aimed at simulating the magneto-hydrodynamics of the sun and generating a graphical representation of the simulation.
+Python simulator of disconnection of solar magnetic field from its roots inpsired by Schüssler and Rempel (2018). It is a University Thesis project.
 
 ## Prerequisites
 
