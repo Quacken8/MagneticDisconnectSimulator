@@ -22,5 +22,11 @@ git clone git@github.com:Quacken8/MagneticDisconnectSimulator.git
 pip3 install -r requirements.txt
 ```
 
+3. Clone and install pyMESA using
+```
+git clone git@github.com:rjfarmer/pyMesa.git
+```
+making sure beforehand that your MESA is installed in the shared library mode by setting `USE_SHARED = YES` in $MESA_DIR/utils/makefile_header
+
 ## Usage
 TODO
