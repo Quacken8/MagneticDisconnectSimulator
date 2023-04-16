@@ -14,7 +14,7 @@ To run this project on your machine, you need to have the following software ins
 
 1. Clone the repository to your local machine using the following command:
 ```
-git clone https://github.com/your_username/your_project.git
+git clone git@github.com:Quacken8/MagneticDisconnectSimulator.git
 ```
 
 2. Install the required packages using the following command:
