@@ -6,7 +6,7 @@ Python simulator of disconnection of solar magnetic field from its roots inpsire
 To run this project on your machine, you need to have the following software installed:
 
 - Python 3.7 or higher
-- [MESA SDK]()
+- [MESA SDK](http://user.astro.wisc.edu/~townsend/static.php?ref=mesasdk)
 - [MESA](https://github.com/MESAHub/mesa) 
 - [PyMESA](https://github.com/rjfarmer/pyMesa)
 
