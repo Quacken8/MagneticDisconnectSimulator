@@ -5,5 +5,9 @@
 //NOTE - i have a hunch they will not cache the tables which could take up a lot of time -- check 
 //TODO - the eos isnt returning mean molecular value, but number densities? it just doesnt do what the documentation says it returns
 
+//TODO - ask about what Zbase might be
+//TODO - get the most correct mass fractions of the Sun
+//TODO - find out why the opacities arent too right for higher temps and densities
+
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
