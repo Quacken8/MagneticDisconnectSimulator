@@ -7,10 +7,10 @@ This script models stellar interior with absent flux tube
 import numpy as np
 import warnings
 from dataStructure import SingleTimeDatapoint
-from stateEquations import StateEquationInterface
+from stateEquationsPT import StateEquationInterface
 
 warnings.warn("Ur using ideal gas here")
-from stateEquations import F_con, F_rad
+from stateEquationsPT import F_con, F_rad
 from gravity import g
 from scipy.integrate import ode as scipyODE
 import constants as c

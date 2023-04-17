@@ -1,11 +1,9 @@
 //TODO - test y solver
 //TODO - test T solver
-//TODO - solve the opacity weirdness - why doesnt mesa return some grid and only a weird curve in the logRho logT space?
-//TODO - MESA kappas are actually kappa(z) and the P T rho are just along for the ride!!!
-//TODO - also wathc out mesa calulates these kappas based on star thats almost two solar masses!!!!! Look into that .model file!!!!!!!
 
+//TODO - implement eos and kappa from MESA
+//NOTE - i have a hunch they will not cache the tables which could take up a lot of time -- check 
 //TODO - the eos isnt returning mean molecular value, but number densities? it just doesnt do what the documentation says it returns
-//TODO - make the fortran code just return an array and organize it in python
-//TODO - AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA V SAMPLE EOS JE eosPT_get COŽ JE PRESSURE TEMPERATURE EOS AAAAAAAAAAAA
 
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
+//TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)

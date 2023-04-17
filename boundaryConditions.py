@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 from dataStructure import SingleTimeDatapoint
-from stateEquations import IdealGas as StateEq
+from stateEquationsPT import IdealGas as StateEq
 import constants as c
 
 def getBottomB(externalPressure: float | np.ndarray, bottomPressure: float | np.ndarray) -> float | np.ndarray:

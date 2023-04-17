@@ -2,7 +2,6 @@
 
 import numpy as np
 from initialConditionsSetterUpper import getInitialConditions
-from dataVizualizer import visualizeData
 from dataStructure import Data, SingleTimeDatapoint
 import constants as c
 from calmSun import getCalmSunDatapoint
@@ -51,6 +50,7 @@ def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, out
     finalT *= c.hour
     maxDepth *= c.Mm
 
+    raise NotImplementedError("this is not finished yet")
     # get the calm sun model
     calmSun = getCalmSunDatapoint()
 

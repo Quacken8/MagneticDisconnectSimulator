@@ -7,7 +7,7 @@ from dataStructure import (
 )
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper, loadModelS
-from stateEquations import IdealGas
+from stateEquationsPT import IdealGas
 from calmSun import getCalmSunDatapoint
 from dataVizualizer import plotSingleTimeDatapoint
 # from solvers import oldYSolver
@@ -61,7 +61,7 @@ def testAdiabaticGradientBasedOnModelS() -> None:
     modelPs = modelS.pressures
     modelZs = modelS.zs
     modelNablas = modelS.derivedQuantities["nablaads"]
-    from stateEquations import IdealGas
+    from stateEquationsPT import IdealGas
 
     idealNablas = IdealGas.adiabaticLogGradient(temperature=modelTs, pressure=modelPs)
 
@@ -102,7 +102,7 @@ def testModelSVSCalmSunVSHybrid() -> None:
     dlnP = 1e-3
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
     maxDepth = 12  # Mm just some housenumero hehe
-    from stateEquations import IdealGas
+    from stateEquationsPT import IdealGas
     calmSun = getCalmSunDatapoint(
         StateEq=IdealGas,
         dlnP=dlnP,
@@ -110,7 +110,7 @@ def testModelSVSCalmSunVSHybrid() -> None:
         maxDepth=maxDepth,
         surfaceTemperature=surfaceTemperature,
     )
-    from stateEquations import IdealGasWithModelSNablaAd
+    from stateEquationsPT import IdealGasWithModelSNablaAd
     calmSunHybrid = getCalmSunDatapoint(
         StateEq=IdealGasWithModelSNablaAd,
         dlnP=dlnP,
@@ -136,7 +136,7 @@ def testModelSBasedIdealGas() -> None:
     modelS = loadModelS()
     modelSPressure = modelS.pressures
     modelSTemperature = modelS.temperatures
-    from stateEquations import IdealGasWithModelSNablaAd
+    from stateEquationsPT import IdealGasWithModelSNablaAd
     
     temperatures = np.logspace(np.log10(modelSTemperature[0]), np.log10(modelSTemperature[-1]), num = resolition)
     pressures = np.logspace(np.log10(modelSPressure[0]), np.log10(modelSPressure[-1]), num = resolition)

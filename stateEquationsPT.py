@@ -9,7 +9,14 @@ from opacity import modelSNearestOpacity as opacity
 from initialConditionsSetterUpper import loadModelS
 import abc
 
+import pyMesaUtils as pym
+
+
+
 class StateEquationInterface(metaclass=abc.ABCMeta):
+    """
+    Interface for state equations classes
+    """
     @staticmethod
     @abc.abstractmethod
     def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
@@ -84,7 +91,9 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
         pass
 
 class IdealGas(StateEquationInterface):
-    @np.vectorize
+    """
+    State equations for ideal gas mostly based on Denizer 1965
+    """
     @staticmethod
     def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
@@ -141,7 +150,7 @@ class IdealGas(StateEquationInterface):
         pressure: np.ndarray,
         gravitationalAcceleration: np.ndarray,
     ) -> np.ndarray:
-        """returns radiative log gradient according to denizer 1965"""
+        """returns radiative log gradient according to denizer 1965 eq 9"""
         warnings.warn("Ur using ideal gas")
         density = IdealGas.density(temperature, pressure)
         H = IdealGas.pressureScaleHeight(
@@ -225,6 +234,8 @@ class IdealGas(StateEquationInterface):
         mu = IdealGas.meanMolecularWeight(temperature, pressure)
         return c.gasConstant * temperature / (mu * gravitationalAcceleration)
 
+#region model S
+
 ## Cache the model S data
 modelS = loadModelS()
 
@@ -233,6 +244,9 @@ modelSTemperatures = modelS.temperatures
 modelSNablaAds = modelS.derivedQuantities["nablaads"]
 interpolatedNablaAd = NearestNDInterpolator(list(zip(modelSTemperatures, modelSPressures)), modelSNablaAds)
 class IdealGasWithModelSNablaAd(IdealGas):
+    """
+    Ideal gas with nabla ad via nearest neighbor interpolation from model S
+    """
     @staticmethod
     def adiabaticLogGradient(
         temperature: np.ndarray, pressure: np.ndarray
@@ -242,7 +256,8 @@ class IdealGasWithModelSNablaAd(IdealGas):
         """
 
         return interpolatedNablaAd(temperature, pressure)
-        
+
+#endregion 
 
 
 def F_rad(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
@@ -269,12 +284,12 @@ def F_con(
     uses the unitless parameter convectiveAlpha (see Schüssler Rempel 2018)
     """
 
-    realGradient = np.minimum(radiativeGrad, adiabaticGrad)  # TODO check
+    realGradient = np.minimum(radiativeGrad, adiabaticGrad)
 
     kappa = opacity(temperature, pressure)
 
     # these are parameters of convection used in Schüssler & Rempel 2005
-    a = 0.125  # TODO maybe precalculating these could be useful?
+    a = 0.125
     b = 0.5
     f = 1.5
 
