@@ -25,25 +25,34 @@ assert rates_def is not None
 atexit.register(print, "Shutting down eos tables...")
 atexit.register(eos_lib.eos_shutdown)
 
-ierr=0
+ierr = 0
 
-const_lib.const_init(pym.MESA_DIR,ierr)
-chem_lib.chem_init('isotopes.data',ierr)
+const_lib.const_init(pym.MESA_DIR, ierr)
+chem_lib.chem_init("isotopes.data", ierr)
 num_chem_isos = chem_def.num_chem_isos
 
-ierr=0
+ierr = 0
 
-rates_lib.rates_init('reactions.list','jina_reaclib_results_20130213default2',
-               'rate_tables',False,False,'','','',ierr)
+rates_lib.rates_init( # TODO What is this?
+    "reactions.list",
+    "jina_reaclib_results_20130213default2",
+    "rate_tables",
+    False,
+    False,
+    "",
+    "",
+    "",
+    ierr,
+)
 
 
 net_lib.net_init(ierr)
 
-eosDT_cache_dir = "" # they say blank means use default heh # FIXME OMG CAN THIS DO PT?
+eosDT_cache_dir = ""  # they say blank means use default heh # FIXME OMG CAN THIS DO PT?
 use_cache = True
 ierr = 0
 eos_lib.eos_init(eosDT_cache_dir, use_cache, ierr)
-                
+
 eos_handle = eos_lib.alloc_eos_handle(ierr)
 
 chem_h1 = chem_def.ih1.get()
@@ -126,18 +135,18 @@ eosBasicResultsNum = eos_def.num_eos_basic_results.get()
 
 # these are for eos results, but since theyre in fortran they want to be passed as inputs too
 res = np.zeros(eosBasicResultsNum)
-Rho = np.zeros(eosBasicResultsNum, dtype = float)
-log10Rho = np.zeros(eosBasicResultsNum, dtype = float)
-dlnRho_dlnPgas_const_T = np.zeros(eosBasicResultsNum, dtype = float)
-dlnRho_dlnT_const_Pgas = np.zeros(eosBasicResultsNum, dtype = float)
-d_dlnRho_const_T  =  np.zeros(eosBasicResultsNum, dtype = float)
-d_dlnT_const_Rho  =  np.zeros(eosBasicResultsNum, dtype = float)
-d_dabar_const_TRho = np.zeros(eosBasicResultsNum, dtype = float)
-d_dzbar_const_TRho = np.zeros(eosBasicResultsNum, dtype = float)
+Rho = np.zeros(eosBasicResultsNum, dtype=float)
+log10Rho = np.zeros(eosBasicResultsNum, dtype=float)
+dlnRho_dlnPgas_const_T = np.zeros(eosBasicResultsNum, dtype=float)
+dlnRho_dlnT_const_Pgas = np.zeros(eosBasicResultsNum, dtype=float)
+d_dlnRho_const_T = np.zeros(eosBasicResultsNum, dtype=float)
+d_dlnT_const_Rho = np.zeros(eosBasicResultsNum, dtype=float)
+d_dabar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
+d_dzbar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
 ierr = 0
 
 
-def getEosResult(temperature:float, pressure:float, massFractions = None):
+def getEosResult(temperature: float, pressure: float, massFractions=None):
     """
     returns results of mesa eos
     ---
@@ -156,7 +165,9 @@ def getEosResult(temperature:float, pressure:float, massFractions = None):
 
     # assign chemical input
     Nspec = len(baseMassFractions)  # number of species in the model
-    d_dxa_const_TRho = np.zeros((Nspec, eosBasicResultsNum), order="F", dtype = float) # one more output array that fortran needs as input
+    d_dxa_const_TRho = np.zeros(
+        (Nspec, eosBasicResultsNum), order="F", dtype=float
+    )  # one more output array that fortran needs as input
 
     massFractionsInArr = np.array(
         [], dtype=float
@@ -171,23 +182,35 @@ def getEosResult(temperature:float, pressure:float, massFractions = None):
         chem_id = np.append(chem_id, int(allKnownChemicalIDs[speciesName]))
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
 
-
     eos_res = eos_lib.eosPT_get(
-               eos_handle,
-               Nspec, chem_id, net_iso, massFractionsInArr,
-               pressureCGS, log10Pressure, temperature, log10T,
-               Rho, log10Rho, dlnRho_dlnPgas_const_T, dlnRho_dlnT_const_Pgas,
-               res, d_dlnRho_const_T, d_dlnT_const_Rho,
-               d_dxa_const_TRho, ierr)
-    
+        eos_handle,
+        Nspec,
+        chem_id,
+        net_iso,
+        massFractionsInArr,
+        pressureCGS,
+        log10Pressure,
+        temperature,
+        log10T,
+        Rho,
+        log10Rho,
+        dlnRho_dlnPgas_const_T,
+        dlnRho_dlnT_const_Pgas,
+        res,
+        d_dlnRho_const_T,
+        d_dlnT_const_Rho,
+        d_dxa_const_TRho,
+        ierr,
+    )
+
     return eos_res
-
-
 
 
 d_dlnd = np.zeros(eosBasicResultsNum, dtype=float)
 d_dlnT = np.zeros(eosBasicResultsNum, dtype=float)
-def getEosResultRhoT(temperature:float, density:float, massFractions = None):
+
+
+def getEosResultRhoT(temperature: float, density: float, massFractions=None):
     """
     returns results of mesa eos
     ---
@@ -200,13 +223,13 @@ def getEosResultRhoT(temperature:float, density:float, massFractions = None):
 
     assert all(key in allKnownChemicalIDs for key in massFractions.keys())
 
-    densityCGS = density * c.gram/(c.cm*c.cm*c.cm)
+    densityCGS = density * c.gram / (c.cm * c.cm * c.cm)
     log10Density = np.log10(densityCGS)
     log10T = np.log10(temperature)
 
     # assign chemical input
     Nspec = len(baseMassFractions)  # number of species in the model
-    d_dxa  = np.zeros((eosBasicResultsNum, Nspec), dtype=float)
+    d_dxa = np.zeros((eosBasicResultsNum, Nspec), dtype=float)
 
     massFractionsInArr = np.array(
         [], dtype=float
@@ -221,17 +244,30 @@ def getEosResultRhoT(temperature:float, density:float, massFractions = None):
         chem_id = np.append(chem_id, int(allKnownChemicalIDs[speciesName]))
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
 
-
     eos_res = eos_lib.eosDT_get(
-               eos_handle, Nspec, chem_id, net_iso, massFractionsInArr,
-               densityCGS, log10Density, temperature, log10T,
-               res, d_dlnd, d_dlnT, d_dxa, ierr)
-    
+        eos_handle,
+        Nspec,
+        chem_id,
+        net_iso,
+        massFractionsInArr,
+        densityCGS,
+        log10Density,
+        temperature,
+        log10T,
+        res,
+        d_dlnd,
+        d_dlnT,
+        d_dxa,
+        ierr,
+    )
+
     return eos_res
+
 
 if __name__ == "__main__":
     temperature = 1e9
     pressure = 10.0**2
-    density = 1e4 * c.gram/(c.cm*c.cm*c.cm)
-    massFractions = { "c12" : 1.0 }
+    density = 1e4 * c.gram / (c.cm * c.cm * c.cm)
+    massFractions = {"c12": 1.0}
     print(getEosResultRhoT(temperature, density, massFractions))
+    print(getEosResult(temperature, pressure, massFractions))
