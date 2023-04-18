@@ -5,6 +5,8 @@ import pyMesaUtils as pym
 import constants as c
 import atexit
 
+# FIXME make an initializer for all of this
+
 eos_lib, eos_def = pym.loadMod("eos")
 const_lib, const_def = pym.loadMod("const")
 crlibm_lib, _ = pym.loadMod("math")
@@ -245,6 +247,8 @@ def getEosResultCGS(temperature: float, pressure: float, massFractions=None):
     
     return eosResultsDict
 
+def getEosResultSI(temperature: float, pressure: float, masFractions = None):
+    CGSResuts = getEosResultCGS(temperature, pressure, masFractions)
 
 d_dlnd = np.zeros(eosBasicResultsNum, dtype=float)
 d_dlnT = np.zeros(eosBasicResultsNum, dtype=float)
@@ -302,14 +306,26 @@ def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None):
     )
 
     eosResults = eos_res["res"]
+    d_dlnTemp = eos_res["d_dlnt"]
+    d_dlndens = eos_res["d_dlnd"]
     
     # now for each of eosResults entry we want to map it to a name based on the indexer
     eosResultsDict = {}
-    for i, entry in enumerate(eosResults):
+    d_dlnTDict = {}
+    d_dlndDict = {}
+    for i, _ in enumerate(eosResults):
         entryName = namer[i+1]
-        eosResultsDict[entryName] = entry
+        eosResultsDict[entryName] = eosResults[i]
+        d_dlnTDict[entryName] = d_dlnTemp[i]
+        d_dlndDict[entryName] = d_dlndens[i]
     
-    return eosResultsDict
+    completeResults = {
+        "eosResults": eosResultsDict,
+        "d_dlnT": d_dlnTDict,
+        "d_dlnRho": d_dlndDict,
+    }
+
+    return completeResults
 
 
 if __name__ == "__main__":
@@ -318,7 +334,7 @@ if __name__ == "__main__":
     densityCGS = 10000.000000000000     
     density = densityCGS * c.gram / (c.cm * c.cm * c.cm)
     massFractions = {"c12": 1.0}
-    results = getEosResultRhoTCGS(temperature, density, massFractions)
+    results = getEosResultRhoTCGS(temperature, density, massFractions)['eosResults']
 
     lnPgasCGS = results["lnPgas"]
     PgasCGS = np.exp(lnPgasCGS)
@@ -327,4 +343,4 @@ if __name__ == "__main__":
     for key, entry in results.items():
         print(key, entry)
     
-    #print(getEosResultCGS(temperature, pressure, massFractions))
+    print(getEosResultCGS(temperature, pressure, massFractions))

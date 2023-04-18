@@ -8,6 +8,7 @@ import constants as c
 import numpy as np
 import atexit
 
+# FIXME make an initializer for all of this
 
 # region initialize opacity tables
 eos_lib, eos_def = pym.loadMod("eos")

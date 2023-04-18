@@ -1,14 +1,10 @@
 //TODO - test y solver
 //TODO - test T solver
 
-//TODO - implement eos and from MESA
-//TODO - the eos isnt returning mean molecular value, but number densities? it just doesnt do what the documentation says it returns
-
 //TODO - ask about what Zbase might be
 //TODO - get the most correct mass fractions of the Sun
 //TODO - find out why the opacities arent too right for higher temps and densities
-//TODO - find out how to run eos get PT
-//TODO - turn eos results into usable stuff
+//TODO - get density out of the PT eos, it is put there as the fortran intended out input, it better come out lol
 
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
