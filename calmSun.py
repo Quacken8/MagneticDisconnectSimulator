@@ -147,24 +147,22 @@ def getCalmSunDatapoint(
     maxDepth *= c.Mm
 
     def pressureScaleHeight(
-        logP: np.ndarray, z: np.ndarray, T: np.ndarray
+        P: np.ndarray, z: np.ndarray, T: np.ndarray
     ) -> np.ndarray:
         """
         returns the pressure scale height z meters below the surface if the pressure there is P = exp(log(P)). log is used cuz it's numerically more stable
         """
-        gravitationalAcc = g(z)
-        P = np.exp(logP)
-        H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc)  # type: ignore oh my GOD why is pylance so bad at scipy
+        gravitationalAcc = np.array(g(z))
+        H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc)
         return H
 
-    def actualLogGradient(logP: np.ndarray, z: np.ndarray, T: np.ndarray) -> np.ndarray:
+    def actualLogGradient(P: np.ndarray, z: np.ndarray, T: np.ndarray) -> np.ndarray:
         """
         computes the actual log gradient the way the bc thesis does it (eq. 4.4)
         """
-        gravitationalAcc = g(z)
-        P = np.exp(logP)
+        gravitationalAcc = np.array(g(z))
         convectiveG = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
-        radiativeG = StateEq.radiativeLogGradient(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc)  # type: ignore oh my GOD why is pylance so bad at scipy
+        radiativeG = StateEq.radiativeLogGradient(temperature=T, pressure=P, gravitationalAcceleration=gravitationalAcc)
         return np.minimum(radiativeG, convectiveG)
 
     # the two above functions are actually right hand sides of differential equations dz/dlogP and dT/dlogP respectively. They share the independedt variable logP. To solve them we put them together into one array and use scipy integrator
@@ -178,9 +176,10 @@ def getCalmSunDatapoint(
         """
         z = zlnTArray[0]
         T = np.exp(zlnTArray[1])
+        P = np.exp(logP)
 
-        H = pressureScaleHeight(logP, z, T)
-        nabla = actualLogGradient(logP, z, T)
+        H = pressureScaleHeight(P, z, T)
+        nabla = actualLogGradient(P, z, T)
 
         return np.array([H, nabla])
 

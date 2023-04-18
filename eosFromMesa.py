@@ -1,3 +1,5 @@
+# NOTE this file will be deleted after the implementation is complete and the contents move to stateEquations
+
 import numpy as np
 import pyMesaUtils as pym
 import constants as c
@@ -33,7 +35,7 @@ num_chem_isos = chem_def.num_chem_isos
 
 ierr = 0
 
-rates_lib.rates_init( # TODO What is this?
+rates_lib.rates_init(  # TODO What is this?
     "reactions.list",
     "jina_reaclib_results_20130213default2",
     "rate_tables",
@@ -135,17 +137,17 @@ eosBasicResultsNum = eos_def.num_eos_basic_results.get()
 
 # these are for eos results, but since theyre in fortran they want to be passed as inputs too
 res = np.zeros(eosBasicResultsNum)
-Rho = np.zeros(eosBasicResultsNum, dtype=float)
-log10Rho = np.zeros(eosBasicResultsNum, dtype=float)
-dlnRho_dlnPgas_const_T = np.zeros(eosBasicResultsNum, dtype=float)
-dlnRho_dlnT_const_Pgas = np.zeros(eosBasicResultsNum, dtype=float)
+Rho = 0.0
+log10Rho = 0.0
+dlnRho_dlnPgas_const_T =0.0
+dlnRho_dlnT_const_Pgas =0.0
 d_dlnRho_const_T = np.zeros(eosBasicResultsNum, dtype=float)
 d_dlnT_const_Rho = np.zeros(eosBasicResultsNum, dtype=float)
 d_dabar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
 d_dzbar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
 ierr = 0
 
-
+@np.vectorize
 def getEosResult(temperature: float, pressure: float, massFractions=None):
     """
     returns results of mesa eos
@@ -165,9 +167,7 @@ def getEosResult(temperature: float, pressure: float, massFractions=None):
 
     # assign chemical input
     Nspec = len(baseMassFractions)  # number of species in the model
-    d_dxa_const_TRho = np.zeros(
-        (Nspec, eosBasicResultsNum), order="F", dtype=float
-    )  # one more output array that fortran needs as input
+    d_dxa = np.zeros((eosBasicResultsNum, Nspec), dtype=float)  # one more output array that fortran needs as input
 
     massFractionsInArr = np.array(
         [], dtype=float
@@ -199,7 +199,7 @@ def getEosResult(temperature: float, pressure: float, massFractions=None):
         res,
         d_dlnRho_const_T,
         d_dlnT_const_Rho,
-        d_dxa_const_TRho,
+        d_dxa,
         ierr,
     )
 
@@ -269,5 +269,5 @@ if __name__ == "__main__":
     pressure = 10.0**2
     density = 1e4 * c.gram / (c.cm * c.cm * c.cm)
     massFractions = {"c12": 1.0}
-    print(getEosResultRhoT(temperature, density, massFractions))
+    # print(getEosResultRhoT(temperature, density, massFractions))
     print(getEosResult(temperature, pressure, massFractions))

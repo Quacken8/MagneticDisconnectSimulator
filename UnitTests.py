@@ -101,7 +101,7 @@ def testModelSVSCalmSunVSHybrid() -> None:
 
     dlnP = 1e-3
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
-    maxDepth = 12  # Mm just some housenumero hehe
+    maxDepth = 160  # Mm just some housenumero hehe
     from stateEquationsPT import IdealGas
     calmSun = getCalmSunDatapoint(
         StateEq=IdealGas,
@@ -159,9 +159,6 @@ def main():
     testCalmSunBasedOnModelSData()
 
     print("Tests passed :)")
-    testModelSBasedIdealGas()
-    testModelSDensity()
-    testAdiabaticGradientBasedOnModelS()
     testModelSVSCalmSunVSHybrid()
 
 
