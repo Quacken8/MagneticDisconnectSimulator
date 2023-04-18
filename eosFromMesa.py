@@ -47,6 +47,40 @@ rates_lib.rates_init(  # TODO What is this?
     ierr,
 )
 
+namer = { # maps indices of eos_res to names of things eos returns vased on eos.def
+    1: "lnPgas",
+    2: "lnE",
+    3: "lnS",
+    4: "mu",
+    5: "lnfree_e",
+    6: "eta",
+    7: "grad_ad",
+    8: "chiRho",
+    9: "chiT",
+    10: "Cp",
+    11: "Cv",
+    12: "dE_dRho",
+    13: "dS_dT",
+    14: "dS_dRho",
+    15: "gamma1",
+    16: "gamma3",
+    17: "phase",
+    18: "latent_ddlnT",
+    19: "latent_ddlnRho",
+    20: "frac_HELM", # from now on down it's information about blending of eos's
+    21: "eos_OPAL_SCVH",
+    22: "frac_OPAL_SCVH",
+    23: "eos_FreeEOS",
+    24: "frac_FreeEOS",
+    25: "eos_PC",
+    26: "frac_PC",
+    27: "eos_Skye",
+    28: "frac_Skye",
+    29: "eos_CMS",
+    30: "frac_CMS",
+    31: "eos_ideal",
+    32: "frac_ideal", 
+}
 
 net_lib.net_init(ierr)
 
@@ -148,9 +182,9 @@ d_dzbar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
 ierr = 0
 
 @np.vectorize
-def getEosResult(temperature: float, pressure: float, massFractions=None):
+def getEosResultCGS(temperature: float, pressure: float, massFractions=None):
     """
-    returns results of mesa eos
+    returns results of mesa eos in CGS
     ---
     temperature: float in Kelvin
     pressure: float in Pa
@@ -161,7 +195,7 @@ def getEosResult(temperature: float, pressure: float, massFractions=None):
 
     assert all(key in allKnownChemicalIDs for key in massFractions.keys())
 
-    pressureCGS = pressure * c.barye
+    pressureCGS = pressure / c.barye
     log10Pressure = np.log10(pressureCGS)
     log10T = np.log10(temperature)
 
@@ -203,16 +237,24 @@ def getEosResult(temperature: float, pressure: float, massFractions=None):
         ierr,
     )
 
-    return eos_res
+    eosResults = eos_res["res"]
+    
+    # now for each of eosResults entry we want to map it to a name based on the indexer
+    eosResultsDict = {}
+    for i, entry in enumerate(eosResults):
+        entryName = namer[i+1]
+        eosResultsDict[entryName] = entry
+    
+    return eosResultsDict
 
 
 d_dlnd = np.zeros(eosBasicResultsNum, dtype=float)
 d_dlnT = np.zeros(eosBasicResultsNum, dtype=float)
 
 
-def getEosResultRhoT(temperature: float, density: float, massFractions=None):
+def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None):
     """
-    returns results of mesa eos
+    returns results of mesa eos in CGS
     ---
     temperature: float in Kelvin
     density: float in kg/m^3
@@ -223,7 +265,7 @@ def getEosResultRhoT(temperature: float, density: float, massFractions=None):
 
     assert all(key in allKnownChemicalIDs for key in massFractions.keys())
 
-    densityCGS = density * c.gram / (c.cm * c.cm * c.cm)
+    densityCGS = density * c.cm * c.cm * c.cm / c.gram
     log10Density = np.log10(densityCGS)
     log10T = np.log10(temperature)
 
@@ -261,13 +303,30 @@ def getEosResultRhoT(temperature: float, density: float, massFractions=None):
         ierr,
     )
 
-    return eos_res
+    eosResults = eos_res["res"]
+    
+    # now for each of eosResults entry we want to map it to a name based on the indexer
+    eosResultsDict = {}
+    for i, entry in enumerate(eosResults):
+        entryName = namer[i+1]
+        eosResultsDict[entryName] = entry
+    
+    return eosResultsDict
 
 
 if __name__ == "__main__":
     temperature = 1e9
     pressure = 10.0**2
-    density = 1e4 * c.gram / (c.cm * c.cm * c.cm)
+    densityCGS = 1e4
+    density = densityCGS * c.gram / (c.cm * c.cm * c.cm)
     massFractions = {"c12": 1.0}
-    # print(getEosResultRhoT(temperature, density, massFractions))
-    print(getEosResult(temperature, pressure, massFractions))
+    results = getEosResultRhoTCGS(temperature, density, massFractions)
+
+    lnPgasCGS = results["lnPgas"]
+    PgasCGS = np.exp(lnPgasCGS)
+    #print(PgasCGS)
+
+    for key, entry in results.items():
+        print(key, entry)
+    
+    #print(getEosResultCGS(temperature, pressure, massFractions))
