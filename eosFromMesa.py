@@ -48,38 +48,36 @@ rates_lib.rates_init(  # TODO What is this?
 )
 
 namer = { # maps indices of eos_res to names of things eos returns vased on eos.def
-    1: "lnPgas",
-    2: "lnE",
-    3: "lnS",
-    4: "mu",
-    5: "lnfree_e",
-    6: "eta",
-    7: "grad_ad",
-    8: "chiRho",
-    9: "chiT",
-    10: "Cp",
-    11: "Cv",
-    12: "dE_dRho",
-    13: "dS_dT",
-    14: "dS_dRho",
-    15: "gamma1",
-    16: "gamma3",
-    17: "phase",
-    18: "latent_ddlnT",
-    19: "latent_ddlnRho",
-    20: "frac_HELM", # from now on down it's information about blending of eos's
-    21: "eos_OPAL_SCVH",
-    22: "frac_OPAL_SCVH",
-    23: "eos_FreeEOS",
-    24: "frac_FreeEOS",
-    25: "eos_PC",
-    26: "frac_PC",
-    27: "eos_Skye",
-    28: "frac_Skye",
-    29: "eos_CMS",
-    30: "frac_CMS",
-    31: "eos_ideal",
-    32: "frac_ideal", 
+    int(eos_def.i_lnPgas): "lnPgas",
+    int(eos_def.i_lnE): "lnE",
+    int(eos_def.i_lnS): "lnS",
+    int(eos_def.i_mu): "mu",
+    int(eos_def.i_lnfree_e): "lnfree_e",
+    int(eos_def.i_grad_ad): "grad_ad",
+    int(eos_def.i_chiRho): "chiRho",
+    int(eos_def.i_chiT): "chiT",
+    int(eos_def.i_Cp): "Cp",
+    int(eos_def.i_Cv): "Cv",
+    int(eos_def.i_dE_dRho): "dE_dRho",
+    int(eos_def.i_dS_dT): "dS_dT",
+    int(eos_def.i_dS_dRho): "dS_dRho",
+    int(eos_def.i_gamma1): "gamma1",
+    int(eos_def.i_gamma3): "gamma3",
+    int(eos_def.i_phase): "phase",
+    int(eos_def.i_latent_ddlnT): "latent_ddlnT",
+    int(eos_def.i_latent_ddlnRho): "latent_ddlnRho",
+    int(eos_def.i_frac_HELM): "frac_HELM", # from now on down it's information about blending of eos's
+    int(eos_def.i_frac_OPAL_SCVH): "frac_OPAL_SCVH",
+    int(eos_def.i_frac_OPAL_SCVH): "frac_OPAL_SCVH",
+    int(eos_def.i_frac_FreeEOS): "frac_FreeEOS",
+    int(eos_def.i_eos_PC): "eos_PC",
+    int(eos_def.i_frac_PC): "frac_PC",
+    int(eos_def.i_eos_Skye): "eos_Skye",
+    int(eos_def.i_frac_Skye): "frac_Skye",
+    int(eos_def.i_eos_CMS): "eos_CMS",
+    int(eos_def.i_frac_CMS): "frac_CMS",
+    int(eos_def.i_eos_ideal): "eos_ideal",
+    int(eos_def.i_frac_ideal): "frac_ideal", 
 }
 
 net_lib.net_init(ierr)
@@ -200,7 +198,7 @@ def getEosResultCGS(temperature: float, pressure: float, massFractions=None):
     log10T = np.log10(temperature)
 
     # assign chemical input
-    Nspec = len(baseMassFractions)  # number of species in the model
+    Nspec = len(massFractions)  # number of species in the model
     d_dxa = np.zeros((eosBasicResultsNum, Nspec), dtype=float)  # one more output array that fortran needs as input
 
     massFractionsInArr = np.array(
@@ -211,7 +209,7 @@ def getEosResultCGS(temperature: float, pressure: float, massFractions=None):
         num_chem_isos, dtype=int
     )  # maps chem id to species number (index in the array I suppose? idk man, mesa ppl rly dont like clarity)
 
-    for i, (speciesName, massFraction) in enumerate(baseMassFractions.items()):
+    for i, (speciesName, massFraction) in enumerate(massFractions.items()):
         massFractionsInArr = np.append(massFractionsInArr, massFraction)
         chem_id = np.append(chem_id, int(allKnownChemicalIDs[speciesName]))
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
@@ -270,7 +268,7 @@ def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None):
     log10T = np.log10(temperature)
 
     # assign chemical input
-    Nspec = len(baseMassFractions)  # number of species in the model
+    Nspec = len(massFractions)  # number of species in the model
     d_dxa = np.zeros((eosBasicResultsNum, Nspec), dtype=float)
 
     massFractionsInArr = np.array(
@@ -281,7 +279,7 @@ def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None):
         num_chem_isos, dtype=int
     )  # maps chem id to species number (index in the array I suppose? idk man, mesa ppl rly dont like clarity)
 
-    for i, (speciesName, massFraction) in enumerate(baseMassFractions.items()):
+    for i, (speciesName, massFraction) in enumerate(massFractions.items()):
         massFractionsInArr = np.append(massFractionsInArr, massFraction)
         chem_id = np.append(chem_id, int(allKnownChemicalIDs[speciesName]))
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
@@ -315,16 +313,16 @@ def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None):
 
 
 if __name__ == "__main__":
-    temperature = 1e9
+    temperature = 1000000000.0000000
     pressure = 10.0**2
-    densityCGS = 1e4
+    densityCGS = 10000.000000000000     
     density = densityCGS * c.gram / (c.cm * c.cm * c.cm)
     massFractions = {"c12": 1.0}
     results = getEosResultRhoTCGS(temperature, density, massFractions)
 
     lnPgasCGS = results["lnPgas"]
     PgasCGS = np.exp(lnPgasCGS)
-    #print(PgasCGS)
+    print(PgasCGS)
 
     for key, entry in results.items():
         print(key, entry)
