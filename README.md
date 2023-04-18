@@ -1,5 +1,5 @@
 # MagneticDisconnectSimulator
-Python simulator of disconnection of solar magnetic field from its roots inpsired by Schüssler and Rempel (2018). It is a University Thesis project.
+Python simulator of disconnection of solar magnetic field from its roots inpsired by Schüssler and Rempel (2018) using opacity and eos capabilities of MESA. It is a University Thesis project.
 
 ## Prerequisites
 
@@ -26,7 +26,6 @@ pip3 install -r requirements.txt
 ```
 git clone git@github.com:rjfarmer/pyMesa.git
 ```
-making sure beforehand that your MESA is installed in the shared library mode by setting `USE_SHARED = YES` in $MESA_DIR/utils/makefile_header
 
 ## Usage
 TODO
