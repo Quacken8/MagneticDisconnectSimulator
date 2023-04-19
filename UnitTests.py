@@ -10,6 +10,7 @@ from initialConditionsSetterUpper import mockupDataSetterUpper, loadModelS
 from stateEquationsPT import IdealGas
 from calmSun import getCalmSunDatapoint
 from dataVizualizer import plotSingleTimeDatapoint
+
 # from solvers import oldYSolver
 from initialConditionsSetterUpper import loadModelS
 import constants as c
@@ -17,6 +18,7 @@ import os
 from matplotlib import pyplot as plt
 
 pathToModelS = "externalData/model_S_new.dat"
+
 
 def testDataStructureSaveLoad() -> None:
     datapoint = mockupDataSetterUpper(zLength=17)
@@ -47,12 +49,14 @@ def testDataStructureSaveLoad() -> None:
             except TypeError:
                 pass
 
+
 def testCalmSunBasedOnModelSData() -> None:
     # get calm sun datapoint
     # get model S datapoint
     # compare them
     # have a look at it with your peepers
     pass
+
 
 def testAdiabaticGradientBasedOnModelS() -> None:
     modelS = loadModelS(1000)
@@ -70,6 +74,7 @@ def testAdiabaticGradientBasedOnModelS() -> None:
     plt.legend()
     plt.show()
 
+
 def testModelSDensity() -> None:
     """
     test that the density of model S is similar to the density from ideal gas
@@ -84,6 +89,7 @@ def testModelSDensity() -> None:
     plt.legend()
     plt.show()
 
+
 def testVizualization() -> None:
     from initialConditionsSetterUpper import loadModelS
 
@@ -92,6 +98,7 @@ def testVizualization() -> None:
     toPlot = ["temperatures", "pressures", "rhos"]
 
     plotSingleTimeDatapoint(datapoint, toPlot, log=True)
+
 
 def testModelSVSCalmSunVSHybrid() -> None:
     # load model S data
@@ -103,6 +110,7 @@ def testModelSVSCalmSunVSHybrid() -> None:
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
     maxDepth = 160  # Mm just some housenumero hehe
     from stateEquationsPT import IdealGas
+
     calmSun = getCalmSunDatapoint(
         StateEq=IdealGas,
         dlnP=dlnP,
@@ -111,6 +119,7 @@ def testModelSVSCalmSunVSHybrid() -> None:
         surfaceTemperature=surfaceTemperature,
     )
     from stateEquationsPT import IdealGasWithModelSNablaAd
+
     calmSunHybrid = getCalmSunDatapoint(
         StateEq=IdealGasWithModelSNablaAd,
         dlnP=dlnP,
@@ -126,9 +135,16 @@ def testModelSVSCalmSunVSHybrid() -> None:
     modelS = loadModelS(500)
 
     axs = plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S")
-    axs = plotSingleTimeDatapoint(calmSunHybrid, toPlot, pltshow=False, label="Ideal gas with model S ∇ad", axs=axs)
+    axs = plotSingleTimeDatapoint(
+        calmSunHybrid,
+        toPlot,
+        pltshow=False,
+        label="Ideal gas with model S ∇ad",
+        axs=axs,
+    )
     plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="Ideal gas")
     plt.legend()
+
 
 def testModelSBasedIdealGas() -> None:
     resolition = 100
@@ -137,15 +153,19 @@ def testModelSBasedIdealGas() -> None:
     modelSPressure = modelS.pressures
     modelSTemperature = modelS.temperatures
     from stateEquationsPT import IdealGasWithModelSNablaAd
-    
-    temperatures = np.logspace(np.log10(modelSTemperature[0]), np.log10(modelSTemperature[-1]), num = resolition)
-    pressures = np.logspace(np.log10(modelSPressure[0]), np.log10(modelSPressure[-1]), num = resolition)
+
+    temperatures = np.logspace(
+        np.log10(modelSTemperature[0]), np.log10(modelSTemperature[-1]), num=resolition
+    )
+    pressures = np.logspace(
+        np.log10(modelSPressure[0]), np.log10(modelSPressure[-1]), num=resolition
+    )
 
     TMesh, PMesh = np.meshgrid(temperatures, pressures)
     nablaAdMesh = IdealGasWithModelSNablaAd.adiabaticLogGradient(TMesh, PMesh)
 
     plt.pcolormesh(TMesh, PMesh, nablaAdMesh, shading="auto")
-    
+
     plt.loglog(modelSTemperature, modelSPressure, "ok", label="input point")
     plt.xlabel("Temperature [K]")
     plt.ylabel("Pressure [Pa]")
@@ -153,14 +173,34 @@ def testModelSBasedIdealGas() -> None:
     plt.colorbar()
     plt.show()
 
-def main():
 
+def testModelSHvsIdealGasH() -> None:
+    modelS = loadModelS()
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+    modelSZs = modelS.zs
+    from gravity import g
+
+    gravities = np.array(g(modelSZs))
+    from stateEquationsPT import IdealGasWithModelSNablaAd
+
+    idealHs = IdealGasWithModelSNablaAd.pressureScaleHeight(
+        modelSTemperature, modelSPressure, gravities
+    )
+    modelSHs = np.loadtxt("externalData/H_p.dat", usecols=2)
+
+    plt.plot(modelSZs, idealHs, label = "ideal")
+    plt.plot(modelSZs, modelSHs, label = "from model")
+    plt.show()
+
+
+def main():
     testDataStructureSaveLoad()
     testCalmSunBasedOnModelSData()
 
     print("Tests passed :)")
-    testModelSVSCalmSunVSHybrid()
-
+    #testModelSVSCalmSunVSHybrid()
+    testModelSHvsIdealGasH()
 
 
 if __name__ == "__main__":
