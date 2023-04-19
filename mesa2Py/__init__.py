@@ -98,6 +98,7 @@ namer = {  # maps indices of eos_res to names of things eos returns vased on eos
     int(eos_def.i_lnS): "lnS",
     int(eos_def.i_mu): "mu",
     int(eos_def.i_lnfree_e): "lnfree_e",
+    int(eos_def.i_eta): "eta",
     int(eos_def.i_grad_ad): "grad_ad",
     int(eos_def.i_chiRho): "chiRho",
     int(eos_def.i_chiT): "chiT",
@@ -112,31 +113,29 @@ namer = {  # maps indices of eos_res to names of things eos returns vased on eos
     int(eos_def.i_latent_ddlnT): "latent_ddlnT",
     int(eos_def.i_latent_ddlnRho): "latent_ddlnRho",
     # from now on down it's information about blending of eos's
-    int(eos_def.i_frac_HELM): "frac_HELM",
+    int(eos_def.i_frac_HELM): "frac_HELM",  
     int(eos_def.i_frac_OPAL_SCVH): "frac_OPAL_SCVH",
     int(eos_def.i_frac_OPAL_SCVH): "frac_OPAL_SCVH",
     int(eos_def.i_frac_FreeEOS): "frac_FreeEOS",
-    int(eos_def.i_eos_PC): "eos_PC",
     int(eos_def.i_frac_PC): "frac_PC",
-    int(eos_def.i_eos_Skye): "eos_Skye",
     int(eos_def.i_frac_Skye): "frac_Skye",
-    int(eos_def.i_eos_CMS): "eos_CMS",
     int(eos_def.i_frac_CMS): "frac_CMS",
-    int(eos_def.i_eos_ideal): "eos_ideal",
     int(eos_def.i_frac_ideal): "frac_ideal",
 }
-blenInfoNames = ["frac_HELM",
-"frac_OPAL_SCVH",
-"frac_OPAL_SCVH",
-"frac_FreeEOS",
-"eos_PC",
-"frac_PC",
-"eos_Skye",
-"frac_Skye",
-"eos_CMS",
-"frac_CMS",
-"eos_ideal",
-"frac_ideal"]
+blenInfoNames = [
+    "frac_HELM",
+    "frac_OPAL_SCVH",
+    "frac_OPAL_SCVH",
+    "frac_FreeEOS",
+    "eos_PC",
+    "frac_PC",
+    "eos_Skye",
+    "frac_Skye",
+    "eos_CMS",
+    "frac_CMS",
+    "eos_ideal",
+    "frac_ideal",
+]
 
 net_lib.net_init(ierr)
 
@@ -152,22 +151,22 @@ net_h1 = net_lib.ih1.get()
 
 allKnownChemicalIDs = {  # these are expected by the MESA kap module
     # FIXME koukni na enumy
-    "h1":   int(chem_def.ih1),
-    "h2":   int(chem_def.ih2),
-    "he3":  int(chem_def.ihe3),
-    "he4":  int(chem_def.ihe4),
-    "li7":  int(chem_def.ili7),
-    "be7":  int(chem_def.ibe7),
-    "b8":   int(chem_def.ib8),
-    "c12":  int(chem_def.ic12),
-    "c13":  int(chem_def.ic13),
-    "n13":  int(chem_def.in13),
-    "n14":  int(chem_def.in14),
-    "n15":  int(chem_def.in15),
-    "o16":  int(chem_def.io16),
-    "o17":  int(chem_def.io17),
-    "o18":  int(chem_def.io18),
-    "f19":  int(chem_def.if19),
+    "h1": int(chem_def.ih1),
+    "h2": int(chem_def.ih2),
+    "he3": int(chem_def.ihe3),
+    "he4": int(chem_def.ihe4),
+    "li7": int(chem_def.ili7),
+    "be7": int(chem_def.ibe7),
+    "b8": int(chem_def.ib8),
+    "c12": int(chem_def.ic12),
+    "c13": int(chem_def.ic13),
+    "n13": int(chem_def.in13),
+    "n14": int(chem_def.in14),
+    "n15": int(chem_def.in15),
+    "o16": int(chem_def.io16),
+    "o17": int(chem_def.io17),
+    "o18": int(chem_def.io18),
+    "f19": int(chem_def.if19),
     "ne20": int(chem_def.ine20),
     "ne21": int(chem_def.ine21),
     "ne22": int(chem_def.ine22),
@@ -181,120 +180,65 @@ allKnownChemicalIDs = {  # these are expected by the MESA kap module
     "si28": int(chem_def.isi28),
     "si29": int(chem_def.isi29),
     "si30": int(chem_def.isi30),
-    "p31":  int(chem_def.ip31),
-    "s32":  int(chem_def.is32),
+    "p31": int(chem_def.ip31),
+    "s32": int(chem_def.is32),
 }
 eosBasicResultsNum = eos_def.num_eos_basic_results.get()
 
-eosResults = {
+@dataclass
+class EOSBledningInfo:
+    frac_HELM: float
+    frac_OPAL_SCVH: float
+    frac_FreeEOS: float
+    frac_PC: float
+    frac_Skye: float
+    frac_CMS: float
+    frac_ideal: float
 
-'lnPgas':
-47.6840706307857,
-'lnE':
-41.29759091643693,
-'lnS':
-21.113056762605826,
-'eos_PC':
-1.7142857142857142,
-'eos_Skye':
--0.6931471805599453,
-'eos_CMS':
--4.182055570682342,
-'eos_ideal':
-0.24409135915991434,
-'chiRho':
-0.15209607875679848,
-'chiT':
-3.6227296799497877,
-'Cp':
-29601300438.290466,
-'Cv':
-3425550951.747412,
-'dE_dRho':
--79560740344475.05,
-'dS_dT':
-3.4255509517474123,
-'dS_dRho':
--109895.8301376398,
-'gamma1':
-1.3143117081558038,
-'gamma3':
-1.3208121312035388,
-'phase':
-0.0,
-'latent_ddlnT':
--0.0,
-'latent_ddlnRho':
--0.0,
-'frac_HELM':
-0.0,
-'frac_OPAL_SCVH':
-0.0,
-'frac_FreeEOS':
-0.0,
-'frac_PC':
-0.0,
-'frac_Skye':
-1.0,
-'frac_CMS':
-0.0,
-'frac_ideal':
-0.0,
-
-}
 
 @dataclass
-class EOSBledningInfo():
-    frac_HELM : float
-    frac_OPAL_SCVH : float
-    frac_FreeEOS : float
-    frac_PC : float
-    frac_Skye : float
-    frac_CMS : float
-    frac_ideal : float
-    eos_PC : float
-    eos_Skye : float
-    eos_CMS : float
-    eos_ideal : float
+class EOSBasicResults:
+    rho : float
+    lnPgas : float
+    lnE : float
+    lnS : float
+    mu : float
+    lnfree_e : float
+    eta : float
+    chiRho : float
+    chiT : float
+    Cp : float
+    Cv : float
+    dE_dRho : float
+    dS_dT : float
+    dS_dRho : float
+    gamma1 : float
+    gamma3 : float
+    phase : float
+    latent_ddlnT : float
+    latent_ddlnRho : float
+    grad_ad : float
 
-@dataclass
-class EOSBasicResults():
-    lnPgas:float
-    lnE:float
-    lnS:float
-    chiRho:float
-    chiT:float
-    Cp:float
-    Cv:float
-    dE_dRho:float
-    dS_dT:float
-    dS_dRho:float
-    gamma1:float
-    gamma3:float
-    phase:float
-    latent_ddlnT:float
-    latent_ddlnRho:float
 
 @dataclass
 class EOSd_dTResults(EOSBasicResults):
     pass
 
+
 @dataclass
 class EOSd_dPOrRhoResults(EOSBasicResults):
     pass
 
+
 @dataclass
-class EOSFullResults():
+class EOSFullResults:
     results: EOSBasicResults
     d_dT: EOSd_dTResults
     d_dPOrRho: EOSd_dPOrRhoResults
     blendInfo: EOSBledningInfo
 
-        
-
 
 # endregion
-
 
 
 # region opacity stuff
@@ -312,7 +256,7 @@ ierr = 0
 num_kap_fracs = kap_def.num_kap_fracs
 num_chem_isos = chem_def.num_chem_isos
 
-kap_lib.kap_init(False, pym.KAP_CACHE, ierr) # TODO find out how this init works
+kap_lib.kap_init(False, pym.KAP_CACHE, ierr)  # TODO find out how this init works
 kap_handle = kap_lib.alloc_kap_handle(ierr)
 kap_lib.kap_setup_tables(kap_handle, ierr)
 kap_lib.kap_setup_hooks(kap_handle, ierr)
@@ -357,15 +301,18 @@ allKnownChemicalIDs = {  # these are expected by the MESA kap module
     "s32": chem_def.is32,
 }
 
+
 @dataclass
-class KappaOutput():
+class KappaOutput:
     kappa: float
     dlnKappadlnRho: float
     dlnKappdlnT: float
     blendFractions: list
+
+
 # endregion
 
 if ierr != 0:
     L.critical(f"Mesa initialization failed with ierr {ierr}")
-else: 
+else:
     L.info("Mesa initialized succesfully")

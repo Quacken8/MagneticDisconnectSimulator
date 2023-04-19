@@ -2,6 +2,7 @@
 import numpy as np
 import constants as c
 from __init__ import *
+
 assert kap_lib is not None
 
 # things this buddy returns, but becuase it's fortran it wants them passed in as references
@@ -12,17 +13,16 @@ dlnkap_dlnT = 0.0
 dlnkap_dxa = 0.0
 ierr = 0
 
-@np.vectorize
+
 def getMESAOpacity(
     temperature: float,
     density: float,
     massFractions=None,
     Zbase: float = 0.0,
     MesaEOSOutput=None,
-    fullOutput=False,
 ):
     """
-    returns the opacity in SI or full mesa output in CGS for a given temperature and density
+    returns the opacity in SI or full mesa output in SI for a given temperature and density
     ------------
     Parameters:
     temperature: gas temperature in kelvin
@@ -95,15 +95,23 @@ def getMESAOpacity(
         ierr,
     )
 
-    kappaRes = kap_res['kap']* c.cm * c.cm / c.gram
-    dlnKappadlnRho = kap_res['dlnkap_dlnrho'] # TODO check if the log rly takes care of the units just to be sure
-    dlnKappdlnT=kap_res['dlnkap_dlnt']
+    kappaRes = kap_res["kap"] * c.cm * c.cm / c.gram
+    dlnKappadlnRho = kap_res[
+        "dlnkap_dlnrho"
+    ]  # TODO check if the log rly takes care of the units just to be sure
+    dlnKappdlnT = kap_res["dlnkap_dlnt"]
 
-    output = KappaOutput(kappa=kappaRes, dlnKappadlnRho=dlnKappadlnRho, dlnKappdlnT = dlnKappdlnT, blendFractions=kap_res['kap_fracs'])
+    output = KappaOutput(
+        kappa=kappaRes,
+        dlnKappadlnRho=dlnKappadlnRho,
+        dlnKappdlnT=dlnKappdlnT,
+        blendFractions=kap_res["kap_fracs"],
+    )
 
     return output
+
 
 if __name__ == "__main__":
     temperature = 1e6
     density = 1e4
-    getMESAOpacity(temperature, density)
+    print(getMESAOpacity(temperature, density))

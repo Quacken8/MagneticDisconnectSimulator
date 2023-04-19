@@ -7,6 +7,25 @@ import constants as c
 import numpy as np
 from mesa2Py import kappaFromMesa as kapMes
 
+
+@np.vectorize
+def mesaOpacity(
+    density: float, temperature: float, massFractions: dict | None = None
+) -> float:
+    """
+    returns opacity from mesa
+    ---
+    inputs are in SI units
+    massFractions is a dictionary of the form {"element": massFraction}
+    where element is a string like h1, he4, c12, o16, etc.
+    see constants.py for a list of all known chemical elements # FIXME this is a cool idea, put the solar compsition in constants.py
+    """
+
+    fullOpacityResult = kapMes.getMESAOpacity(density, temperature, massFractions)
+    opacity = fullOpacityResult.kappa
+    return opacity
+
+
 # region modelS opacity
 modelSPath = "externalData/model_S_new.dat"
 modelTs, modelPs, modelKappas = np.loadtxt(modelSPath, skiprows=1, usecols=(1, 2, 4)).T
@@ -29,32 +48,31 @@ def modelSNearestOpacity(
     """just interpolates using nearest neighbour from the model S kappas"""
     return np.exp(inteprloatedKappas(np.log(temperature), np.log(pressure)))
 
+
 # endregion
+
 
 def main():
     """debugging function for this file"""
     from initialConditionsSetterUpper import loadModelS
 
     modelS = loadModelS()
-    massFractions = {
-        "h1": c.massFractionOfHydrogen,
-        "he4" : c.massFractionOfHelium
-    }
+    massFractions = {"h1": c.massFractionOfHydrogen, "he4": c.massFractionOfHelium}
 
     modelSRhos = modelS.rhos
     modelSTs = modelS.temperatures
     modelSKappas = modelS.derivedQuantities["kappas"]
 
-    mesaKappas = kapMes.getMESAOpacity(modelSTs, modelSRhos, massFractions=massFractions)
+    mesaKappas = mesaOpacity(modelSTs, modelSRhos, massFractions=massFractions)
 
     zs = modelS.zs
-    
+
     import matplotlib.pyplot as plt
+
     plt.loglog(zs, modelSKappas, label="modelS")
     plt.loglog(zs, mesaKappas, label="mesa")
     plt.legend()
     plt.show()
-
 
 
 if __name__ == "__main__":

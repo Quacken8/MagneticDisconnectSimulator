@@ -3,9 +3,7 @@
 import numpy as np
 import constants as c
 from __init__ import *
-import logging
-
-L = logging.getLogger(__name__)
+from warnings import warn
 
 assert eos_lib is not None
 
@@ -21,9 +19,9 @@ d_dabar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
 d_dzbar_const_TRho = np.zeros(eosBasicResultsNum, dtype=float)
 ierr = 0
 
-
-@np.vectorize
-def getEosResult(temperature: float, pressure: float, massFractions=None) -> EOSFullResults:
+def getEosResult(
+    temperature: float, pressure: float, massFractions=None, cgs=False
+) -> EOSFullResults:
     """
     returns results of mesa eos in SI in the form of a dictionary
     ---
@@ -56,7 +54,7 @@ def getEosResult(temperature: float, pressure: float, massFractions=None) -> EOS
 
     for i, (speciesName, massFraction) in enumerate(massFractions.items()):
         massFractionsInArr = np.append(massFractionsInArr, massFraction)
-        chem_id = np.append(chem_id, allKnownChemicalIDs[speciesName])
+        chem_id = np.append(chem_id, int(allKnownChemicalIDs[speciesName]))
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
 
     eos_res = eos_lib.eosPT_get(
@@ -81,62 +79,67 @@ def getEosResult(temperature: float, pressure: float, massFractions=None) -> EOS
     )
 
     eosResults = eos_res["res"]
-    d_dlnTemp = eos_res["d_dlnt"]
-    d_dlndens = eos_res["d_dlnd"]
+    d_dlnTemp = eos_res["d_dlnt_const_rho"]
+    d_dlndens = eos_res["d_dlnrho_const_t"]
 
     # now for each of eosResults entry we want to map it to a name based on the indexer
-    eosResultsDict = {}
-    L.warn("There may be a problem with derivatives of state variables; it wasn't tested that MESA returns the correct values for PT EOS")
-    d_dlnTDict = {} # FIXME I'm not really sure if the PT eos solver really returns P and T derivatives
-    d_dlnPDict = {} 
+    eosResultsDict = {"rho": eos_res['rho']}
+    warn(
+        "There may be a problem with derivatives of state variables; it wasn't tested that MESA returns the correct values for PT EOS"
+    )
+    d_dlnTDict = {
+        "rho": dlnRho_dlnPgas_const_T
+    }  # FIXME I'm not really sure if the PT eos solver really returns P and T derivatives
     blendInfoDict = {}
+    d_dlnPDict = {"rho": dlnRho_dlnPgas_const_T}
     for i, _ in enumerate(eosResults):
         entryName = namer[i + 1]
         if entryName in blenInfoNames:
             blendInfoDict[entryName] = eosResults[i]
-        else:    
+        else:
             eosResultsDict[entryName] = eosResults[i]
             d_dlnTDict[entryName] = d_dlnTemp[i]
             d_dlnPDict[entryName] = d_dlndens[i]
-    
+
     # and covert to SI
 
+    if not cgs:
+        eosResultsDict["rho"] /= c.gram / c.cm / c.cm / c.cm
+        eosResultsDict["lnE"] -= np.log(c.erg / c.gram)
+        eosResultsDict["lnS"] -= np.log(c.erg / c.gram)
+        eosResultsDict["Cv"] /= c.erg / c.gram
+        eosResultsDict["Cp"] /= c.erg / c.gram
+        eosResultsDict["dE_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        eosResultsDict["dS_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        eosResultsDict["dS_dT"] /= c.erg / c.gram
 
-    eosResultsDict["Rho"] *= c.gram / c.cm / c.cm / c.cm
-    eosResultsDict["lnE"] += np.log(c.erg / c.gram)
-    eosResultsDict["lnS"] += np.log(c.erg / c.gram)
-    eosResultsDict["Cv"] *= c.erg / c.gram
-    eosResultsDict["Cp"] *= c.erg / c.gram
-    eosResultsDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-    eosResultsDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-    eosResultsDict["dS_dT"] *= c.erg / c.gram
+        d_dlnTDict["rho"] /= c.gram / c.cm / c.cm / c.cm
+        d_dlnTDict["lnE"] -= 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnTDict["lnS"] -= 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnTDict["Cv"] /= c.erg / c.gram
+        d_dlnTDict["Cp"] /= c.erg / c.gram
+        d_dlnTDict["dE_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        d_dlnTDict["dS_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        d_dlnTDict["dS_dT"] /= c.erg / c.gram
 
-    d_dlnTDict["Rho"] *= c.gram / c.cm / c.cm / c.cm
-    d_dlnTDict["lnE"] += np.log(c.erg / c.gram)
-    d_dlnTDict["lnS"] += np.log(c.erg / c.gram)
-    d_dlnTDict["Cv"] *= c.erg / c.gram
-    d_dlnTDict["Cp"] *= c.erg / c.gram
-    d_dlnTDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-    d_dlnTDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-    d_dlnTDict["dS_dT"] *= c.erg / c.gram
-
-    gOverCCC = c.gram / c.cm / c.cm / c.cm
-    d_dlnPDict["Rho"] *= c.gram / c.cm / c.cm / c.cm / gOverCCC
-    d_dlnPDict["lnE"] += np.log(c.erg / c.gram) / gOverCCC
-    d_dlnPDict["lnS"] += np.log(c.erg / c.gram) / gOverCCC
-    d_dlnPDict["Cv"] *= c.erg / c.gram / gOverCCC
-    d_dlnPDict["Cp"] *= c.erg / c.gram / gOverCCC
-    d_dlnPDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
-    d_dlnPDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
-    d_dlnPDict["dS_dT"] *= c.erg / c.gram / gOverCCC
+        gOverCCC = c.gram / c.cm / c.cm / c.cm
+        d_dlnPDict["rho"] /= c.gram / c.cm / c.cm / c.cm / gOverCCC
+        d_dlnPDict["lnE"] -= 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnPDict["lnS"] -= 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnPDict["Cv"] /= c.erg / c.gram / gOverCCC
+        d_dlnPDict["Cp"] /= c.erg / c.gram / gOverCCC
+        d_dlnPDict["dE_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
+        d_dlnPDict["dS_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
+        d_dlnPDict["dS_dT"] /= c.erg / c.gram / gOverCCC
 
     basicResults = EOSBasicResults(**eosResultsDict)
     d_dT = EOSd_dTResults(**d_dlnTDict)
     d_dRho = EOSd_dPOrRhoResults(**d_dlnPDict)
     blendInfo = EOSBledningInfo(**blendInfoDict)
 
-    completeResults = EOSFullResults(results = basicResults, d_dT =d_dT, d_dPOrRho = d_dRho, blendInfo = blendInfo)
-
+    completeResults = EOSFullResults(
+        results=basicResults, d_dT=d_dT, d_dPOrRho=d_dRho, blendInfo=blendInfo
+    )
 
     return completeResults
 
@@ -145,7 +148,9 @@ d_dlnd = np.zeros(eosBasicResultsNum, dtype=float)
 d_dlnT = np.zeros(eosBasicResultsNum, dtype=float)
 
 
-def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None) -> EOSFullResults:
+def getEosResultRhoTCGS(
+    temperature: float, density: float, massFractions=None
+) -> EOSFullResults:
     """
     returns results of mesa eos in CGS
     ---
@@ -209,31 +214,29 @@ def getEosResultRhoTCGS(temperature: float, density: float, massFractions=None) 
         entryName = namer[i + 1]
         if entryName in blenInfoNames:
             blendInfoDict[entryName] = eosResults[i]
-        else:    
+        else:
             eosResultsDict[entryName] = eosResults[i]
             d_dlnTDict[entryName] = d_dlnTemp[i]
             d_dlndDict[entryName] = d_dlndens[i]
-    
+
     basicResults = EOSBasicResults(**eosResultsDict)
     d_dT = EOSd_dTResults(**d_dlnTDict)
     d_dRho = EOSd_dPOrRhoResults(**d_dlndDict)
     blendInfo = EOSBledningInfo(**blendInfoDict)
 
-    completeResults = EOSFullResults(results = basicResults, d_dT =d_dT, d_dPOrRho = d_dRho, blendInfo = blendInfo)
+    completeResults = EOSFullResults(
+        results=basicResults, d_dT=d_dT, d_dPOrRho=d_dRho, blendInfo=blendInfo
+    )
 
     return completeResults
 
 
 if __name__ == "__main__":
     temperature = 1000000000.0000000
-    pressure = 10.0**2
-    densityCGS = 10000.000000000000
-    density = densityCGS * c.gram / (c.cm * c.cm * c.cm)
+    pressure = 5.115979e20 * c.barye
     massFractions = {"c12": 1.0}
-    results = getEosResultRhoTCGS(temperature, density, massFractions).results
+    results = getEosResult(temperature, pressure, massFractions).results
 
-    lnPgasCGS = results.lnPgas
-    PgasCGS = np.exp(lnPgasCGS)
-    print(PgasCGS)
+    for name, value in vars(results).items():
+        print(f"{name} \t {getattr(results, name):.6e}")
 
-    print(getEosResult(temperature, pressure, massFractions))
