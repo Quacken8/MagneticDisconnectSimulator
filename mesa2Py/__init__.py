@@ -357,9 +357,12 @@ allKnownChemicalIDs = {  # these are expected by the MESA kap module
     "s32": chem_def.is32,
 }
 
+@dataclass
 class KappaOutput():
-    def __init__(self) -> None:
-        pass
+    kappa: float
+    dlnKappadlnRho: float
+    dlnKappdlnT: float
+    blendFractions: list
 # endregion
 
 if ierr != 0:

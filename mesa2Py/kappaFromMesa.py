@@ -94,11 +94,14 @@ def getMESAOpacity(
         dlnkap_dxa,
         ierr,
     )
-    if fullOutput:
-        return kap_res
-    else:
-        kappaCGS = kap_res["kap"]
-        return kappaCGS * c.cm * c.cm / c.gram
+
+    kappaRes = kap_res['kap']* c.cm * c.cm / c.gram
+    dlnKappadlnRho = kap_res['dlnkap_dlnrho'] # TODO check if the log rly takes care of the units just to be sure
+    dlnKappdlnT=kap_res['dlnkap_dlnt']
+
+    output = KappaOutput(kappa=kappaRes, dlnKappadlnRho=dlnKappadlnRho, dlnKappdlnT = dlnKappdlnT, blendFractions=kap_res['kap_fracs'])
+
+    return output
 
 if __name__ == "__main__":
     temperature = 1e6
