@@ -8,7 +8,7 @@ To run this project on your machine, you need to have the following software ins
 - Python 3.7 or higher
 - [MESA SDK](http://user.astro.wisc.edu/~townsend/static.php?ref=mesasdk)
 - [MESA](https://github.com/MESAHub/mesa) version r22.11.1 
-- [PyMESA](https://github.com/rjfarmer/pyMesa)
+- [PyMesa](https://github.com/rjfarmer/pyMesa)
 
 ## Installation
 
@@ -22,7 +22,7 @@ git clone git@github.com:Quacken8/MagneticDisconnectSimulator.git
 pip3 install -r requirements.txt
 ```
 
-3. Clone and install pyMESA using
+3. Clone and install pyMesa using
 ```
 git clone git@github.com:rjfarmer/pyMesa.git
 ```
