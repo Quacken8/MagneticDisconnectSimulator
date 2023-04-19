@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
-from __init__ import *
+from .__init__ import *
 
 assert kap_lib is not None
 

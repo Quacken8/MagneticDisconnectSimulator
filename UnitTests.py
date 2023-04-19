@@ -16,6 +16,10 @@ from initialConditionsSetterUpper import loadModelS
 import constants as c
 import os
 from matplotlib import pyplot as plt
+import logging
+logging.getLogger('matplotlib').setLevel(logging.ERROR)
+L = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 pathToModelS = "externalData/model_S_new.dat"
 

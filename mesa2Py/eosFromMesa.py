@@ -2,7 +2,7 @@
 
 import numpy as np
 import constants as c
-from __init__ import *
+from .__init__ import *
 from warnings import warn
 
 assert eos_lib is not None

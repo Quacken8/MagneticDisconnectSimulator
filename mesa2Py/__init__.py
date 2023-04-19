@@ -9,9 +9,14 @@ import atexit
 import logging
 from dataclasses import dataclass
 
-L = logging.getLogger(__name__)
 
-L.info("Initializing mesa interface")
+L = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+if not hasattr(pym, 'mesa2Py'):
+    L.info("Initializing mesa interface")
+else:
+    L.info("mesa interface already initialized, skipping initialization")
 # universal suff
 
 baseMassFractions = {  # these are user friendly input, feel free to change them
@@ -69,29 +74,37 @@ assert net_def is not None
 assert rates_lib is not None
 assert rates_def is not None
 
-atexit.register(L.info, "Shutting down eos tables...")
-atexit.register(eos_lib.eos_shutdown)
+
 
 ierr = 0
 
-const_lib.const_init(pym.MESA_DIR, ierr)
-chem_lib.chem_init("isotopes.data", ierr)
+if not hasattr(pym, 'mesa2Py'):
+    # EOS initialization
+    atexit.register(L.info, "Shutting down eos tables...")
+    atexit.register(eos_lib.eos_shutdown)
+    const_lib.const_init(pym.MESA_DIR, ierr)
+    chem_lib.chem_init("isotopes.data", ierr)
+
+    rates_lib.rates_init(  # TODO What is this?
+        "reactions.list",
+        "jina_reaclib_results_20130213default2",
+        "rate_tables",
+        False,
+        False,
+        "",
+        "",
+        "",
+        ierr,
+    )
+    net_lib.net_init(ierr)
+
+    use_cache = True
+
+    eos_lib.eos_init(pym.EOSPT_CACHE, use_cache, ierr)
+
+    eos_handle = eos_lib.alloc_eos_handle(ierr)
+
 num_chem_isos = chem_def.num_chem_isos
-
-ierr = 0
-
-rates_lib.rates_init(  # TODO What is this?
-    "reactions.list",
-    "jina_reaclib_results_20130213default2",
-    "rate_tables",
-    False,
-    False,
-    "",
-    "",
-    "",
-    ierr,
-)
-
 namer = {  # maps indices of eos_res to names of things eos returns vased on eos.def
     int(eos_def.i_lnPgas): "lnPgas",
     int(eos_def.i_lnE): "lnE",
@@ -136,14 +149,6 @@ blenInfoNames = [
     "eos_ideal",
     "frac_ideal",
 ]
-
-net_lib.net_init(ierr)
-
-use_cache = True
-ierr = 0
-eos_lib.eos_init(pym.EOSPT_CACHE, use_cache, ierr)
-
-eos_handle = eos_lib.alloc_eos_handle(ierr)
 
 chem_h1 = chem_def.ih1.get()
 
@@ -247,59 +252,20 @@ kap_lib, kap_def = pym.loadMod("kap")
 assert kap_def is not None
 assert kap_lib is not None
 
-atexit.register(L.info, "Shutting down kappa tables...")
-atexit.register(kap_lib.kap_shutdown)
-
-
-ierr = 0
 
 num_kap_fracs = kap_def.num_kap_fracs
 num_chem_isos = chem_def.num_chem_isos
 
-kap_lib.kap_init(False, pym.KAP_CACHE, ierr)  # TODO find out how this init works
-kap_handle = kap_lib.alloc_kap_handle(ierr)
-kap_lib.kap_setup_tables(kap_handle, ierr)
-kap_lib.kap_setup_hooks(kap_handle, ierr)
-
-
-handle = kap_handle
-atexit.register(L.info, "Deallocating kap_handle...")
-atexit.register(kap_lib.free_kap_handle, kap_handle)
-
-
-allKnownChemicalIDs = {  # these are expected by the MESA kap module
-    "h1": chem_def.ih1,
-    "h2": chem_def.ih2,
-    "he3": chem_def.ihe3,
-    "he4": chem_def.ihe4,
-    "li7": chem_def.ili7,
-    "be7": chem_def.ibe7,
-    "b8": chem_def.ib8,
-    "c12": chem_def.ic12,
-    "c13": chem_def.ic13,
-    "n13": chem_def.in13,
-    "n14": chem_def.in14,
-    "n15": chem_def.in15,
-    "o16": chem_def.io16,
-    "o17": chem_def.io17,
-    "o18": chem_def.io18,
-    "f19": chem_def.if19,
-    "ne20": chem_def.ine20,
-    "ne21": chem_def.ine21,
-    "ne22": chem_def.ine22,
-    "na22": chem_def.ina22,
-    "na23": chem_def.ina23,
-    "mg24": chem_def.img24,
-    "mg25": chem_def.img25,
-    "mg26": chem_def.img26,
-    "al26": chem_def.ial26,
-    "al27": chem_def.ial27,
-    "si28": chem_def.isi28,
-    "si29": chem_def.isi29,
-    "si30": chem_def.isi30,
-    "p31": chem_def.ip31,
-    "s32": chem_def.is32,
-}
+if not hasattr(pym, 'mesa2Py'):
+    atexit.register(L.info, "Shutting down kappa tables...")
+    atexit.register(kap_lib.kap_shutdown)
+    kap_lib.kap_init(False, pym.KAP_CACHE, ierr)  # TODO find out how this init works
+    kap_handle = kap_lib.alloc_kap_handle(ierr)
+    kap_lib.kap_setup_tables(kap_handle, ierr)
+    kap_lib.kap_setup_hooks(kap_handle, ierr)
+    handle = kap_handle
+    atexit.register(L.info, "Deallocating kap_handle...")
+    atexit.register(kap_lib.free_kap_handle, kap_handle)
 
 
 @dataclass
@@ -312,7 +278,12 @@ class KappaOutput:
 
 # endregion
 
-if ierr != 0:
-    L.critical(f"Mesa initialization failed with ierr {ierr}")
-else:
-    L.info("Mesa initialized succesfully")
+if not hasattr(pym, 'mesa2Py'):
+    if ierr != 0:
+        L.critical(f"Mesa initialization failed with ierr {ierr}")
+    else:
+        L.info("Mesa initialized succesfully")
+
+pym.mesa2Py = True #type: ignore FIXME very hacky way to make sure the fortran modules are only initialized once. It works tho
+
+pass
