@@ -15,6 +15,9 @@ from gravity import g
 from scipy.integrate import ode as scipyODE
 import constants as c
 from typing import Type
+import logging 
+logging.basicConfig(level=logging.DEBUG)
+L = logging.getLogger(__name__)
 
 
 # FIXME - this is made regarding the log of pressure however the new state eq tables will probably work with T and Rho as their variables; therefore the of integration dP/dz should rly go to dP/drho dRho/dz cuz the new tables also support dp/drho
@@ -213,7 +216,7 @@ def getCalmSunDatapoint(
         try:
             ODEIntegrator.integrate(currentLnP)  # get new T and z from this
         except Exception as ex:
-            print(f"last known z = {currentZ}, last known lnP = {currentLnP}")
+            L.info(f"last known z = {currentZ}, last known lnP = {currentLnP}")
             raise ex
         if not ODEIntegrator.successful():
             # TODO hey why is this not finishing a viable break condition viz old code ????

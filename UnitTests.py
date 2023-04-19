@@ -202,7 +202,7 @@ def main():
     testDataStructureSaveLoad()
     testCalmSunBasedOnModelSData()
 
-    print("Tests passed :)")
+    L.info("Tests passed :)")
     #testModelSVSCalmSunVSHybrid()
     testModelSHvsIdealGasH()
 
