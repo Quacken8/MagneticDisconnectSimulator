@@ -8,6 +8,7 @@ cm = 1e-2  # meters in a centimeter
 gram = 1e-3  # kilgrams in a gram
 Gauss = 1e-4  # Teslas in one Gauss
 barye = 1e1  # Pascals in one barye
+erg = 1e1  # ergs in Joule
 eV = 1.602176634e-19  # Joules in one eV [CODATA 2018]
 BoltzmannConstant = 1.380649e-23  # J/K [CODATA 2018]
 gasConstant = 8.314462618  # J/K/mol [CODATA 2018]
