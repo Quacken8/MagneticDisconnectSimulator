@@ -193,17 +193,19 @@ def testModelSHvsIdealGasH() -> None:
     )
     modelSHs = np.loadtxt("externalData/H_p.dat", usecols=2)
 
-    plt.plot(modelSZs, idealHs, label = "ideal")
-    plt.plot(modelSZs, modelSHs, label = "from model")
+    plt.loglog(modelSZs, idealHs, label = "ideal")
+    plt.loglog(modelSZs, modelSHs, label = "from model")
+    plt.xlabel("z [m]")
+    plt.ylabel("H [m]")
+    plt.legend()
     plt.show()
-
 
 def main():
     testDataStructureSaveLoad()
     testCalmSunBasedOnModelSData()
 
     L.info("Tests passed :)")
-    #testModelSVSCalmSunVSHybrid()
+    testModelSVSCalmSunVSHybrid()
     testModelSHvsIdealGasH()
 
 

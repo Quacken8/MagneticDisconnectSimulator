@@ -202,6 +202,7 @@ def getCalmSunDatapoint(
 
     currentZ = 0
     
+    L.info("Starting integration of hydrostatic equilibrium on calm sun")
     while (
         currentZ < maxDepth
     ):  # TODO can this be paralelized by not going with cycles through all logPs, but using a preset array of logPs?
