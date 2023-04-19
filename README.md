@@ -7,7 +7,7 @@ To run this project on your machine, you need to have the following software ins
 
 - Python 3.7 or higher
 - [MESA SDK](http://user.astro.wisc.edu/~townsend/static.php?ref=mesasdk)
-- [MESA](https://github.com/MESAHub/mesa) 
+- [MESA](https://github.com/MESAHub/mesa) version r22.11.1 
 - [PyMESA](https://github.com/rjfarmer/pyMesa)
 
 ## Installation
