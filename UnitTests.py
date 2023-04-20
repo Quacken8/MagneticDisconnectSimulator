@@ -17,7 +17,8 @@ import constants as c
 import os
 from matplotlib import pyplot as plt
 import logging
-logging.getLogger('matplotlib').setLevel(logging.ERROR)
+
+logging.getLogger("matplotlib").setLevel(logging.ERROR)
 L = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -184,6 +185,8 @@ def testModelSHvsIdealGasH() -> None:
     modelSTemperature = modelS.temperatures
     modelSZs = modelS.zs
     from gravity import g
+    modelSZs = np.loadtxt("externalData/H_p.dat", usecols=0)
+    modelSZs = modelSZs[0] - modelSZs
 
     gravities = np.array(g(modelSZs))
     from stateEquationsPT import IdealGasWithModelSNablaAd
@@ -191,22 +194,28 @@ def testModelSHvsIdealGasH() -> None:
     idealHs = IdealGasWithModelSNablaAd.pressureScaleHeight(
         modelSTemperature, modelSPressure, gravities
     )
-    modelSHs = np.loadtxt("externalData/H_p.dat", usecols=2)
+    modelSHs = np.loadtxt("externalData/H_p.dat", usecols=1)
 
-    plt.loglog(modelSZs, idealHs, label = "ideal")
-    plt.loglog(modelSZs, modelSHs, label = "from model")
+    print(gravities[0])
+
+    plt.loglog(modelSZs, idealHs, label="ideal")
+    plt.loglog(modelSZs, modelSHs, label="from model")
     plt.xlabel("z [m]")
     plt.ylabel("H [m]")
     plt.legend()
     plt.show()
 
+
 def main():
+
+    testModelSHvsIdealGasH()
+    
     testDataStructureSaveLoad()
     testCalmSunBasedOnModelSData()
 
     L.info("Tests passed :)")
-    testModelSVSCalmSunVSHybrid()
-    testModelSHvsIdealGasH()
+    #testModelSVSCalmSunVSHybrid()
+    
 
 
 if __name__ == "__main__":

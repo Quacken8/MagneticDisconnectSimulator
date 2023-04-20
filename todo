@@ -8,6 +8,7 @@
 //FIXME - units of mu in new eos are dimensionless!
 //FIXME - chech that eos derivatives arent d/dlnT but rly d/dT and such
 //FIXME - name the kappa blend fractions
+//FIXME - remove the relative imports of __init__
 
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)

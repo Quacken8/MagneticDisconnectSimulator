@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
-from .__init__ import *
 
-assert kap_lib is not None
+try: 
+    mesaInit
+except NameError:
+    from . import initializer as mesaInit
 
 # things this buddy returns, but becuase it's fortran it wants them passed in as references
-kappa_fracs = np.zeros(num_kap_fracs, dtype=float)
+kappa_fracs = np.zeros(mesaInit.num_kap_fracs, dtype=float)
 kappa = 0.0
 dlnkap_dlnRho = 0.0
 dlnkap_dlnT = 0.0
@@ -18,7 +20,6 @@ def getMESAOpacity(
     temperature: float,
     density: float,
     massFractions=None,
-    Zbase: float = 0.0,
     MesaEOSOutput=None,
 ):
     """
@@ -34,9 +35,9 @@ def getMESAOpacity(
     fullOutput: if True, returns a dictionary of all the outputs of the MESA kap module BUT IN CGS
     """
     if massFractions is None:
-        massFractions = baseMassFractions
+        massFractions = mesaInit.solarAbundancesDict
 
-    assert all(key in allKnownChemicalIDs for key in massFractions.keys())
+    assert all(key in mesaInit.allKnownChemicalIDs for key in massFractions.keys())
 
     logRhoCGS = np.log10(density * c.cm * c.cm * c.cm / c.gram)
     logTCGS = np.log10(temperature)
@@ -55,26 +56,30 @@ def getMESAOpacity(
         eta = MesaEOSOutput["eta"]
         d_eta_dlnRho = MesaEOSOutput["d_eta_dlnRho"]
         d_eta_dlnT = MesaEOSOutput["d_eta_dlnT"]
+     
 
-    ZbaseString = format(Zbase, ".16E")
-    kap_lib.kap_set_control_namelist(handle, "Zbase", ZbaseString, ierr)
-
-    Nspec = len(baseMassFractions)  # number of species in the model
+    Nspec = len(massFractions)  # number of species in the model
     massFractionsInArr = np.array(
         [], dtype=float
     )  # these are the mass fractions we use
     chem_id = np.array([], dtype=int)  # these are their chemical ids
     net_iso = np.zeros(
-        num_chem_isos, dtype=int
+        mesaInit.num_chem_isos, dtype=int
     )  # maps chem id to species number (index in the array I suppose? idk man, mesa ppl rly dont like clarity)
 
-    for i, (speciesName, massFraction) in enumerate(baseMassFractions.items()):
+    Zbase = 0.0
+    for i, (speciesName, massFraction) in enumerate(mesaInit.solarAbundancesDict.items()):
+        if speciesName not in ("h1", "h2", "he3", "he4"):
+            Zbase += massFraction
         massFractionsInArr = np.append(massFractionsInArr, massFraction)
-        chem_id = np.append(chem_id, int(allKnownChemicalIDs[speciesName]))
+        chem_id = np.append(chem_id, int(mesaInit.allKnownChemicalIDs[speciesName]))
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
 
-    kap_res = kap_lib.kap_get(
-        handle,
+    ZbaseString = format(Zbase, ".16E")
+    mesaInit.kap_lib.kap_set_control_namelist(mesaInit.kap_handle, "Zbase", ZbaseString, ierr)
+
+    kap_res = mesaInit.kap_lib.kap_get(
+        mesaInit.kap_handle,
         Nspec,
         chem_id,
         net_iso,
@@ -101,7 +106,7 @@ def getMESAOpacity(
     ]  # TODO check if the log rly takes care of the units just to be sure
     dlnKappdlnT = kap_res["dlnkap_dlnt"]
 
-    output = KappaOutput(
+    output = mesaInit.KappaOutput(
         kappa=kappaRes,
         dlnKappadlnRho=dlnKappadlnRho,
         dlnKappdlnT=dlnKappdlnT,
@@ -113,5 +118,5 @@ def getMESAOpacity(
 
 if __name__ == "__main__":
     temperature = 1e6
-    density = 1e4
+    density = 1e10
     print(getMESAOpacity(temperature, density))

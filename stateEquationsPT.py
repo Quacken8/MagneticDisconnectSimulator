@@ -231,8 +231,8 @@ class IdealGas(StateEquationInterface):
         """
         pressure scale height according to denizer 1965 eq 8
         """
-        mu = IdealGas.meanMolecularWeight(temperature, pressure)
-        return c.gasConstant * temperature / (mu * gravitationalAcceleration)
+        rho = IdealGas.density(temperature, pressure)
+        return pressure / (rho * gravitationalAcceleration)
 
 #region model S
 
