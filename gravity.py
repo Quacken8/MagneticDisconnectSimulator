@@ -71,6 +71,10 @@ linear interpolation of Sun's gravity z meters below the surface
 """
 g = ScipySpline(modelZs, gravitationalAccelerationsInZs, s=0, k=1, ext=3)
 
+"""
+linear interpolation of Sun's mass z meters below the surface
+"""
+mBelowZ = ScipySpline(modelZs, massesBelowR[::-1], s=0, k=1, ext=3)
 
 def main():
     """debug function for the gravity code"""

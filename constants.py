@@ -27,3 +27,5 @@ SteffanBoltzmann = 5.670374419e-8  # W/(m^2 K^4) [CODATA 2018]
 ionizationEnergyOfHydrogen = (
     13.59844 * eV
 )  # TODO get better source [Lide, 1992, Ionization potentials of atoms and atomic ions]
+L_sun = 3.828e26  # W [IAU 2015]
+M_sun = 1.3271244e20/G  # kg [IAU 2015]

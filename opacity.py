@@ -57,13 +57,12 @@ def main():
     from initialConditionsSetterUpper import loadModelS
 
     modelS = loadModelS()
-    massFractions = {"h1": c.massFractionOfHydrogen, "he4": c.massFractionOfHelium}
 
-    modelSRhos = modelS.rhos
+    modelSRhos = modelS.derivedQuantities["rhos"]
     modelSTs = modelS.temperatures
     modelSKappas = modelS.derivedQuantities["kappas"]
 
-    mesaKappas = mesaOpacity(modelSTs, modelSRhos, massFractions=massFractions)
+    mesaKappas = mesaOpacity(modelSTs, modelSRhos)
 
     zs = modelS.zs
 

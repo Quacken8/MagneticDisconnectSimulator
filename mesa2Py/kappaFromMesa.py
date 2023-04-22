@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
+from typing import Optional
 
 try: 
     mesaInit
 except NameError:
     from . import initializer as mesaInit
+
+
+
 
 # things this buddy returns, but becuase it's fortran it wants them passed in as references
 kappa_fracs = np.zeros(mesaInit.num_kap_fracs, dtype=float)
@@ -114,6 +118,9 @@ def getMESAOpacity(
     )
 
     return output
+
+def getJustKappa(temperature, density, massFractions=None):
+    return getMESAOpacity(temperature, density, massFractions).kappa
 
 
 if __name__ == "__main__":

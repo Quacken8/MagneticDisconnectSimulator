@@ -5,18 +5,18 @@ import warnings
 from scipy.interpolate import NearestNDInterpolator
 
 warnings.warn("Ur using the model S opacity here")
-from opacity import modelSNearestOpacity as opacity
+from mesa2Py.kappaFromMesa import getJustKappa as opacity
 from initialConditionsSetterUpper import loadModelS
 import abc
 
-import pyMesaUtils as pym
-
+from mesa2Py.eosFromMesa import getEosResult
 
 
 class StateEquationInterface(metaclass=abc.ABCMeta):
     """
     Interface for state equations classes
     """
+
     @staticmethod
     @abc.abstractmethod
     def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
@@ -72,14 +72,6 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def degreeOfIonization(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
-        """
-        returns degree of ionization
-        """
-        pass
-
-    @staticmethod
-    @abc.abstractmethod
     def pressureScaleHeight(
         temperature: np.ndarray,
         pressure: np.ndarray,
@@ -90,10 +82,12 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
         """
         pass
 
+
 class IdealGas(StateEquationInterface):
     """
     State equations for ideal gas mostly based on Denizer 1965
     """
+
     @staticmethod
     def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
@@ -152,17 +146,16 @@ class IdealGas(StateEquationInterface):
     ) -> np.ndarray:
         """returns radiative log gradient according to denizer 1965 eq 9"""
         warnings.warn("Ur using ideal gas")
-        density = IdealGas.density(temperature, pressure)
+        kappa = opacity(temperature, pressure)
         H = IdealGas.pressureScaleHeight(
-            temperature=temperature,
-            pressure=pressure,
-            gravitationalAcceleration=gravitationalAcceleration,
+            temperature, pressure, gravitationalAcceleration
         )
+        rho = IdealGas.density(temperature, pressure)
         toReturn = (
             3
             / 16
-            * opacity(temperature, pressure)
-            * density
+            * kappa
+            * rho
             * H
             / (
                 c.SteffanBoltzmann
@@ -212,9 +205,7 @@ class IdealGas(StateEquationInterface):
             + (13.53 * 5040) / temperature
             + 0.48
             + np.log10(c.massFractionOfHydrogen)
-            + np.log10(
-                pressure * c.barye
-            )
+            + np.log10(pressure * c.barye)
             + np.log10(c.meanMolecularWeight * c.gram)
         )
 
@@ -234,7 +225,8 @@ class IdealGas(StateEquationInterface):
         rho = IdealGas.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
 
-#region model S
+
+# region model S
 
 ## Cache the model S data
 modelS = loadModelS()
@@ -242,11 +234,16 @@ modelS = loadModelS()
 modelSPressures = modelS.pressures
 modelSTemperatures = modelS.temperatures
 modelSNablaAds = modelS.derivedQuantities["nablaads"]
-interpolatedNablaAd = NearestNDInterpolator(list(zip(modelSTemperatures, modelSPressures)), modelSNablaAds)
+interpolatedNablaAd = NearestNDInterpolator(
+    list(zip(modelSTemperatures, modelSPressures)), modelSNablaAds
+)
+
+
 class IdealGasWithModelSNablaAd(IdealGas):
     """
     Ideal gas with nabla ad via nearest neighbor interpolation from model S
     """
+
     @staticmethod
     def adiabaticLogGradient(
         temperature: np.ndarray, pressure: np.ndarray
@@ -257,7 +254,82 @@ class IdealGasWithModelSNablaAd(IdealGas):
 
         return interpolatedNablaAd(temperature, pressure)
 
-#endregion 
+
+# endregion
+
+# region Mesa
+
+
+class MESAEOS(StateEquationInterface):
+    """
+    Interface for state equations classes
+    """
+
+    @staticmethod
+    def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+        """
+        returns density
+        """
+        rho = getEosResult(temperature, pressure).basicResults.rho
+        return rho
+
+    @staticmethod
+    def convectiveLogGradient(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        """
+        returns convectiveGradient
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def adiabaticLogGradient(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        """
+        returns convectiveGradient
+        """
+        nablaAd = getEosResult(temperature, pressure).basicResults.grad_ad
+        return nablaAd
+
+    @staticmethod
+    def meanMolecularWeight(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        "returns mean molecular weight"
+        unitlessMu = getEosResult(temperature, pressure).basicResults.mu
+        raise NotImplementedError()
+
+    @staticmethod
+    def radiativeLogGradient(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
+    ) -> np.ndarray:
+        """returns radiative log gradient"""
+        raise NotImplementedError()
+
+    @staticmethod
+    def cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+        """
+        returns c_p
+        """
+        Cp = getEosResult(temperature, pressure).basicResults.Cp
+        return Cp
+
+    @staticmethod
+    def pressureScaleHeight(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
+    ) -> np.ndarray:
+        """
+        returns pressure scale height
+        """
+        raise NotImplementedError()
+
+
+# endregion
 
 
 def F_rad(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:

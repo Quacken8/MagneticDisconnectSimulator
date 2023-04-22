@@ -68,14 +68,12 @@ class SingleTimeDatapoint:
         temperatures: np.ndarray,
         pressures: np.ndarray,
         zs: np.ndarray,
-        rhos: np.ndarray,
         **kwargs,
     ) -> None:
         self.zs = zs
         self.numberOfZSteps = len(zs)
         self.temperatures = temperatures
         self.pressures = pressures
-        self.rhos = rhos  # later get only pressure and temperature in mandatory thingies, rest can be deduced from state eq
         fundamentalVariables = dictionaryOfVariables(self)
         self.derivedQuantities = {}
 

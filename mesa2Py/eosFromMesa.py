@@ -23,11 +23,16 @@ d_dabar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 d_dzbar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 ierr = 0
 
+@np.vectorize
 def getEosResult(
     temperature: float, pressure: float, massFractions=None, cgs=False
 ) -> mesaInit.EOSFullResults:
     """
-    returns results of mesa eos in SI in the form of a dictionary
+    MESA based eos
+    ---
+    returns a mesaInit.EOSFullResults object
+    which contains basicResults, d_dT, d_dP and blendInfo
+    the first three all have variables rho, lnPgas, lnE, lnS, mu, lnfree_e, eta, chiRho, chiT, Cp, Cv, dE_dRho, dS_dT, dS_dRho, gamma1, gamma3, phase, ,latent_ddlnT, latent_ddlnRho, grad_ad
     ---
     temperature: float in Kelvin
     pressure: float in Pa
