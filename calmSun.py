@@ -43,7 +43,7 @@ def getCalmSunDatapoint(
     def setOfODEs(lnP:float, zlnTArray:np.ndarray) -> np.ndarray:
         """
         the set of ODEs that are derived from hydrostatic equilibrium
-        dz/dlnP = H(z,T,P)
+        dz/dlnP   = H(z,T,P)
         dlnT/dlnP = ∇(z,T,P)
         """
         z = zlnTArray[0]
@@ -91,7 +91,6 @@ def getCalmSunDatapoint(
         # update the current values
         currentZlnTValues = nextZlnTValues
         currentZ = nextZ
-        lnPressure = ODEIntegrator.t
 
         if ODEIntegrator.successful() == False:
             raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")

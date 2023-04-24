@@ -23,7 +23,6 @@ d_dabar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 d_dzbar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 ierr = 0
 
-@np.vectorize
 def getEosResult(
     temperature: float, pressure: float, massFractions=None, cgs=False
 ) -> mesaInit.EOSFullResults:
@@ -113,33 +112,36 @@ def getEosResult(
     # and covert to SI
 
     if not cgs:
-        eosResultsDict["rho"] /= c.gram / c.cm / c.cm / c.cm
-        eosResultsDict["lnE"] -= np.log(c.erg / c.gram)
-        eosResultsDict["lnS"] -= np.log(c.erg / c.gram)
-        eosResultsDict["Cv"] /= c.erg / c.gram
-        eosResultsDict["Cp"] /= c.erg / c.gram
-        eosResultsDict["dE_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-        eosResultsDict["dS_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-        eosResultsDict["dS_dT"] /= c.erg / c.gram
+        eosResultsDict["rho"] *= c.gram / c.cm / c.cm / c.cm
+        eosResultsDict["lnE"] += np.log(c.erg / c.gram)
+        eosResultsDict["lnS"] += np.log(c.erg / c.gram)
+        eosResultsDict["Cv"] *= c.erg / c.gram
+        eosResultsDict["Cp"] *= c.erg / c.gram
+        eosResultsDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        eosResultsDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        eosResultsDict["dS_dT"] *= c.erg / c.gram
+        eosResultsDict["mu"] *= c.gram
 
-        d_dlnTDict["rho"] /= c.gram / c.cm / c.cm / c.cm
-        d_dlnTDict["lnE"] -= 0 # becuase the constant gets derivated away since it's in a log
-        d_dlnTDict["lnS"] -= 0 # becuase the constant gets derivated away since it's in a log
-        d_dlnTDict["Cv"] /= c.erg / c.gram
-        d_dlnTDict["Cp"] /= c.erg / c.gram
-        d_dlnTDict["dE_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-        d_dlnTDict["dS_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
-        d_dlnTDict["dS_dT"] /= c.erg / c.gram
+        d_dlnTDict["rho"] *= c.gram / c.cm / c.cm / c.cm
+        d_dlnTDict["lnE"] += 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnTDict["lnS"] += 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnTDict["Cv"] *= c.erg / c.gram
+        d_dlnTDict["Cp"] *= c.erg / c.gram
+        d_dlnTDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        d_dlnTDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
+        d_dlnTDict["dS_dT"] *= c.erg / c.gram
+        d_dlnTDict["mu"] *= c.gram
 
         gOverCCC = c.gram / c.cm / c.cm / c.cm
-        d_dlnPDict["rho"] /= c.gram / c.cm / c.cm / c.cm / gOverCCC
-        d_dlnPDict["lnE"] -= 0 # becuase the constant gets derivated away since it's in a log
-        d_dlnPDict["lnS"] -= 0 # becuase the constant gets derivated away since it's in a log
-        d_dlnPDict["Cv"] /= c.erg / c.gram / gOverCCC
-        d_dlnPDict["Cp"] /= c.erg / c.gram / gOverCCC
-        d_dlnPDict["dE_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
-        d_dlnPDict["dS_dRho"] /= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
-        d_dlnPDict["dS_dT"] /= c.erg / c.gram / gOverCCC
+        d_dlnPDict["rho"] *= c.gram / c.cm / c.cm / c.cm / gOverCCC
+        d_dlnPDict["lnE"] += 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnPDict["lnS"] += 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnPDict["Cv"] *= c.erg / c.gram / gOverCCC
+        d_dlnPDict["Cp"] *= c.erg / c.gram / gOverCCC
+        d_dlnPDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
+        d_dlnPDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
+        d_dlnPDict["dS_dT"] *= c.erg / c.gram / gOverCCC
+        d_dlnPDict["mu"] *= c.gram
 
     basicResults = mesaInit.EOSBasicResults(**eosResultsDict)
     d_dT = mesaInit.EOSd_dTResults(**d_dlnTDict)
@@ -244,7 +246,7 @@ if __name__ == "__main__":
     temperature = 1000000000.0000000
     pressure = 5.115979e20 * c.barye
     massFractions = {"c12": 1.0}
-    results = getEosResult(temperature, pressure, massFractions).results
+    results = getEosResult(temperature, pressure, massFractions, cgs = True).results
 
     for name, value in vars(results).items():
         print(f"{name} \t {getattr(results, name):.6e}")

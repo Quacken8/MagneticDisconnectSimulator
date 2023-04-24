@@ -129,7 +129,7 @@ def testModelSVSCalmSunVSHybrid() -> None:
 
     dlnP = 1e-1
     logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
-    maxDepth = 30*c.Mm  # just some housenumero hehe
+    maxDepth = 160*c.Mm  # just some housenumero hehe
     surfaceZ = 0
     from stateEquationsPT import IdealGas
 
@@ -158,15 +158,16 @@ def testModelSVSCalmSunVSHybrid() -> None:
 
     modelS = loadModelS(500)
 
-    axs = plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S")
+    axs = plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S", log= False)
     axs = plotSingleTimeDatapoint(
         calmSunHybrid,
         toPlot,
         pltshow=False,
         label="Ideal gas with model S ∇ad",
         axs=axs,
+        log = False
     )
-    plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="Ideal gas")
+    plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="Ideal gas", log = True)
     plt.legend()
 
 def testModelSBasedIdealGas() -> None:
@@ -222,12 +223,177 @@ def testModelSHvsIdealGasH() -> None:
     plt.legend()
     plt.show()
 
-
-def main():
-
+def compareCalmVsHybridToOldData() -> None:
     
-    testModelSVSCalmSunVSHybrid()
-    input()
+    modelSFilename = "externalData/model_S_new.dat"
+    surfaceTemperature = np.loadtxt(modelSFilename, skiprows=1, usecols=1)[0]
+
+    dlnP = 1
+    logSurfacePressure = np.log(np.loadtxt(modelSFilename, skiprows=1, usecols=2)[0])
+    maxDepth = 30*c.Mm  # just some housenumero hehe
+    surfaceZ = 0
+    from stateEquationsPT import IdealGas
+
+    calmSun = getCalmSunDatapoint(
+        StateEq=IdealGas,
+        dlnP=dlnP,
+        lnSurfacePressure=logSurfacePressure,
+        maxDepth=maxDepth,
+        surfaceTemperature=surfaceTemperature,
+        surfaceZ=surfaceZ,
+    )
+    from stateEquationsPT import IdealGasWithModelSNablaAd
+
+    calmSunHybrid = getCalmSunDatapoint(
+        StateEq=IdealGasWithModelSNablaAd,
+        dlnP=dlnP,
+        lnSurfacePressure=logSurfacePressure,
+        maxDepth=maxDepth,
+        surfaceTemperature=surfaceTemperature,
+        surfaceZ=surfaceZ,
+    )
+
+    toPlot = ["temperatures", "pressures"]
+    from dataVizualizer import plotSingleTimeDatapoint
+    from initialConditionsSetterUpper import loadModelS
+
+    modelS = loadModelS(500)
+
+    axs = plotSingleTimeDatapoint(modelS, toPlot, pltshow=False, label="model S", log= False)
+    axs = plotSingleTimeDatapoint(
+        calmSunHybrid,
+        toPlot,
+        pltshow=False,
+        label="Ideal gas with model S ∇ad",
+        axs=axs,
+        log = False
+    )
+    axs = plotSingleTimeDatapoint(calmSun, toPlot, axs=axs, label="Ideal gas", log = False, pltshow=False)
+
+    oldZs = np.loadtxt("externalData/oldData", usecols=1, skiprows = 1)*c.cm/c.Mm
+    oldTemperatures = np.loadtxt("externalData/oldData", usecols=2, skiprows = 1)
+    oldPressures = np.loadtxt("externalData/oldData", usecols=3, skiprows = 1)*c.barye
+
+    axs['temperatures'].loglog(oldZs, oldTemperatures, label="old data")
+    axs['pressures'].loglog(oldZs, oldPressures, label="old data")
+    plt.legend()
+
+    plt.show()
+
+def testMESAEOSvsModelSdensity() -> None:
+    modelS = loadModelS()
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+    modelSZs = modelS.zs
+    modelSDensity = modelS.derivedQuantities["rhos"]
+
+    from stateEquationsPT import MESAEOS
+    mesaDensities = MESAEOS.density(modelSTemperature, modelSPressure)
+
+    plt.loglog(modelSZs, modelSDensity, label="model S")
+    plt.loglog(modelSZs, mesaDensities, label="MESA")
+    plt.xlabel("z [m]")
+    plt.ylabel("density [kg/m^3]")
+    plt.legend()
+    plt.show()
+
+def testMESAEOSvsIdealGas() -> None:
+    modelS = loadModelS()
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+
+    from stateEquationsPT import MESAEOS
+    mesaDensities = MESAEOS.density(modelSTemperature, modelSPressure)
+    mesaMu = MESAEOS.meanMolecularWeight(modelSTemperature, modelSPressure)
+    mesaNablaAd = MESAEOS.adiabaticLogGradient(modelSTemperature, modelSPressure)
+
+    from stateEquationsPT import IdealGas
+    idealDensities = IdealGas.density(modelSTemperature, modelSPressure)
+    idealMu = IdealGas.meanMolecularWeight(modelSTemperature, modelSPressure)
+    idealNablaAd = IdealGas.adiabaticLogGradient(modelSTemperature, modelSPressure)
+
+    # now plot them in three separate figures
+
+    fig, axs = plt.subplots(3, 1, sharex=True)
+    axs[0].loglog(modelSTemperature, mesaDensities, label="MESA")
+    axs[0].loglog(modelSTemperature, idealDensities, label="ideal gas")
+    axs[0].set_ylabel("density [kg/m^3]")
+    axs[0].legend()
+
+    axs[1].loglog(modelSTemperature, mesaMu, label="MESA")
+    axs[1].loglog(modelSTemperature, idealMu, label="ideal gas")
+    axs[1].set_ylabel("mu [1]")
+    axs[1].legend()
+
+    axs[2].loglog(modelSTemperature, mesaNablaAd, label="MESA")
+    axs[2].loglog(modelSTemperature, idealNablaAd, label="ideal gas")
+    axs[2].set_ylabel("nabla ad")
+    axs[2].set_xlabel("temperature [K]")
+    axs[2].legend()
+
+    plt.show()
+
+def testMESAEOSvsModelS() -> None:
+    modelS = loadModelS()
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+    modelSZs = modelS.zs
+    modelSDensity = modelS.derivedQuantities["rhos"]
+    modelSNablaAds = modelS.derivedQuantities["nablaads"]
+
+    from stateEquationsPT import MESAEOS
+    mesaDensities = MESAEOS.density(modelSTemperature, modelSPressure)
+    mesaNablaAd = MESAEOS.adiabaticLogGradient(modelSTemperature, modelSPressure)
+
+    plt.plot(modelSZs, modelSNablaAds, label="model S")
+    plt.plot(modelSZs, mesaNablaAd, label="MESA")
+    plt.xlabel("z [m]")
+    plt.ylabel("nabla ad")
+    plt.legend()
+    plt.show()
+
+def testModelSVsCalmSunWithSvandaRad() -> None:
+    modelS = loadModelS()
+    modelSZs = modelS.zs
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+
+    dlnP = 1e-1
+    maxDepth = 20*c.Mm
+    logSurfacePressure = np.log(modelSPressure[0])
+    surfaceTemperature = modelSTemperature[0]
+    surfaceZ = 0
+
+    from stateEquationsPT import IdealGasWithSvandasNablaRads
+    calmSun = getCalmSunDatapoint(
+        StateEq=IdealGasWithSvandasNablaRads,
+        dlnP=dlnP,
+        lnSurfacePressure=logSurfacePressure,
+        maxDepth=maxDepth,
+        surfaceTemperature=surfaceTemperature,
+        surfaceZ=surfaceZ,
+    )
+
+    calmSunPressure = calmSun.pressures
+    calmSunZs = calmSun.zs
+    calmSunTemperature = calmSun.temperatures
+
+    fig, axs = plt.subplots(2, 1, sharex=True)
+
+    axs[0].loglog(modelSZs, modelSTemperature, label="model S")
+    axs[0].loglog(calmSunZs, calmSunTemperature, label="ideal gas")
+    axs[0].set_ylabel("temperature [K]")
+    axs[0].legend()
+
+    axs[1].loglog(modelSZs, modelSPressure, label="model S")
+    axs[1].loglog(calmSunZs, calmSunPressure, label="ideal gas")
+    axs[1].set_ylabel("pressure [Pa]")
+    axs[1].set_xlabel("z [m]")
+    axs[1].legend()
+
+    plt.show()
+def main():
+    testModelSVsCalmSunWithSvandaRad()
 
 
 if __name__ == "__main__":
