@@ -287,8 +287,12 @@ def testMESAEOSvsModelSdensity() -> None:
     modelSZs = modelS.zs
     modelSDensity = modelS.derivedQuantities["rhos"]
 
+    simpleSolarAbundances = {"h1" : 0.7, "he4" : 0.3}
+
     from stateEquationsPT import MESAEOS
     mesaDensities = MESAEOS.density(modelSTemperature, modelSPressure)
+
+    print(f"pressure = {modelSPressure[0]} Pa \n temperature = {modelSTemperature[0]} K \n density = {modelSDensity[0]} kg/m^3 \n mesaDensity = {MESAEOS.density(modelSTemperature[0], modelSPressure[0])} kg/m^3")
 
     plt.loglog(modelSZs, modelSDensity, label="model S")
     plt.loglog(modelSZs, mesaDensities, label="MESA")
@@ -333,7 +337,7 @@ def testMESAEOSvsIdealGas() -> None:
 
     plt.show()
 
-def testMESAEOSvsModelS() -> None:
+def testMESAEOSvsModelSnablaAd() -> None:
     modelS = loadModelS()
     modelSPressure = modelS.pressures
     modelSTemperature = modelS.temperatures
@@ -392,8 +396,75 @@ def testModelSVsCalmSunWithSvandaRad() -> None:
     axs[1].legend()
 
     plt.show()
+
+def testModelSIdealNablaRadvsSvandasNablaRad() -> None:
+    modelS = loadModelS()
+    modelSZs = modelS.zs
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+
+    externalZs, externalNablarads = np.loadtxt("debuggingReferenceFromSvanda/nablas.dat", usecols = (0,1), skiprows = 1, unpack=True)
+
+    from stateEquationsPT import IdealGasWithSvandasNablaRads
+    from gravity import g
+    gravAcss = np.array(g(modelSZs))
+    nablaRads = IdealGasWithSvandasNablaRads.radiativeLogGradient(modelSTemperature, modelSPressure, gravAcss)
+
+    from stateEquationsPT import IdealGas
+    idealNablaRads = IdealGas.radiativeLogGradient(modelSTemperature, modelSPressure, gravAcss)
+
+    plt.loglog(modelSZs, nablaRads, label="ideal with Svanda equation")
+    plt.loglog(modelSZs, idealNablaRads, label="ideal gas")
+    plt.loglog(externalZs, externalNablarads, label="Svanda data")
+    plt.xlabel("z [m]")
+    plt.ylabel("nabla rad")
+    plt.legend()
+    plt.show()
+
+def testCalmSunWithMESAvsModelS() -> None:
+    modelS = loadModelS()
+    modelSZs = modelS.zs
+    modelSPressure = modelS.pressures
+    modelSTemperature = modelS.temperatures
+
+    dlnP = 1e-1
+    maxDepth = 20*c.Mm
+    logSurfacePressure = np.log(modelSPressure[0])
+    surfaceTemperature = modelSTemperature[0]
+    surfaceZ = 0
+
+    from stateEquationsPT import MESAEOS
+    calmSun = getCalmSunDatapoint(
+        StateEq=MESAEOS,
+        dlnP=dlnP,
+        lnSurfacePressure=logSurfacePressure,
+        maxDepth=maxDepth,
+        surfaceTemperature=surfaceTemperature,
+        surfaceZ=surfaceZ,
+    )
+
+    calmSunPressure = calmSun.pressures
+    calmSunZs = calmSun.zs
+    calmSunTemperature = calmSun.temperatures
+
+    fig, axs = plt.subplots(2, 1, sharex=True)
+
+    axs[0].loglog(modelSZs, modelSTemperature, label="model S")
+    axs[0].loglog(calmSunZs, calmSunTemperature, label="MESA")
+    axs[0].set_ylabel("temperature [K]")
+    axs[0].legend()
+
+    axs[1].loglog(modelSZs, modelSPressure, label="model S")
+    axs[1].loglog(calmSunZs, calmSunPressure, label="MESA")
+    axs[1].set_ylabel("pressure [Pa]")
+    axs[1].set_xlabel("z [m]")
+    axs[1].legend()
+
+    plt.show()
+
 def main():
-    testModelSVsCalmSunWithSvandaRad()
+    testModelSIdealNablaRadvsSvandasNablaRad()
+    testCalmSunWithMESAvsModelS()
 
 
 if __name__ == "__main__":

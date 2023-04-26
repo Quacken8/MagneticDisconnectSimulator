@@ -1,5 +1,7 @@
-# NOTE this file will be deleted after the implementation is complete and the contents move to stateEquations
-
+#!/usr/bin/env python3
+"""
+This file provides interface between MESA eos verson r.?? and python 
+"""
 import numpy as np
 import constants as c
 from warnings import warn
@@ -7,7 +9,10 @@ from warnings import warn
 try: 
     mesaInit
 except NameError:
-    from . import initializer as mesaInit
+    try:
+        from . import initializer as mesaInit
+    except ImportError:
+        import initializer as mesaInit
 
 assert mesaInit.eos_lib is not None
 
@@ -24,14 +29,17 @@ d_dzbar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 ierr = 0
 
 def getEosResult(
-    temperature: float, pressure: float, massFractions=None, cgs=False
+    temperature: float, pressure: float, massFractions=None, cgsOutput=False
 ) -> mesaInit.EOSFullResults:
     """
     MESA based eos
     ---
     returns a mesaInit.EOSFullResults object
     which contains basicResults, d_dT, d_dP and blendInfo
+
     the first three all have variables rho, lnPgas, lnE, lnS, mu, lnfree_e, eta, chiRho, chiT, Cp, Cv, dE_dRho, dS_dT, dS_dRho, gamma1, gamma3, phase, ,latent_ddlnT, latent_ddlnRho, grad_ad
+
+    Input
     ---
     temperature: float in Kelvin
     pressure: float in Pa
@@ -111,7 +119,7 @@ def getEosResult(
 
     # and covert to SI
 
-    if not cgs:
+    if not cgsOutput:
         eosResultsDict["rho"] *= c.gram / c.cm / c.cm / c.cm
         eosResultsDict["lnE"] += np.log(c.erg / c.gram)
         eosResultsDict["lnS"] += np.log(c.erg / c.gram)
@@ -217,9 +225,9 @@ def getEosResultRhoTCGS(
     d_dlndens = eos_res["d_dlnd"]
 
     # now for each of eosResults entry we want to map it to a name based on the indexer
-    eosResultsDict = {}
-    d_dlnTDict = {}
-    d_dlndDict = {}
+    eosResultsDict = {"rho" : densityCGS}
+    d_dlnTDict = {"rho" : 0}
+    d_dlndDict = {"rho" : 1}
     blendInfoDict = {}
     for i, _ in enumerate(eosResults):
         entryName = mesaInit.namer[i + 1]
@@ -243,10 +251,14 @@ def getEosResultRhoTCGS(
 
 
 if __name__ == "__main__":
-    temperature = 1000000000.0000000
-    pressure = 5.115979e20 * c.barye
-    massFractions = {"c12": 1.0}
-    results = getEosResult(temperature, pressure, massFractions, cgs = True).results
+    temperature = 4348.195622 # K surface of model S
+    pressure = 94.5576395   # Pa surface of model S
+    density = 3.292483196e-06   # kg/m^3 surface of model S
+
+    results = getEosResultRhoTCGS(temperature, density).results
+
+    P = np.exp(results.lnPgas)
+    print(P, P*c.barye)
 
     for name, value in vars(results).items():
         print(f"{name} \t {getattr(results, name):.6e}")

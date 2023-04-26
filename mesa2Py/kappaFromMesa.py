@@ -6,7 +6,10 @@ from typing import Optional
 try: 
     mesaInit
 except NameError:
-    from . import initializer as mesaInit
+    try:
+        from . import initializer as mesaInit
+    except ImportError:
+        import initializer as mesaInit
 
 
 

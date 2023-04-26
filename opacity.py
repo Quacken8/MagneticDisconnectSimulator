@@ -8,7 +8,6 @@ import numpy as np
 from mesa2Py import kappaFromMesa as kapMes
 
 
-@np.vectorize
 def mesaOpacity(
     density: float, temperature: float, massFractions: dict | None = None
 ) -> float:

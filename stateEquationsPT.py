@@ -5,7 +5,7 @@ import warnings
 from scipy.interpolate import NearestNDInterpolator
 
 warnings.warn("Ur using the model S opacity here")
-from mesa2Py.kappaFromMesa import getJustKappa as opacity
+from opacity import modelSNearestOpacity as opacity
 from initialConditionsSetterUpper import loadModelS
 import abc
 
@@ -225,7 +225,7 @@ class IdealGas(StateEquationInterface):
         return pressure / (rho * gravitationalAcceleration)
 
 
-# region model S
+# region debugging mockups
 
 ## Cache the model S data
 modelS = loadModelS()
@@ -240,7 +240,7 @@ interpolatedNablaAd = NearestNDInterpolator(
 
 class IdealGasWithModelSNablaAd(IdealGas):
     """
-    Ideal gas with nabla ad via nearest neighbor interpolation from model S
+    Ideal gas with nabla ad via nearest neighbor interpolation from model S FIXME should be deleted later
     """
 
     @staticmethod
@@ -255,7 +255,7 @@ class IdealGasWithModelSNablaAd(IdealGas):
 
 class IdealGasWithSvandasNablaRads(IdealGas):
     """
-    Ideal gas with nabla rad via svandas method
+    Ideal gas with nabla rad via svandas method FIXME should be deleted later
     """
 
     @staticmethod
@@ -266,7 +266,9 @@ class IdealGasWithSvandasNablaRads(IdealGas):
     ) -> np.ndarray:
         """returns radiative log gradient according to svandas method"""
         warnings.warn("Ur using Švanda's ideal gas")
-        toReturn = nabla_rad=3*opacity(temperature, pressure)*pressure*c.L_sun/(64.*np.pi*c.SteffanBoltzmann*c.G*c.M_sun*temperature*temperature*temperature*temperature)
+        P_rad=c.SteffanBoltzmann/3.0*(temperature*temperature*temperature*temperature)
+        toReturn=(c.L_sun/(16*np.pi*c.speedOfLight*c.G*c.M_sun)) * opacity(temperature, pressure) * pressure/P_rad
+                          
         return toReturn
 
 # endregion
@@ -285,7 +287,7 @@ class MESAEOS(StateEquationInterface):
         """
         returns density
         """
-        rho = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgs = False).results.rho
+        rho = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False).results.rho
         return rho
 
     @np.vectorize
@@ -306,7 +308,7 @@ class MESAEOS(StateEquationInterface):
         """
         returns convectiveGradient
         """
-        nablaAd = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgs = False).results.grad_ad
+        nablaAd = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False).results.grad_ad
         return nablaAd
 
     @np.vectorize
@@ -315,18 +317,36 @@ class MESAEOS(StateEquationInterface):
         temperature: float, pressure: float
     ) -> float:
         "returns mean molecular weight"
-        mu = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgs = False).results.mu
+        mu = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False).results.mu
         return mu
 
-    @np.vectorize
     @staticmethod
     def radiativeLogGradient(
-        temperature: float,
-        pressure: float,
-        gravitationalAcceleration: float,
-    ) -> float:
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
+    ) -> np.ndarray:
         """returns radiative log gradient"""
-        raise NotImplementedError()
+        kappa = opacity(temperature, pressure)
+        H = IdealGas.pressureScaleHeight(
+            temperature, pressure, gravitationalAcceleration
+        )
+        rho = IdealGas.density(temperature, pressure)
+        toReturn = (
+            3
+            / 16
+            * kappa
+            * rho
+            * H
+            / (
+                c.SteffanBoltzmann
+                * temperature
+                * temperature
+                * temperature
+                * temperature
+            )
+        )
+        return toReturn
 
     @np.vectorize
     @staticmethod
@@ -334,7 +354,7 @@ class MESAEOS(StateEquationInterface):
         """
         returns c_p
         """
-        Cp = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgs = False).results.Cp
+        Cp = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False).results.Cp
         return Cp
 
     @np.vectorize
@@ -347,7 +367,7 @@ class MESAEOS(StateEquationInterface):
         """
         returns pressure scale height
         """
-        rho = MESAEOS.density(temperature, pressure, massFractions=c.solarAbundances, cgs = False)
+        rho = MESAEOS.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
 
 
