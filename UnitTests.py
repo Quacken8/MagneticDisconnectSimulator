@@ -466,16 +466,17 @@ def testModelSOpacityVSMesaOpacity() -> None:
     modelS = loadModelS()
     modelSZs = modelS.zs
     modelSTemperature = modelS.temperatures
-    modelSDensity = modelS.derivedQuantities["rhos"]
+    modelSPressure = modelS.pressures
     modelSKappa = modelS.derivedQuantities["kappas"]
 
     from mesa2Py.kappaFromMesa import getMesaOpacity
-    mesaOutput = getMesaOpacity(modelSDensity, modelSTemperature)
+    mesaOutput = getMesaOpacity(modelSPressure, modelSTemperature)
 
     mesaKappa = [output.tolist().kappa for output in mesaOutput]
 
-    plt.loglog(modelSZs, modelSKappa, label="model S")
-    plt.loglog(modelSZs, mesaKappa, label="MESA")
+    plt.plot(modelSZs, modelSKappa, label="model S")
+    plt.plot(modelSZs, mesaKappa, label="MESA")
+    plt.yscale("log")
     plt.xlabel("z [m]")
     plt.ylabel("opacity [m^2/kg]")
     plt.legend()
@@ -491,7 +492,7 @@ def testModelSOpacityVsMesaOpacityDirectly() -> None:
 
     from mesa2Py.kappaFromMesa import getMESAOpacityRhoT
 
-    mesaKappa = getMESAOpacityRhoT(modelSDensity, modelSTemperature)
+    mesaKappa = [result.kappa for result in getMESAOpacityRhoT(modelSDensity, modelSTemperature)]
 
     plt.loglog(modelSZs, modelSKappa, label="model S")
     plt.loglog(modelSZs, mesaKappa, label="MESA")
@@ -499,10 +500,11 @@ def testModelSOpacityVsMesaOpacityDirectly() -> None:
     plt.ylabel("opacity [m^2/kg]")
     plt.legend()
     plt.show()
+    plt.show()
     
 
 def main():
-    testModelSOpacityVsMesaOpacityDirectly()
+    testModelSOpacityVSMesaOpacity()
 
 if __name__ == "__main__":
     main()

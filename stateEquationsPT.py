@@ -265,7 +265,7 @@ class IdealGasWithSvandasNablaRads(IdealGas):
     ) -> np.ndarray:
         """returns radiative log gradient according to svandas method"""
         warnings.warn("Ur using Švanda's ideal gas")
-        P_rad=c.aConstant/3.0*(temperature*temperature*temperature*temperature)
+        P_rad=c.aRad/3.0*(temperature*temperature*temperature*temperature)
         toReturn=(c.L_sun/(16*np.pi*c.speedOfLight*c.G*c.M_sun)) * opacity * pressure/P_rad
                           
         return toReturn

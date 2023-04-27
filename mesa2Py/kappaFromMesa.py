@@ -29,7 +29,7 @@ ierr = 0
 def getMESAOpacityRhoT(
     density: float,
     temperature: float,
-    massFractions: dict | None =None,
+    massFractions: dict | None = None,
     MesaEOSOutput : mesaInit.EOSFullResults | None=None,
 ):
     """
@@ -77,6 +77,7 @@ def getMESAOpacityRhoT(
     )  # maps chem id to species number (index in the array I suppose? idk man, mesa ppl rly dont like clarity)
 
     Zbase = 0.0
+    
     for i, (speciesName, massFraction) in enumerate(mesaInit.solarAbundancesDict.items()):
         if speciesName not in ("h1", "h2", "he3", "he4"):
             Zbase += massFraction
