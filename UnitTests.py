@@ -433,9 +433,9 @@ def testCalmSunWithMESAvsModelS() -> None:
     surfaceTemperature = modelSTemperature[0]
     surfaceZ = 0
 
-    from stateEquationsPT import MESAEOS
+    from stateEquationsPT import IdealGasWithSvandasNablaRads
     calmSun = getCalmSunDatapoint(
-        StateEq=MESAEOS,
+        StateEq=IdealGasWithSvandasNablaRads,
         dlnP=dlnP,
         lnSurfacePressure=logSurfacePressure,
         maxDepth=maxDepth,
@@ -462,10 +462,47 @@ def testCalmSunWithMESAvsModelS() -> None:
 
     plt.show()
 
-def main():
-    testModelSIdealNablaRadvsSvandasNablaRad()
-    testCalmSunWithMESAvsModelS()
+def testModelSOpacityVSMesaOpacity() -> None:
+    modelS = loadModelS()
+    modelSZs = modelS.zs
+    modelSTemperature = modelS.temperatures
+    modelSDensity = modelS.derivedQuantities["rhos"]
+    modelSKappa = modelS.derivedQuantities["kappas"]
 
+    from mesa2Py.kappaFromMesa import getMesaOpacity
+    mesaOutput = getMesaOpacity(modelSDensity, modelSTemperature)
+
+    mesaKappa = [output.tolist().kappa for output in mesaOutput]
+
+    plt.loglog(modelSZs, modelSKappa, label="model S")
+    plt.loglog(modelSZs, mesaKappa, label="MESA")
+    plt.xlabel("z [m]")
+    plt.ylabel("opacity [m^2/kg]")
+    plt.legend()
+    plt.show()
+
+def testModelSOpacityVsMesaOpacityDirectly() -> None:
+
+    modelS = loadModelS()
+    modelSZs = modelS.zs
+    modelSTemperature = modelS.temperatures
+    modelSDensity = modelS.derivedQuantities["rhos"]
+    modelSKappa = modelS.derivedQuantities["kappas"]
+
+    from mesa2Py.kappaFromMesa import getMESAOpacityRhoT
+
+    mesaKappa = getMESAOpacityRhoT(modelSDensity, modelSTemperature)
+
+    plt.loglog(modelSZs, modelSKappa, label="model S")
+    plt.loglog(modelSZs, mesaKappa, label="MESA")
+    plt.xlabel("z [m]")
+    plt.ylabel("opacity [m^2/kg]")
+    plt.legend()
+    plt.show()
+    
+
+def main():
+    testModelSOpacityVsMesaOpacityDirectly()
 
 if __name__ == "__main__":
     main()

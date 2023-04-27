@@ -24,6 +24,7 @@ G = 6.67430e-11  # m^3/(kg s^2) gravitational constant [CODATA 2018]
 solarLuminosity = 3.828e26  # W [IAU 2015]
 speedOfLight = 299792458  # m/s [CODATA 2018]
 SteffanBoltzmann = 5.670374419e-8  # W/(m^2 K^4) [CODATA 2018]
+aConstant = 4*SteffanBoltzmann/speedOfLight # W/(m^2 K^4)
 ionizationEnergyOfHydrogen = (
     13.59844 * eV
 )  # TODO get better source [Lide, 1992, Ionization potentials of atoms and atomic ions]

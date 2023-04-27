@@ -167,8 +167,9 @@ d_dlnd = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 d_dlnT = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 
 
+@np.vectorize
 def getEosResultRhoTCGS(
-    temperature: float, density: float, massFractions=None
+    density: float, temperature: float, massFractions=None
 ) -> mesaInit.EOSFullResults:
     """
     returns results of mesa eos in CGS

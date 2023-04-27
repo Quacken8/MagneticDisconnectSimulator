@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
-from typing import Optional
+try:
+    from .eosFromMesa import getEosResult, getEosResultRhoTCGS
+except ImportError:
+    from eosFromMesa import getEosResult, getEosResultRhoTCGS
 
 try: 
     mesaInit
@@ -22,23 +25,22 @@ dlnkap_dlnT = 0.0
 dlnkap_dxa = 0.0
 ierr = 0
 
-
-def getMESAOpacity(
-    temperature: float,
+@np.vectorize
+def getMESAOpacityRhoT(
     density: float,
-    massFractions=None,
-    MesaEOSOutput=None,
+    temperature: float,
+    massFractions: dict | None =None,
+    MesaEOSOutput : mesaInit.EOSFullResults | None=None,
 ):
     """
-    returns the opacity in SI or full mesa output in SI for a given temperature and density
+    returns the opacity or full mesa output in SI for a given temperature and density
     ------------
     Parameters:
     temperature: gas temperature in kelvin
     density: gas density in kg/m^3
     massFractions: dictionary of mass fractions of all chemical elements; it is expected to have
     the same keys as baseMassFractions, i.e. h1, h2, he3, he4, li7, ..., si30, p31, s32
-    Zbase: base metallicity; TODO ask about what this is
-    MesaEOSOutput: dictionary of mesa output including lnfree_e, d_lnfree_e_dlnRho, d_lnfree_e_dlnT, eta, d_eta_dlnRho, d_eta_dlnT
+    MesaEOSOutput: dictionary of mesa output including lnfree_e, d_lnfree_e_dlnRho, d_lnfree_e_dlnT, eta, d_eta_dlnRho, d_eta_dlnT in CGS FIXME this is ew, this should be SI 
     fullOutput: if True, returns a dictionary of all the outputs of the MESA kap module BUT IN CGS
     """
     if massFractions is None:
@@ -57,12 +59,12 @@ def getMESAOpacity(
         d_eta_dlnRho = 0.0
         d_eta_dlnT = 0.0
     else:
-        lnfree_e = MesaEOSOutput["lnfree_e"]
-        d_lnfree_e_dlnRho = MesaEOSOutput["d_lnfree_e_dlnRho"]
-        d_lnfree_e_dlnT = MesaEOSOutput["d_lnfree_e_dlnT"]
-        eta = MesaEOSOutput["eta"]
-        d_eta_dlnRho = MesaEOSOutput["d_eta_dlnRho"]
-        d_eta_dlnT = MesaEOSOutput["d_eta_dlnT"]
+        lnfree_e = MesaEOSOutput.results.lnfree_e
+        d_lnfree_e_dlnRho = MesaEOSOutput.d_dPOrRho.lnfree_e
+        d_lnfree_e_dlnT = MesaEOSOutput.d_dT.lnfree_e # FIXME maybe create a new class for rho T and P T results?
+        eta = MesaEOSOutput.results.eta
+        d_eta_dlnRho = MesaEOSOutput.d_dPOrRho.eta
+        d_eta_dlnT = MesaEOSOutput.d_dT.eta
      
 
     Nspec = len(massFractions)  # number of species in the model
@@ -122,11 +124,28 @@ def getMESAOpacity(
 
     return output
 
-def getJustKappa(temperature, density, massFractions=None):
-    return getMESAOpacity(temperature, density, massFractions).kappa
+@np.vectorize
+def getMesaOpacity(pressure:float, temperature:float, massFractions:dict|None=None) -> float:
+    """Takes in temperature and pressure in SI units and then calls MESA EOS to get all relevant
+    input variables for mesa kappa
+
+    Args:
+        temperature (np.ndarray): K
+        pressure (np.ndarray): Pa
+        massFractions (dictionary, optional): dictionary of mass fractions of all chemical elements; it is expected to have
+    the same keys as baseMassFractions, i.e. h1, h2, he3, he4, li7, ..., si30, p31, s32. Defaults to solar abundances.
+
+    Returns:
+        np.ndarray: MESA kappa full results in SI
+    """
+    density = getEosResult(temperature, pressure, massFractions, cgsOutput=False).results.rho
+    rhoTEosResults = getEosResultRhoTCGS(density, temperature)
+
+    return getMESAOpacityRhoT(density, temperature, massFractions, rhoTEosResults)
+
 
 
 if __name__ == "__main__":
     temperature = 1e6
     density = 1e10
-    print(getMESAOpacity(temperature, density))
+    print(getMESAOpacityRhoT(temperature, density))

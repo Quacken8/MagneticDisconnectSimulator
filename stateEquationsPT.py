@@ -4,8 +4,6 @@ import constants as c
 import warnings
 from scipy.interpolate import NearestNDInterpolator
 
-warnings.warn("Ur using the model S opacity here")
-from opacity import modelSNearestOpacity as opacity
 from initialConditionsSetterUpper import loadModelS
 import abc
 
@@ -142,10 +140,10 @@ class IdealGas(StateEquationInterface):
         temperature: np.ndarray,
         pressure: np.ndarray,
         gravitationalAcceleration: np.ndarray,
+        opacity: np.ndarray
     ) -> np.ndarray:
         """returns radiative log gradient according to denizer 1965 eq 9"""
         warnings.warn("Ur using ideal gas")
-        kappa = opacity(temperature, pressure)
         H = IdealGas.pressureScaleHeight(
             temperature, pressure, gravitationalAcceleration
         )
@@ -153,7 +151,7 @@ class IdealGas(StateEquationInterface):
         toReturn = (
             3
             / 16
-            * kappa
+            * opacity
             * rho
             * H
             / (
@@ -263,11 +261,12 @@ class IdealGasWithSvandasNablaRads(IdealGas):
         temperature: np.ndarray,
         pressure: np.ndarray,
         gravitationalAcceleration: np.ndarray,
+        opacity: np.ndarray
     ) -> np.ndarray:
         """returns radiative log gradient according to svandas method"""
         warnings.warn("Ur using Švanda's ideal gas")
-        P_rad=c.SteffanBoltzmann/3.0*(temperature*temperature*temperature*temperature)
-        toReturn=(c.L_sun/(16*np.pi*c.speedOfLight*c.G*c.M_sun)) * opacity(temperature, pressure) * pressure/P_rad
+        P_rad=c.aConstant/3.0*(temperature*temperature*temperature*temperature)
+        toReturn=(c.L_sun/(16*np.pi*c.speedOfLight*c.G*c.M_sun)) * opacity * pressure/P_rad
                           
         return toReturn
 
@@ -325,9 +324,9 @@ class MESAEOS(StateEquationInterface):
         temperature: np.ndarray,
         pressure: np.ndarray,
         gravitationalAcceleration: np.ndarray,
+        opacity: np.ndarray
     ) -> np.ndarray:
         """returns radiative log gradient"""
-        kappa = opacity(temperature, pressure)
         H = IdealGas.pressureScaleHeight(
             temperature, pressure, gravitationalAcceleration
         )
@@ -335,7 +334,7 @@ class MESAEOS(StateEquationInterface):
         toReturn = (
             3
             / 16
-            * kappa
+            * opacity
             * rho
             * H
             / (
@@ -392,6 +391,7 @@ def F_con(
     pressureScaleHeight: np.ndarray,
     c_p: np.ndarray,
     gravitationalAcceleration: np.ndarray,
+    opacity: np.ndarray,
 ) -> np.ndarray:
     """
     returns convectiveGradient according to ideal gas law
@@ -399,8 +399,6 @@ def F_con(
     """
 
     realGradient = np.minimum(radiativeGrad, adiabaticGrad)
-
-    kappa = opacity(temperature, pressure)
 
     # these are parameters of convection used in Schüssler & Rempel 2005
     a = 0.125
@@ -420,7 +418,7 @@ def F_con(
         * 12
         * c.SteffanBoltzmann
         * T3
-        / (c_p * density * kappa * Hp * Hp)
+        / (c_p * density * opacity * Hp * Hp)
         * np.sqrt(Hp / g)
     )
     gradTick = (
