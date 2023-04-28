@@ -103,11 +103,11 @@ def getEosResult(
     # now for each of eosResults entry we want to map it to a name based on the indexer
     eosResultsDict = {"rho": eos_res['rho']}
 
-    dlnT_dlnPgas_const_Rho = - dlnRho_dlnPgas_const_T/dlnRho_dlnT_const_Pgas # implicit partial derivative
+    dlnT_dlnPgas_const_Rho = - eos_res['dlnrho_dlnpgas_const_t']/eos_res['dlnrho_dlnt_const_pgas'] # implicit partial derivative
 
-    d_dlnTDict = {"rho": dlnRho_dlnPgas_const_T * eos_res['rho']} # NOTE this wasnt tested
+    d_dlnTDict = {"rho": eos_res['dlnrho_dlnpgas_const_t'] * eos_res['rho']} # NOTE this wasnt tested
     blendInfoDict = {}
-    d_dlnPDict = {"rho": dlnRho_dlnPgas_const_T * eos_res['rho']} # NOTE this wasnt tested
+    d_dlnPDict = {"rho": eos_res['dlnrho_dlnpgas_const_t'] * eos_res['rho']} # NOTE this wasnt tested
     for i, _ in enumerate(eosResults):
         entryName = mesaInit.namer[i + 1]
         if entryName in mesaInit.blenInfoNames:
@@ -116,7 +116,7 @@ def getEosResult(
             eosResultsDict[entryName] = eosResults[i]
             d_dlnTDict[entryName] = d_dlnTemp[i]
             # convert to P T partial derivatives
-            d_dlnPDict[entryName] = d_dlndens[i] * (dlnRho_dlnPgas_const_T) + (d_dlnTemp[i]) * (dlnT_dlnPgas_const_Rho)
+            d_dlnPDict[entryName] = d_dlndens[i] * (eos_res['dlnrho_dlnpgas_const_t']) + (d_dlnTemp[i]) * (dlnT_dlnPgas_const_Rho)
 
 
     # and covert to SI

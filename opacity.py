@@ -23,7 +23,7 @@ def mesaOpacity(
     if massFractions is None:
         massFractions = c.solarAbundances
     fullOpacityResults = kapMes.getMesaOpacity(pressure, temperature, massFractions)
-    opacity = np.vectorize(lambda result: result.kappa)(fullOpacityResults)
+    opacity = np.vectorize(lambda result: result[()].kappa)(fullOpacityResults)
     return opacity
 
 
@@ -44,8 +44,8 @@ inteprloatedKappas = NearestNDInterpolator(
 
 
 def modelSNearestOpacity(
-    temperature: float | np.ndarray, pressure: float | np.ndarray
-) -> float | np.ndarray:
+    pressure: np.ndarray, temperature: np.ndarray
+) -> np.ndarray:
     """just interpolates using nearest neighbour from the model S kappas"""
     return np.exp(inteprloatedKappas(np.log(temperature), np.log(pressure)))
 

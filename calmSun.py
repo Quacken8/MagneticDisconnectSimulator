@@ -62,7 +62,7 @@ def getCalmSunDatapoint(
         return np.array([H, nabla])
     
     # initial conditions
-    currentZlnTValues = np.array([0, np.log(surfaceTemperature)])
+    currentZlnTValues = np.array([surfaceZ, np.log(surfaceTemperature)])
     currentZ = surfaceZ
     lnPressure = lnSurfacePressure
 
