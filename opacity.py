@@ -10,19 +10,20 @@ from mesa2Py.initializer import EOSFullResults
 
 
 def mesaOpacity(
-    density: np.ndarray, temperature: np.ndarray, MesaEOSOutput : EOSFullResults | None = None,  massFractions: dict | None = None
-) -> float:
+    pressure: np.ndarray, temperature: np.ndarray, massFractions: dict | None = None
+) -> np.ndarray:
     """
     returns opacity from mesa
     ---
     inputs are in SI units
     massFractions is a dictionary of the form {"element": massFraction}
     where element is a string like h1, he4, c12, o16, etc.
-    see constants.py for a list of all known chemical elements # FIXME this is a cool idea, put the solar compsition in constants.py
+    see constants.py for a list of all known chemical elements
     """
-
-    fullOpacityResult = kapMes.getMESAOpacityRhoT(density, temperature, massFractions)
-    opacity = fullOpacityResult.kappa
+    if massFractions is None:
+        massFractions = c.solarAbundances
+    fullOpacityResults = kapMes.getMesaOpacity(pressure, temperature, massFractions)
+    opacity = np.vectorize(lambda result: result.kappa)(fullOpacityResults)
     return opacity
 
 

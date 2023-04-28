@@ -38,7 +38,7 @@ modelZs = (modelRs.max() - modelRs)[::-1]
 
 mBelowZSpline = ScipySpline(modelZs, massesBelowR[::-1], s=0, k=1, ext=3)
 
-def mBelowZ(z: float | np.ndarray) -> float | np.ndarray:
+def massBelowZ(z: float | np.ndarray) -> np.ndarray:
     """
     Sun's mass z meters below the surface
     """
@@ -50,7 +50,7 @@ gravitationalAccelerationsInZs = gravitationalAccelerations[::-1]
 
 
 gSpline = ScipySpline(modelZs, gravitationalAccelerationsInZs, s=0, k=1, ext=3)
-def g(z: float | np.ndarray) -> float | np.ndarray:
+def g(z: float | np.ndarray) -> np.ndarray:
     """
     gravitational acceleration in m/s^2 z meters below the surface
     uses the model S 

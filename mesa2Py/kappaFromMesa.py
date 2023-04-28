@@ -142,7 +142,7 @@ def getMesaOpacity(pressure:float, temperature:float, massFractions:dict|None=No
     density = getEosResult(temperature, pressure, massFractions, cgsOutput=False).results.rho
     rhoTEosResults = getEosResultRhoTCGS(density, temperature)
 
-    return getMESAOpacityRhoT(density, temperature, massFractions, rhoTEosResults)
+    return getMESAOpacityRhoT(density, temperature, massFractions, MesaEOSOutput = rhoTEosResults)
 
 
 

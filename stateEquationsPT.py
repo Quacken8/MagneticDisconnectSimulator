@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
-import warnings
+
 from scipy.interpolate import NearestNDInterpolator
 
 from initialConditionsSetterUpper import loadModelS
 import abc
 
 from mesa2Py.eosFromMesa import getEosResult
-
+import logging
+L = logging.getLogger(__name__)
 
 class StateEquationInterface(metaclass=abc.ABCMeta):
     """
@@ -55,7 +56,8 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
     def radiativeLogGradient(
         temperature: np.ndarray,
         pressure: np.ndarray,
-        gravitationalAcceleration: np.ndarray,
+        massBelowZ: np.ndarray,
+        opacity: np.ndarray,
     ) -> np.ndarray:
         """returns radiative log gradient"""
         pass
@@ -91,7 +93,6 @@ class IdealGas(StateEquationInterface):
         """
         returns density according to ideal gas law
         """
-        warnings.warn("Ur using ideal gas")
         mu = IdealGas.meanMolecularWeight(temperature, pressure)
         return mu * pressure / (temperature * c.gasConstant)
 
@@ -102,7 +103,6 @@ class IdealGas(StateEquationInterface):
         """
         returns convectiveGradient according to ideal gas law
         """
-        warnings.warn("Ur using ideal gas")
         raise NotImplementedError()
 
     @staticmethod
@@ -115,7 +115,6 @@ class IdealGas(StateEquationInterface):
         """
         x = IdealGas.degreeOfIonization(temperature, pressure)
         chi = c.ionizationEnergyOfHydrogen
-        warnings.warn("Ur using ideal gas")
         toReturn = (
             2 + x * (1 - x) * (2.5 + chi / (c.BoltzmannConstant * temperature))
         ) / (
@@ -139,37 +138,22 @@ class IdealGas(StateEquationInterface):
     def radiativeLogGradient(
         temperature: np.ndarray,
         pressure: np.ndarray,
-        gravitationalAcceleration: np.ndarray,
+        massBelowZ: np.ndarray,
         opacity: np.ndarray
     ) -> np.ndarray:
-        """returns radiative log gradient according to denizer 1965 eq 9"""
-        warnings.warn("Ur using ideal gas")
-        H = IdealGas.pressureScaleHeight(
-            temperature, pressure, gravitationalAcceleration
-        )
-        rho = IdealGas.density(temperature, pressure)
-        toReturn = (
-            3
-            / 16
-            * opacity
-            * rho
-            * H
-            / (
-                c.SteffanBoltzmann
-                * temperature
-                * temperature
-                * temperature
-                * temperature
-            )
-        )
-        return toReturn
+        """
+        returns radiative log gradient according to Harmanec Broz 2011
+        assumes constant luminosity, therefore is only applicable near Sun's surface
+        """
+        nablaRad = 3*opacity*pressure*c.L_sun/(16*np.pi*c.aRad*c.speedOfLight*c.G*massBelowZ*temperature*temperature*temperature*temperature)
+                                           
+        return nablaRad
 
     @staticmethod
     def cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
         returns c_p according to denizer 1965
         """
-        warnings.warn("Ur using ideal gas")
         mu = IdealGas.meanMolecularWeight(temperature, pressure)
         x = IdealGas.degreeOfIonization(temperature, pressure)
         chi = c.ionizationEnergyOfHydrogen
@@ -195,7 +179,6 @@ class IdealGas(StateEquationInterface):
         solution to that equation is
         1/sqrt(1+10^C)
         """
-        warnings.warn("Ur using ideal gas")
 
         C = (
             -2.5 * np.log10(temperature)
@@ -234,41 +217,6 @@ modelSNablaAds = modelS.derivedQuantities["nablaads"]
 interpolatedNablaAd = NearestNDInterpolator(
     list(zip(modelSTemperatures, modelSPressures)), modelSNablaAds
 )
-
-
-class IdealGasWithModelSNablaAd(IdealGas):
-    """
-    Ideal gas with nabla ad via nearest neighbor interpolation from model S FIXME should be deleted later
-    """
-
-    @staticmethod
-    def adiabaticLogGradient(
-        temperature: np.ndarray, pressure: np.ndarray
-    ) -> np.ndarray:
-        """
-        returns adiabatic log gradient according derived using nearest neighbor of model S
-        """
-
-        return interpolatedNablaAd(temperature, pressure)
-
-class IdealGasWithSvandasNablaRads(IdealGas):
-    """
-    Ideal gas with nabla rad via svandas method FIXME should be deleted later
-    """
-
-    @staticmethod
-    def radiativeLogGradient(
-        temperature: np.ndarray,
-        pressure: np.ndarray,
-        gravitationalAcceleration: np.ndarray,
-        opacity: np.ndarray
-    ) -> np.ndarray:
-        """returns radiative log gradient according to svandas method"""
-        warnings.warn("Ur using Švanda's ideal gas")
-        P_rad=c.aRad/3.0*(temperature*temperature*temperature*temperature)
-        toReturn=(c.L_sun/(16*np.pi*c.speedOfLight*c.G*c.M_sun)) * opacity * pressure/P_rad
-                          
-        return toReturn
 
 # endregion
 
@@ -323,29 +271,18 @@ class MESAEOS(StateEquationInterface):
     def radiativeLogGradient(
         temperature: np.ndarray,
         pressure: np.ndarray,
-        gravitationalAcceleration: np.ndarray,
+        massBelowZ: np.ndarray,
         opacity: np.ndarray
     ) -> np.ndarray:
-        """returns radiative log gradient"""
-        H = IdealGas.pressureScaleHeight(
-            temperature, pressure, gravitationalAcceleration
-        )
-        rho = IdealGas.density(temperature, pressure)
-        toReturn = (
-            3
-            / 16
-            * opacity
-            * rho
-            * H
-            / (
-                c.SteffanBoltzmann
-                * temperature
-                * temperature
-                * temperature
-                * temperature
-            )
-        )
-        return toReturn
+        """
+        returns radiative log gradient according to Harmanec Broz 2011
+        assumes constant luminosity, therefore is only applicable near Sun's surface
+        """
+        nablaRad = 3*opacity*pressure*c.L_sun/(16*np.pi*c.aRad*c.speedOfLight*c.G*massBelowZ*temperature*temperature*temperature*temperature)
+                                           
+        return nablaRad
+
+        
 
     @np.vectorize
     @staticmethod

@@ -5,22 +5,22 @@ This script models stellar interior with absent flux tube
 """
 
 import numpy as np
-import warnings
+
 from dataStructure import SingleTimeDatapoint
 from stateEquationsPT import StateEquationInterface
 
-warnings.warn("Ur using ideal gas here")
 from stateEquationsPT import F_con, F_rad
-from gravity import g
+from gravity import g, massBelowZ
 from scipy.integrate import ode
 import constants as c
-from typing import Type
+from typing import Type, Callable
 import logging 
 logging.basicConfig(level=logging.DEBUG)
 L = logging.getLogger(__name__)
 
 def getCalmSunDatapoint(
     StateEq: Type[StateEquationInterface],
+    opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
     lnSurfacePressure: float,
     surfaceTemperature: float,
@@ -34,6 +34,7 @@ def getCalmSunDatapoint(
     Parameters
     ----------
     stateEq: a class with static functions that return the thermodynamic quantities as a function of temperature and pressure; see StateEquations.py for an example
+    opacity: a function that returns the opacity as a function of pressure and temperature
     dlogP : [Pa] step in pressure gradient by which the integration happens
     logSurfacePressure : [Pa] boundary condition of surface pressure
     surfaceTemperature : [K] boundary condition of surface temperature
@@ -50,10 +51,12 @@ def getCalmSunDatapoint(
         T = np.exp(zlnTArray[1])
         P = np.exp(lnP)
         gravAcc = np.array(g(z))
+        m_z = massBelowZ(z)
 
         H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravAcc)
         nablaAd = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
-        nablaRad = StateEq.radiativeLogGradient(temperature=T, pressure=P, gravitationalAcceleration=gravAcc)
+        kappa = opacity(P, T)
+        nablaRad = StateEq.radiativeLogGradient(temperature=T, pressure=P, massBelowZ=m_z, opacity=kappa)
         nabla = np.minimum(nablaAd, nablaRad)
 
         return np.array([H, nabla])

@@ -6,7 +6,7 @@ import numpy as np
 from scipy.sparse import diags as scipyDiagsMatrix
 from scipy.sparse.linalg import spsolve as scipySparseSolve
 import constants as c
-import warnings
+
 
 def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     """
@@ -34,7 +34,7 @@ def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarra
 
     dTdt = -1/(rhos*cps) * (dF_cons + dF_rads)
 
-    warnings.warn("This is just first order solver")
+    L.warn("This is just first order solver")
     return Ts + dt*dTdt
 
 def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
@@ -45,7 +45,7 @@ def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     where M is a tridiag matrix
     b is 
     """
-    warnings.warn("Ur using the old T solver based on Bárta's work")
+    L.warn("Ur using the old T solver based on Bárta's work")
     zs = currentState.zs
     Ts = currentState.temperatures
     Ps = currentState.pressures
@@ -136,7 +136,7 @@ def oldYSolver(
         └────────────┘
     """
 
-    warnings.warn("Ur using the old Y solver based on Bárta's work")
+    L.warn("Ur using the old Y solver based on Bárta's work")
 
     numberOfZSteps = zs.size
     stepsizes = zs[1:] - zs[:-1]

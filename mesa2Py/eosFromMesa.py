@@ -4,7 +4,9 @@ This file provides interface between MESA eos verson r.?? and python
 """
 import numpy as np
 import constants as c
-from warnings import warn
+import warnings
+import logging
+L = logging.getLogger(__name__)
  
 try: 
     mesaInit
@@ -100,14 +102,12 @@ def getEosResult(
 
     # now for each of eosResults entry we want to map it to a name based on the indexer
     eosResultsDict = {"rho": eos_res['rho']}
-    warn(
-        "There may be a problem with derivatives of state variables; it wasn't tested that MESA returns the correct values for PT EOS"
-    )
-    d_dlnTDict = {
-        "rho": dlnRho_dlnPgas_const_T
-    }  # FIXME I'm not really sure if the PT eos solver really returns P and T derivatives
+
+    dlnT_dlnPgas_const_Rho = - dlnRho_dlnPgas_const_T/dlnRho_dlnT_const_Pgas # implicit partial derivative
+
+    d_dlnTDict = {"rho": dlnRho_dlnPgas_const_T * eos_res['rho']} # NOTE this wasnt tested
     blendInfoDict = {}
-    d_dlnPDict = {"rho": dlnRho_dlnPgas_const_T}
+    d_dlnPDict = {"rho": dlnRho_dlnPgas_const_T * eos_res['rho']} # NOTE this wasnt tested
     for i, _ in enumerate(eosResults):
         entryName = mesaInit.namer[i + 1]
         if entryName in mesaInit.blenInfoNames:
@@ -115,7 +115,9 @@ def getEosResult(
         else:
             eosResultsDict[entryName] = eosResults[i]
             d_dlnTDict[entryName] = d_dlnTemp[i]
-            d_dlnPDict[entryName] = d_dlndens[i]
+            # convert to P T partial derivatives
+            d_dlnPDict[entryName] = d_dlndens[i] * (dlnRho_dlnPgas_const_T) + (d_dlnTemp[i]) * (dlnT_dlnPgas_const_Rho)
+
 
     # and covert to SI
 

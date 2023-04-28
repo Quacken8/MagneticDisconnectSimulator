@@ -2,7 +2,7 @@
 import numpy as np
 import constants as c
 import os
-import warnings
+
 
 
 def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarray:
@@ -120,7 +120,7 @@ class Data:
         self.finalT = finalT
         self.times = np.linspace(start=startT, stop=self.finalT, num=numberOfTSteps)
         self.dt = self.times[1]  # TODO - uniform timestep might not be the smartest
-        warnings.warn("Assuming uniform timestep when creating data")
+        L.warn("Assuming uniform timestep when creating data")
         self.numberOfTSteps = numberOfTSteps
 
         self.datapoints = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)

@@ -13,6 +13,7 @@
 //FIXME - find out why your nablas are so different from Švanda's
 //FIXME - use the ∇rad from the book, not the approximation by denizer
 //FIXME - fix the opacity 
+//FIXME - solve the problem of zero dimensional np arrays better than using the [()] operator
 
 //TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
