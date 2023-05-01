@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
+
 try:
     from .eosFromMesa import getEosResult, getEosResultRhoTCGS
 except ImportError:
     from eosFromMesa import getEosResult, getEosResultRhoTCGS
 
-try: 
+try:
     mesaInit
 except NameError:
     try:
         from . import initializer as mesaInit
     except ImportError:
         import initializer as mesaInit
-
-
 
 
 # things this buddy returns, but becuase it's fortran it wants them passed in as references
@@ -25,12 +24,13 @@ dlnkap_dlnT = 0.0
 dlnkap_dxa = 0.0
 ierr = 0
 
+
 @np.vectorize
 def getMESAOpacityRhoT(
     density: float,
     temperature: float,
     massFractions: dict | None = None,
-    MesaEOSOutput : mesaInit.EOSFullResults | None=None,
+    MesaEOSOutput: mesaInit.EOSFullResults | None = None,
 ):
     """
     returns the opacity or full mesa output in SI for a given temperature and density
@@ -40,7 +40,7 @@ def getMESAOpacityRhoT(
     density: gas density in kg/m^3
     massFractions: dictionary of mass fractions of all chemical elements; it is expected to have
     the same keys as baseMassFractions, i.e. h1, h2, he3, he4, li7, ..., si30, p31, s32
-    MesaEOSOutput: dictionary of mesa output including lnfree_e, d_lnfree_e_dlnRho, d_lnfree_e_dlnT, eta, d_eta_dlnRho, d_eta_dlnT in CGS FIXME this is ew, this should be SI 
+    MesaEOSOutput: dictionary of mesa output including lnfree_e, d_lnfree_e_dlnRho, d_lnfree_e_dlnT, eta, d_eta_dlnRho, d_eta_dlnT in CGS FIXME this is ew, this should be SI
     fullOutput: if True, returns a dictionary of all the outputs of the MESA kap module BUT IN CGS
     """
     if massFractions is None:
@@ -61,11 +61,12 @@ def getMESAOpacityRhoT(
     else:
         lnfree_e = MesaEOSOutput.results.lnfree_e
         d_lnfree_e_dlnRho = MesaEOSOutput.d_dPOrRho.lnfree_e
-        d_lnfree_e_dlnT = MesaEOSOutput.d_dT.lnfree_e # FIXME maybe create a new class for rho T and P T results?
+        d_lnfree_e_dlnT = (
+            MesaEOSOutput.d_dT.lnfree_e
+        )  # FIXME maybe create a new class for rho T and P T results?
         eta = MesaEOSOutput.results.eta
         d_eta_dlnRho = MesaEOSOutput.d_dPOrRho.eta
         d_eta_dlnT = MesaEOSOutput.d_dT.eta
-     
 
     Nspec = len(massFractions)  # number of species in the model
     massFractionsInArr = np.array(
@@ -77,8 +78,10 @@ def getMESAOpacityRhoT(
     )  # maps chem id to species number (index in the array I suppose? idk man, mesa ppl rly dont like clarity)
 
     Zbase = 0.0
-    
-    for i, (speciesName, massFraction) in enumerate(mesaInit.solarAbundancesDict.items()):
+
+    for i, (speciesName, massFraction) in enumerate(
+        mesaInit.solarAbundancesDict.items()
+    ):
         if speciesName not in ("h1", "h2", "he3", "he4"):
             Zbase += massFraction
         massFractionsInArr = np.append(massFractionsInArr, massFraction)
@@ -86,7 +89,9 @@ def getMESAOpacityRhoT(
         net_iso[chem_id[-1]] = i + 1  # +1 because fortran arrays start with one
 
     ZbaseString = format(Zbase, ".16E")
-    mesaInit.kap_lib.kap_set_control_namelist(mesaInit.kap_handle, "Zbase", ZbaseString, ierr)
+    mesaInit.kap_lib.kap_set_control_namelist(
+        mesaInit.kap_handle, "Zbase", ZbaseString, ierr
+    )
 
     kap_res = mesaInit.kap_lib.kap_get(
         mesaInit.kap_handle,
@@ -115,18 +120,26 @@ def getMESAOpacityRhoT(
         "dlnkap_dlnrho"
     ]  # TODO check if the log rly takes care of the units just to be sure
     dlnKappdlnT = kap_res["dlnkap_dlnt"]
-
+    blendInfo = mesaInit.KappaBleningInfo(
+        frac_lowT=kap_res["kap_fracs"][0],
+        frac_highT=kap_res["kap_fracs"][1],
+        frac_Type2=kap_res["kap_fracs"][2],
+        frac_Compton=kap_res["kap_fracs"][3],
+    )
     output = mesaInit.KappaOutput(
         kappa=kappaRes,
         dlnKappadlnRho=dlnKappadlnRho,
         dlnKappdlnT=dlnKappdlnT,
-        blendFractions=kap_res["kap_fracs"],
+        blendFractions=blendInfo,
     )
 
     return output
 
+
 @np.vectorize
-def getMesaOpacity(pressure:float, temperature:float, massFractions:dict|None=None) -> float:
+def getMesaOpacity(
+    pressure: float, temperature: float, massFractions: dict | None = None
+) -> float:
     """Takes in temperature and pressure in SI units and then calls MESA EOS to get all relevant
     input variables for mesa kappa
 
@@ -139,11 +152,14 @@ def getMesaOpacity(pressure:float, temperature:float, massFractions:dict|None=No
     Returns:
         np.ndarray: MESA kappa full results in SI
     """
-    density = getEosResult(temperature, pressure, massFractions, cgsOutput=False).results.rho
+    density = getEosResult(
+        temperature, pressure, massFractions, cgsOutput=False
+    ).results.rho
     rhoTEosResults = getEosResultRhoTCGS(density, temperature)
 
-    return getMESAOpacityRhoT(density, temperature, massFractions, MesaEOSOutput = rhoTEosResults)
-
+    return getMESAOpacityRhoT(
+        density, temperature, massFractions, MesaEOSOutput=rhoTEosResults
+    )
 
 
 if __name__ == "__main__":

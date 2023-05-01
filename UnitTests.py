@@ -31,37 +31,41 @@ def testCalmSunVsModelS():
     modelSZs = modelS.zs
 
     from scipy.interpolate import interp1d
-    surfaceZ = 0*c.Mm
+    surfaceZ = 1*c.Mm
     surfaceT = interp1d(modelSZs, modelSTemperatures)(surfaceZ)
     surfaceP = interp1d(modelSZs, modelSPressures)(surfaceZ)
 
-    dlnp = 1e-1
-    maxDepth = 160*c.Mm
+    dlnp = 5e-2
+    maxDepth = 80*c.Mm
 
     from stateEquationsPT import MESAEOS
-    from opacity import mesaOpacity, modelSNearestOpacity
+    from opacity import mesaOpacity
 
+    import time
+    now = time.time()
     calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacity=mesaOpacity)
-    calmSunWithModelSOpacity = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacity=modelSNearestOpacity)
-
+    print("time elapsed: ", time.time()-now)
     toPlot = ["temperatures", "pressures"]
-    axs = plotSingleTimeDatapoint(calmSun, toPlot, pltshow=False, label="Calm Sun with MESA kappa", log = True)
-    axs = plotSingleTimeDatapoint(calmSunWithModelSOpacity, toPlot, axs = axs, pltshow=False, label="Calm Sun with model S kappa", log = True)
-    plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log = False)
+    axs = plotSingleTimeDatapoint(calmSun, toPlot, pltshow=False, label="Calm Sun with MESA kappa", log = False)
+    #axs = plotSingleTimeDatapoint(calmSunWithModelSOpacity, toPlot, axs = axs, pltshow=False, label="Calm Sun with model S kappa", log = False)
+    plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log = True)
     plt.legend()
     plt.show()
 
 def testIDLOutput():
-    zs, Ps, Ts, kappas, nablas = np.loadtxt("debuggingReferenceFromSvanda/idlOutput.dat", skiprows = 1, unpack=True)
+    zs, Ps, Ts, rhos, kappas, nablas, Hs = np.loadtxt("debuggingReferenceFromSvanda/idlOutput.dat", skiprows = 1, unpack=True)
 
 
     from stateEquationsPT import MESAEOS
     from opacity import modelSNearestOpacity
-    from gravity import massBelowZ
+    from gravity import massBelowZ, g
 
     myOpacity = modelSNearestOpacity(Ps, Ts)
     M_r = massBelowZ(zs)
+    gs = 274
     myNablas = MESAEOS.radiativeLogGradient(Ts, Ps, M_r, myOpacity)
+    myHs = MESAEOS.pressureScaleHeight(Ts, Ps, gs)
+    myRhos = MESAEOS.density(Ps, Ts)
 
     fig, axs = plt.subplots(2,1, sharex=True)
     axs[0].plot(zs, nablas, label="Svanda")
@@ -72,27 +76,30 @@ def testIDLOutput():
     axs[1].plot(zs, myOpacity, label="Mine")
     axs[1].set_ylabel("kappa")
     axs[1].set_xlabel("z [m]")
+    axs[1].legend()
+
+    fig2, axs2 = plt.subplots(1,1, sharex=True)
+    axs2.plot(zs, Hs, label="Svanda")
+    axs2.plot(zs, myHs, label="Mine")
+    axs2.set_ylabel("H")
+    axs2.set_xlabel("z [m]")
+    axs2.set_yscale("log")
+    axs2.legend()
+
+    fig3, axs3 = plt.subplots(1,1, sharex=True)
+    axs3.plot(zs, rhos, label="Svanda")
+    axs3.plot(zs, myRhos, label="Mine")
+    axs3.set_ylabel("rho")
+    axs3.set_xlabel("z [m]")
+    axs3.set_yscale("log")
+    axs3.legend()
+    
     plt.show()
 
-def compareModelSVsMESAOpacity():
-    modelSPressures = modelS.pressures
-    modelSTemperatures = modelS.temperatures
-    modelSZs = modelS.zs
-
-    from opacity import mesaOpacity, modelSNearestOpacity
-
-    mesaOpacities = mesaOpacity(modelSPressures, modelSTemperatures)
-    modelSNearest = modelSNearestOpacity(modelSPressures, modelSTemperatures)
-
-    plt.loglog(modelSZs / c.Mm, mesaOpacities, label="MESA")
-    plt.loglog(modelSZs / c.Mm, modelSNearest, label="Model S")
-    plt.legend()
-    plt.xlabel("z [Mm]")
-    plt.ylabel("Opacity [m^2/kg]")
-    plt.show()
 
 def main():
-    compareModelSVsMESAOpacity()
+    testCalmSunVsModelS()
+    testIDLOutput()
 
 if __name__ == "__main__":
     main()

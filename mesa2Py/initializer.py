@@ -297,13 +297,18 @@ if not hasattr(pym, 'mesa2Py'):
     atexit.register(L.info, "Deallocating kap_handle...")
     atexit.register(kap_lib.free_kap_handle, kap_handle)
 
-
+@dataclass
+class KappaBleningInfo:
+    frac_lowT: float
+    frac_highT: float
+    frac_Type2: float
+    frac_Compton: float
 @dataclass
 class KappaOutput:
     kappa: float
     dlnKappadlnRho: float
     dlnKappdlnT: float
-    blendFractions: list
+    blendFractions: KappaBleningInfo
 
 
 # endregion

@@ -205,22 +205,6 @@ class IdealGas(StateEquationInterface):
         rho = IdealGas.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
 
-
-# region debugging mockups
-
-## Cache the model S data
-modelS = loadModelS()
-
-modelSPressures = modelS.pressures
-modelSTemperatures = modelS.temperatures
-modelSNablaAds = modelS.derivedQuantities["nablaads"]
-interpolatedNablaAd = NearestNDInterpolator(
-    list(zip(modelSTemperatures, modelSPressures)), modelSNablaAds
-)
-
-# endregion
-
-# region Mesa
 class MESAEOS(StateEquationInterface):
     """
     Interface for state equations classes
@@ -306,28 +290,6 @@ class MESAEOS(StateEquationInterface):
         rho = MESAEOS.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
 
-# endregion
-
-Ps, Ts, nablas = np.loadtxt("debuggingReferenceFromSvanda/idlOutput.dat", skiprows = 1, usecols = (1,2,4), unpack=True)
-interpolatedNablaRad = NearestNDInterpolator(
-    list(zip(Ts, Ps)), nablas
-)
-
-class MESAwithSvandaNabla(MESAEOS):
-
-    @staticmethod
-    def radiativeLogGradient(
-        temperature: np.ndarray,
-        pressure: np.ndarray,
-        massBelowZ: np.ndarray,
-        opacity: np.ndarray
-    ) -> np.ndarray:
-        """
-        returns radiative log gradient according to Harmanec Broz 2011
-        assumes constant luminosity, therefore is only applicable near Sun's surface
-        """
-        nablaRad = interpolatedNablaRad(temperature, pressure)                        
-        return nablaRad
 
 def F_rad(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
     """

@@ -1,19 +1,10 @@
 //TODO - test y solver
 //TODO - test T solver
 
-//TODO - ask about what Zbase might be
-//TODO - get the most correct mass fractions of the Sun
-//TODO - find out why the opacities arent too right for higher temps and densities
-//TODO - get density out of the PT eos, it is put there as the fortran intended out input, it better come out lol
-//FIXME - units of mu in new eos are dimensionless!
 //FIXME - chech that eos derivatives arent d/dlnT but rly d/dT and such
-//FIXME - name the kappa blend fractions
 //TODO - test the speed of mesa cache
-//TODO - make static class that handles the mesa inits
-//FIXME - find out why your nablas are so different from Švanda's
-//FIXME - use the ∇rad from the book, not the approximation by denizer
 //FIXME - fix the opacity 
 //FIXME - solve the problem of zero dimensional np arrays better than using the [()] operator
+//TODO - go through kappa and eos init and the functions that are called there. U just copied it from the original code and it might be wrong
 
-//TODO - the ideal gas stuff seems to be wrong; the german paper denizer cites uses slightly different mu and c_p
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
