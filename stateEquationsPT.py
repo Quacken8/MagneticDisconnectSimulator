@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
 import constants as c
-
-from scipy.interpolate import NearestNDInterpolator
-
-from initialConditionsSetterUpper import loadModelS
 import abc
-
+from dataclasses import dataclass
 from mesa2Py.eosFromMesa import getEosResult
 import logging
 
@@ -224,12 +220,32 @@ class IdealGas(StateEquationInterface):
         rho = IdealGas.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
 
+
+@dataclass
+class MESACache:
+    _cache = {}
+
+    def __init__(self):
+        self._cache = {}
+
+    def __getitem__(self, key):  # when you call MESACache[(temperature, pressure)]
+        if key not in self._cache.keys():
+            temperature, pressure = key
+            self._cache[(temperature, pressure)] = getEosResult(
+                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
+            )
+        return self._cache[key]
+
+    def clear(self):
+        self._cache = {}
+
+
 class MESAEOS(StateEquationInterface):
     """
     Interface for state equations classes
     """
 
-    _cache = {}
+    _cache = MESACache()
 
     simpleSolarAbundances = {"h1": 0.7, "he4": 0.3}
 
@@ -243,12 +259,7 @@ class MESAEOS(StateEquationInterface):
         """
         returns density
         """
-        key = (temperature, pressure)
-        if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(
-                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
-            )
-        rho = MESAEOS._cache[key].results.rho
+        rho = MESAEOS._cache[(temperature, pressure)].results.rho
         return rho
 
     @np.vectorize
@@ -295,24 +306,14 @@ class MESAEOS(StateEquationInterface):
         """
         returns convectiveGradient
         """
-        key = (temperature, pressure)
-        if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(
-                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
-            )
-        nablaAd = MESAEOS._cache[key].results.grad_ad
+        nablaAd = MESAEOS._cache[(temperature, pressure)].results.grad_ad
         return nablaAd
 
     @np.vectorize
     @staticmethod
     def meanMolecularWeight(temperature: float, pressure: float) -> float:
         "returns mean molecular weight"
-        key = (temperature, pressure)
-        if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(
-                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
-            )
-        mu = MESAEOS._cache[key].results.mu
+        mu = MESAEOS._cache[(temperature, pressure)].results.mu
         return mu
 
     @staticmethod
@@ -353,12 +354,7 @@ class MESAEOS(StateEquationInterface):
         """
         returns c_p
         """
-        key = (temperature, pressure)
-        if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(
-                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
-            )
-        Cp = MESAEOS._cache[key].results.Cp
+        Cp = MESAEOS._cache[(temperature, pressure)].results.Cp
         return Cp
 
     @np.vectorize
