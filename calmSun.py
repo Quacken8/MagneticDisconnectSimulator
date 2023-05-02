@@ -9,7 +9,6 @@ import numpy as np
 from dataStructure import SingleTimeDatapoint
 from stateEquationsPT import StateEquationInterface
 
-from stateEquationsPT import F_con, F_rad
 from gravity import g, massBelowZ
 from scipy.integrate import ode
 import constants as c

@@ -9,7 +9,9 @@ import abc
 
 from mesa2Py.eosFromMesa import getEosResult
 import logging
+
 L = logging.getLogger(__name__)
+
 
 class StateEquationInterface(metaclass=abc.ABCMeta):
     """
@@ -46,13 +48,6 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def meanMolecularWeight(
-        temperature: np.ndarray, pressure: np.ndarray
-    ) -> np.ndarray:
-        "returns mean molecular weight"
-
-    @staticmethod
-    @abc.abstractmethod
     def radiativeLogGradient(
         temperature: np.ndarray,
         pressure: np.ndarray,
@@ -61,6 +56,13 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
     ) -> np.ndarray:
         """returns radiative log gradient"""
         pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def meanMolecularWeight(
+        temperature: np.ndarray, pressure: np.ndarray
+    ) -> np.ndarray:
+        "returns mean molecular weight"
 
     @staticmethod
     @abc.abstractmethod
@@ -139,14 +141,31 @@ class IdealGas(StateEquationInterface):
         temperature: np.ndarray,
         pressure: np.ndarray,
         massBelowZ: np.ndarray,
-        opacity: np.ndarray
+        opacity: np.ndarray,
     ) -> np.ndarray:
         """
         returns radiative log gradient according to Harmanec Broz 2011
         assumes constant luminosity, therefore is only applicable near Sun's surface
         """
-        nablaRad = 3*opacity*pressure*c.L_sun/(16*np.pi*c.aRad*c.speedOfLight*c.G*massBelowZ*temperature*temperature*temperature*temperature)
-                                           
+        nablaRad = (
+            3
+            * opacity
+            * pressure
+            * c.L_sun
+            / (
+                16
+                * np.pi
+                * c.aRad
+                * c.speedOfLight
+                * c.G
+                * massBelowZ
+                * temperature
+                * temperature
+                * temperature
+                * temperature
+            )
+        )
+
         return nablaRad
 
     @staticmethod
@@ -209,9 +228,10 @@ class MESAEOS(StateEquationInterface):
     """
     Interface for state equations classes
     """
+
     _cache = {}
 
-    simpleSolarAbundances = {'h1': 0.7, 'he4': 0.3}
+    simpleSolarAbundances = {"h1": 0.7, "he4": 0.3}
 
     @staticmethod
     def cacheClear():
@@ -225,43 +245,73 @@ class MESAEOS(StateEquationInterface):
         """
         key = (temperature, pressure)
         if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False)
+            MESAEOS._cache[key] = getEosResult(
+                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
+            )
         rho = MESAEOS._cache[key].results.rho
         return rho
 
     @np.vectorize
     @staticmethod
     def convectiveLogGradient(
-        temperature: float, pressure: float
+        temperature: float,
+        pressure: float,
+        convectiveAlpha: float,
+        opacity: float,
+        gravitationalAcceleration: float,
     ) -> float:
         """
         returns convectiveGradient
         """
+
         raise NotImplementedError()
+
+        density = MESAEOS.density(temperature, pressure)
+        Hp = MESAEOS.pressureScaleHeight(temperature, pressure)
+        T3 = temperature * temperature * temperature
+        c_p = MESAEOS.cp(temperature, pressure)
+        nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
+
+        # these are parameters of convection used in Schüssler & Rempel 2005
+        a = 0.125
+        b = 0.5
+        f = 1.5
+
+        u = (
+            1
+            / (f * np.sqrt(a) * convectiveAlpha * convectiveAlpha)
+            * 12
+            * c.SteffanBoltzmann
+            * T3
+            / (c_p * density * opacity * Hp * Hp)
+            * np.sqrt(Hp / gravitationalAcceleration)
+        )
+        gradTick = nablaAd - 2 * u * u + 2 * u * np.sqrt(realGradient - nablaAd + u * u)
+        return gradTick
 
     @np.vectorize
     @staticmethod
-    def adiabaticLogGradient(
-        temperature: float, pressure: float
-    ) -> float:
+    def adiabaticLogGradient(temperature: float, pressure: float) -> float:
         """
         returns convectiveGradient
         """
         key = (temperature, pressure)
         if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False)
+            MESAEOS._cache[key] = getEosResult(
+                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
+            )
         nablaAd = MESAEOS._cache[key].results.grad_ad
         return nablaAd
 
     @np.vectorize
     @staticmethod
-    def meanMolecularWeight(
-        temperature: float, pressure: float
-    ) -> float:
+    def meanMolecularWeight(temperature: float, pressure: float) -> float:
         "returns mean molecular weight"
         key = (temperature, pressure)
         if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False)
+            MESAEOS._cache[key] = getEosResult(
+                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
+            )
         mu = MESAEOS._cache[key].results.mu
         return mu
 
@@ -270,17 +320,32 @@ class MESAEOS(StateEquationInterface):
         temperature: np.ndarray,
         pressure: np.ndarray,
         massBelowZ: np.ndarray,
-        opacity: np.ndarray
+        opacity: np.ndarray,
     ) -> np.ndarray:
         """
         returns radiative log gradient according to Harmanec Broz 2011
         assumes constant luminosity, therefore is only applicable near Sun's surface
         """
 
-        nablaRad = 3*opacity*pressure*c.L_sun/(16*np.pi*c.aRad*c.speedOfLight*c.G*massBelowZ*temperature*temperature*temperature*temperature)
+        nablaRad = (
+            3
+            * opacity
+            * pressure
+            * c.L_sun
+            / (
+                16
+                * np.pi
+                * c.aRad
+                * c.speedOfLight
+                * c.G
+                * massBelowZ
+                * temperature
+                * temperature
+                * temperature
+                * temperature
+            )
+        )
         return nablaRad
-
-        
 
     @np.vectorize
     @staticmethod
@@ -290,7 +355,9 @@ class MESAEOS(StateEquationInterface):
         """
         key = (temperature, pressure)
         if key not in MESAEOS._cache:
-            MESAEOS._cache[key] = getEosResult(temperature, pressure, massFractions=c.solarAbundances, cgsOutput = False)
+            MESAEOS._cache[key] = getEosResult(
+                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
+            )
         Cp = MESAEOS._cache[key].results.Cp
         return Cp
 

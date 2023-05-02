@@ -3,26 +3,125 @@ from dataStructure import SingleTimeDatapoint
 import boundaryConditions as bcs
 from gravity import g
 import numpy as np
-from scipy.sparse import diags as scipyDiagsMatrix
-from scipy.sparse.linalg import spsolve as scipySparseSolve
+from scipy.sparse import diags
+from scipy.sparse import spmatrix
+from scipy.sparse.linalg import spsolve
 import constants as c
+from stateEquationsPT import StateEquationInterface, F_con, F_rad
+import logging
+L = logging.getLogger(__name__)
+
+def centralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
+    """
+    Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the central differences of f
+    On edges the differences are approximated by one sided differences
+    
+    for uniform stepsize h
+
+              ( -1   1   0   0   0  0 )
+              (-1/2  0  1/2  0   0  0 )
+    A = 1/h * (  0 -1/2  0  1/2  0  0 )
+              (  0   0 -1/2  0  1/2 0 )
+              (  0   0   0   0  -1  1 )
+
+    """
+    stepsizes = np.diff(steps)
+    numberOfSteps = len(steps)
+
+    underDiag = -1/(stepsizes[:-1]+stepsizes[1:]); underDiag = np.append(underDiag, -1/stepsizes[-1])
+    overDiag = 1/(stepsizes[:-1]+stepsizes[1:]); overDiag = np.insert(overDiag, 0, 1/stepsizes[0])
+    diag = np.zeros(numberOfSteps); diag[0] = -1/stepsizes[0]; diag[-1] = 1/stepsizes[-1]
+
+    centeredDifferences = diags(
+            [underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps) # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
+        )
+    return centeredDifferences
+
+def forwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
+    """
+    Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the forward differences of f
+    On edges the differences are approximated by one sided differences
+    
+    for uniform stepsize h
+
+              ( -1   1   0   0   0  )
+              (  0  -1   1   0   0  )
+    A = 1/h * (  0   0  -1   1   0  )
+              (  0   0   0  -1   1  )
+              (  0   0   0  -1   1  )
+    """
+
+    dx = np.diff(steps)
+    numberOfSteps = len(steps)
+
+    underDiag = np.zeros(numberOfSteps-1); underDiag[-1] = -1/dx[-1]
+    diag = np.append(-1/dx, 1/dx[-1])
+    overDiag = 1/dx
+
+    forwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps)) # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
+    return forwardDifferences
+
+def backwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
+    """
+    Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the backward differences of f
+    On edges the differences are approximated by one sided differences
+    
+    for uniform stepsize h
+
+              ( -1   1   0   0   0  )
+              ( -1   1   0   0   0  )
+    A = 1/h * (  0  -1   1   0   0  )
+              (  0   0  -1   1   0  )
+              (  0   0   0  -1   1  )
+    """
+    dx = np.diff(steps)
+    numberOfSteps = len(steps)
+
+    overDiag = np.zeros(numberOfSteps-1); overDiag[0] = 1/dx[0]
+    diag = np.insert(1/dx, 0, -1/dx[0])
+    underDiag = -1/dx
+
+    backwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps)) # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
+    return backwardDifferences
 
 
-def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
+def secondCentralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
+    """Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the second central differences of f
+
+    Args:
+        steps (np.ndarray): _description_
+
+    Returns:
+        spmatrix: _description_
+    """
+    forward = forwardDifferencesMatrix(steps)
+    backward = backwardDifferencesMatrix(steps)
+
+    secondCentral = forward.dot(backward)
+    # becuase of the nature of the one sided differences
+    # and their behaviour at the edges
+    # the first row gets obliterated
+    secondCentral[0, :] = secondCentral[1, :]  
+    
+    return secondCentral
+
+def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float, StateEq: StateEquationInterface) -> np.ndarray:
     """
     solves the T equation 
     dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
     using scipys ODE integrator
     """
+    raise NotImplementedError()
 
     zs = currentState.zs
     Ts = currentState.temperatures
-    rhos = currentState.rhos
-    F_cons = currentState.F_cons
-    F_rads = currentState.F_rads
-    cps = currentState.cps
+    Ps = currentState.pressures
 
-    stepsizes = zs[1:] - zs[:-1]
+    F_cons = F_con(Ts, Ps)
+    F_rads = F_rad(Ts, Ps)
+    cps =    StateEq.cp(Ts, Ps)
+
+    stepsizes = np.diff(zs)
     dF_rads = np.concatenate( (
         [(F_rads[1]-F_rads[0])/stepsizes[0]],
         (F_rads[2:]-F_rads[:-2])/(stepsizes[:-1] + stepsizes[1:]),
@@ -46,6 +145,7 @@ def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     b is 
     """
     L.warn("Ur using the old T solver based on Bárta's work")
+    raise NotImplementedError()
     zs = currentState.zs
     Ts = currentState.temperatures
     Ps = currentState.pressures
@@ -53,7 +153,7 @@ def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     F_cons = currentState.F_cons
     F_rads = currentState.F_rads
     cps = currentState.cps
-    opacities = ???
+    opacities = 0.1 # TODO: get opacities
 
     stepsizes = zs[1:] - zs[:-1]
 
@@ -143,18 +243,12 @@ def oldYSolver(
 
     # setup of matrix of centered differences; after semicolon is the part that takes care of border elements: one sided differencees
 
-    underDiag = -1/(stepsizes[:-1]+stepsizes[1:]); underDiag = np.append(underDiag, -1/stepsizes[-1])
-    overDiag = 1/(stepsizes[:-1]+stepsizes[1:]); overDiag = np.insert(overDiag, 0, 1/stepsizes[0])
-    diag = np.zeros(numberOfZSteps); diag[0] = -1/stepsizes[0]; diag[-1] = 1/stepsizes[-1]
 
-    centeredDifferences = scipyDiagsMatrix(
-            [underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfZSteps, numberOfZSteps) # type: ignore # ye idk why vscode says that array of ints is an error, it's in the documentation and it literally works: that's why the type: ignore
-        )
 
     
 
-    matrixOfSecondDifferences = 0.5 * totalMagneticFlux / np.pi * centeredDifferences@centeredDifferences #
     raise NotImplementedError("Hey u sure this is mathematically correct?")
+    matrixOfSecondDifferences = 0.5 * totalMagneticFlux / np.pi * centeredDifferences@centeredDifferences #
 
     P_eMinusP_i = outerPs - innerPs
 
@@ -197,13 +291,32 @@ def oldYSolver(
 
 def main():
     """test code for this file"""
-    length = 5
-    zs = np.linspace(0, 50, length)
-    innerPs = np.ones(length) * 3
-    outerPs = np.ones(length) * 5
-    totalMagneticflux = 4
-    yGuess = zs[:]
-    oldYSolver(zs, innerPs, outerPs, totalMagneticflux, yGuess)
+    
+
+    N = 100
+    xs = np.sort(np.random.random(N))*2*np.pi
+
+    secondDif = secondCentralDifferencesMatrix(xs)
+
+    f = np.sin(xs)
+    expectedDf = -np.sin(xs)
+    aprox = secondDif.dot(f)
+
+    df = np.gradient(f, xs)
+    ddf = np.gradient(df, xs)
+    numpyVersion = ddf
+
+    import matplotlib.pyplot as plt
+    plt.plot(xs, expectedDf, label="exact solution of d² sin x/dx²")
+    plt.scatter(xs, aprox,      marker = ".", label="second differences δ² sin x/δx²", c = "red")
+    plt.scatter(xs, numpyVersion, marker = ".", label="numpy version of second differences", c = "black")
+    plt.ylim(-3,3)
+    plt.legend()
+    plt.show()
+
+
+    
+
 
 
 if __name__ == "__main__":

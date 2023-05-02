@@ -1,10 +1,10 @@
 //TODO - test y solver
 //TODO - test T solver
+//TODO - test differences matrices for non uniform steps
+
 
 //FIXME - chech that eos derivatives arent d/dlnT but rly d/dT and such
-//TODO - test the speed of mesa cache
 //FIXME - fix the opacity 
 //FIXME - solve the problem of zero dimensional np arrays better than using the [()] operator
-//TODO - go through kappa and eos init and the functions that are called there. U just copied it from the original code and it might be wrong
 
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)

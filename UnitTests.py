@@ -35,7 +35,7 @@ def testCalmSunVsModelS():
     surfaceT = interp1d(modelSZs, modelSTemperatures)(surfaceZ)
     surfaceP = interp1d(modelSZs, modelSPressures)(surfaceZ)
 
-    dlnp = 5e-2
+    dlnp = 1e-1
     maxDepth = 80*c.Mm
 
     from stateEquationsPT import MESAEOS

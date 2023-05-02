@@ -30,7 +30,7 @@ assert crlibm_lib is not None
 crlibm_lib.math_init()
 chem_lib, chem_def = pym.loadMod("chem")
 net_lib, net_def = pym.loadMod("net")
-rates_lib, rates_def = pym.loadMod("rates")
+rates_lib, rates_def = pym.loadMod("rates") # reaction rates
 assert chem_lib is not None
 assert chem_def is not None
 assert net_lib is not None
@@ -40,6 +40,7 @@ assert rates_def is not None
 
 ierr = 0
 
+# this trick makes sure these inits only happen once
 if not hasattr(pym, 'mesa2Py'):
     # EOS initialization
     atexit.register(L.info, "Shutting down eos tables...")
@@ -47,15 +48,24 @@ if not hasattr(pym, 'mesa2Py'):
     const_lib.const_init(pym.MESA_DIR, ierr)
     chem_lib.chem_init("isotopes.data", ierr)
 
-    rates_lib.rates_init(  # TODO What is this?
-        "reactions.list",
-        "jina_reaclib_results_20130213default2",
-        "rate_tables",
-        False,
-        False,
-        "",
-        "",
-        "",
+    reactionlistFilename = "reactions.list"
+    jinaReaclibFilename = "jina_reaclib_results_20130213default2"
+    rateTablesDir = "rate_tables"
+    useSuzukiWeakRates = False
+    useSpecialWeakRates = False
+    specialWeakStatesFile = ""
+    speacialWeakTransitionsFile = ""
+    cacheDir = "" # "" means use default
+
+    rates_lib.rates_init(
+        reactionlistFilename,
+        jinaReaclibFilename,
+        rateTablesDir,
+        useSuzukiWeakRates,
+        useSpecialWeakRates,
+        specialWeakStatesFile,
+        speacialWeakTransitionsFile,
+        cacheDir,
         ierr,
     )
     net_lib.net_init(ierr)
@@ -215,11 +225,11 @@ solarAbundances = [ # also ardcoded cuz pyMesaUtils for some reason screws up wh
              3.4034e-09, 9.6809e-09, 7.6127e-10, 1.9659e-10, 3.8519e-13, 
              5.3760e-11 ]
                                   
-solarAbundancesDict = {name.rstrip() : abundance for name, abundance in zip(isotopeNames, solarAbundances)}
+solarAbundancesDict = {name.rstrip() : abundance for name, abundance in zip(isotopeNames, solarAbundances)} # takes care of trailing spaces in names
 
-allKnownChemicalIDs = {name.rstrip() : int(chem_def.get_nuclide_index(name)) for name in isotopeNames}
+allKnownChemicalIDs = {name.rstrip() : int(chem_def.get_nuclide_index(name)) for name in isotopeNames} # ditto
 
-eosBasicResultsNum = eos_def.num_eos_basic_results.get()
+eosBasicResultsNum = eos_def.num_eos_basic_results.get() # how many things EOS returns
 
 @dataclass
 class EOSBledningInfo:
@@ -290,7 +300,8 @@ num_chem_isos = chem_def.num_chem_isos
 if not hasattr(pym, 'mesa2Py'):
     atexit.register(L.info, "Shutting down kappa tables...")
     atexit.register(kap_lib.kap_shutdown)
-    kap_lib.kap_init(False, pym.KAP_CACHE, ierr)  # TODO find out how this init works
+    useCache = True
+    kap_lib.kap_init(useCache, pym.KAP_CACHE, ierr)
     kap_handle = kap_lib.alloc_kap_handle(ierr)
     kap_lib.kap_setup_tables(kap_handle, ierr)
     kap_lib.kap_setup_hooks(kap_handle, ierr)
