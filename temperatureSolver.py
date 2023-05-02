@@ -5,6 +5,9 @@ from scipy.linalg import spmatrix
 from scipy.sparse import diags
 import logging
 L = logging.getLogger(__name__)
+from dataStructure import SingleTimeDatapoint
+from typing import Callable
+from gravity import g, massBelowZ
 
 
 #region matrices of differences
@@ -164,7 +167,7 @@ def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
     
     raise NotImplementedError()
 
-def rightHandSideOfTEq(zs: np.ndarray, temperatures: np.ndarray, pressures: np.ndarray, StateEq: StateEquationInterface) -> np.ndarray:
+def rightHandSideOfTEq(convectiveAlpha: float, zs: np.ndarray, temperatures: np.ndarray, pressures: np.ndarray, StateEq: StateEquationInterface, opacity:Callable) -> np.ndarray:
     """
     right hand side of this equation from Schüssler & Rempel (2005) (eq. 8)
     how temperature changes in time at a fixed depth z 
@@ -179,8 +182,15 @@ def rightHandSideOfTEq(zs: np.ndarray, temperatures: np.ndarray, pressures: np.n
 
     cps = StateEq.cp(temperatures, pressures)
     rhos = StateEq.density(temperatures, pressures)
+    mus = StateEq.meanMolecularWeight(temperatures, pressures)
+    nablaAds = StateEq.adiabaticLogGradient(temperatures, pressures)
+    kappas = opacity(temperatures, pressures)
+    gs = g(zs)
+    massBelowZs = massBelowZ(zs)
+    nablaRad = StateEq.radiativeLogGradient(temperatures, pressures, opacity=kappas, massBelowZ=massBelowZs)
+    Hps = StateEq.pressureScaleHeight(temperatures, pressures, gravitationalAcceleration=gs)
 
-    FplusFs = F_rad(temperatures, pressures)+F_con(temperatures, pressures)
+    FplusFs = F_rad(temperatures, pressures)+F_con(convectiveAlpha = convectiveAlpha, temperature = temperatures, pressure = pressures, meanMolecularWeight=mus, adiabaticGrad=nablaAds, radiativeGrad=nablaRad, c_p=cps, pressureScaleHeight=Hps, opacity=kappas, gravitationalAcceleration=gs) # FIXME this is a nightmare, remake
     dFplusFdz = np.gradient(FplusFs, zs) # TODO this might be slow, so watch out
 
     return -dFplusFdz/(rhos * cps)
