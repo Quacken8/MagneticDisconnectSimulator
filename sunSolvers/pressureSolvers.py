@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 from dataStructure import SingleTimeDatapoint
-import boundaryConditions as bcs
-from gravity import g
+from gravity import g, massBelowZ
 import numpy as np
 from typing import Callable, Type
+from scipy.integrate import ode, odeint
+from scipy.interpolate import interp1d
 import constants as c
+from initialConditionsSetterUpper import loadModelS
 from stateEquationsPT import StateEquationInterface
 import logging
 L = logging.getLogger(__name__)
@@ -13,14 +15,15 @@ def integratePressure(
     StateEq: Type[StateEquationInterface],
     opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
-    lnSurfacePressure: float,
-    surfaceTemperature: float,
-    surfaceZ: float,
-    maxDepth: float,
+    lnBottomPressure: float,
+    bottomTemperature: float,
+    bottomZ: float,
+    minDepth: float,
     guessTheZRange: bool = False
 ) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to integrated pressure according to hydrostatic equilibrium in the Sun where both magnetic fields and inflow of material play a role FIXME is this even true
+    This is similar to the calm sun integration, the only difference being that we're integrating from bottom up FIXME so who cares lol, go from bottom up anyway
 
     ----------
     Parameters
@@ -56,9 +59,9 @@ def integratePressure(
         return np.array([H, nabla])
     
     # initial conditions
-    currentZlnTValues = np.array([surfaceZ, np.log(surfaceTemperature)])
-    currentZ = surfaceZ
-    lnPressure = lnSurfacePressure
+    currentZlnTValues = np.array([bottomZ, np.log(bottomTemperature)])
+    currentZ = bottomZ
+    lnPressure = lnBottomPressure
 
     if guessTheZRange == False:
         # set up the scipy integrator
@@ -67,31 +70,31 @@ def integratePressure(
         ODEIntegrator.set_initial_value(currentZlnTValues, lnPressure)
         
         # set up the arrays that will be filled with the results
-        calmSunZs = [currentZ]
-        calmSunTs = [surfaceTemperature]
-        calmSunPs = [np.exp(lnPressure)]
+        sunZs = [currentZ]
+        sunTs = [bottomTemperature]
+        sunPs = [np.exp(lnPressure)]
 
         # integrate
-        L.info("Integrating calm sun")
+        L.info("Integrating hydrostatic equilibrium")
 
-        while currentZ < maxDepth:
+        while currentZ > minDepth:
             # integrate to the next pressure step
-            nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t + dlnP)
+            nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t - dlnP)
             nextZ = nextZlnTValues[0]
             nextT = np.exp(nextZlnTValues[1])
-            nextP = np.exp(ODEIntegrator.t + dlnP)
+            nextP = np.exp(ODEIntegrator.t - dlnP)
 
             # append the results
-            calmSunZs.append(nextZ)
-            calmSunTs.append(nextT)
-            calmSunPs.append(nextP)
+            sunZs.append(nextZ)
+            sunTs.append(nextT)
+            sunPs.append(nextP)
 
             # update the current values
             currentZlnTValues = nextZlnTValues
             currentZ = nextZ
 
             if ODEIntegrator.successful() == False:
-                raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")
+                raise Exception(f"Integration of pressure failed at z={currentZ/c.Mm} Mm")
     
     elif guessTheZRange==True:
 
@@ -103,27 +106,27 @@ def integratePressure(
         modelZs = modelS.zs
         modelInterpolation = interp1d(modelZs, modelPs)
 
-        maxPGuess = modelInterpolation(maxDepth)
+        minPGuess = modelInterpolation(minDepth)
         # get rid of these they might be big
         del modelS, modelPs, modelZs, modelInterpolation
 
-        maxLnPGuess = np.log(maxPGuess)*(1+paddingFactor)
+        minLnPGuess = np.log(minPGuess)*(1-paddingFactor)
 
         # set up the integration itself
-        calmSunLnPs = np.arange(lnSurfacePressure, maxLnPGuess, dlnP)
+        sunLnPs = np.arange(lnBottomPressure, minLnPGuess, dlnP)
 
-        calmSunZs, calmSunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = calmSunLnPs, tfirst = True, printmessg=True).T
+        sunZs, sunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = sunLnPs, tfirst = True, printmessg=True).T
 
-        calmSunPs = np.exp(calmSunLnPs)
-        calmSunTs = np.exp(calmSunLnTs)
+        sunPs = np.exp(sunLnPs)
+        sunTs = np.exp(sunLnTs)
     
 
-    calmSun = SingleTimeDatapoint(
-        zs=np.array(calmSunZs),
-        temperatures=np.array(calmSunTs),
-        pressures=np.array(calmSunPs),
+    sun = SingleTimeDatapoint(
+        zs=np.array(sunZs),
+        temperatures=np.array(sunTs),
+        pressures=np.array(sunPs),
     )
-    return calmSun
+    return sun
 
 def main():
     """test code for this file"""

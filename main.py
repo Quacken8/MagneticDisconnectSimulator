@@ -6,9 +6,6 @@ from dataStructure import Data, SingleTimeDatapoint
 import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
 
-# Choise of solvers:
-from solvers import firstOrderTSolver as getNewTs
-from solvers import oldYSolver as getNewYs
 
 # EVERYTHING IN SI!!!!
 
@@ -23,7 +20,6 @@ from solvers import oldYSolver as getNewYs
 # phi is ughhhh idk? is it fixed? cant be TBD!!
 
 # p_i comes from hydrodynamic equilibrium dp/dz = g rho
-# rho has to be optained from state eq? TBD
 
 # we also solve temperature from energy transport
 # for that we need opacity and some thingies for convection which also use opacity and rho

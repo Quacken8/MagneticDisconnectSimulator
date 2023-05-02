@@ -8,4 +8,10 @@
 //FIXME - fix the opacity 
 //FIXME - solve the problem of zero dimensional np arrays better than using the [()] operator
 
+//TODO - ask about the direction of integration; is he integrating from bottom up (as schussler rempel suggests?)
+//TODO - how am i supposed to do that? If my initial value is for bottom pressure (from inlow), I need also bottom T, but schussler is fixing top temperature?
+//TODO - apparently bárta uses modelS temperatures (see solvers.py integrate_pressure)
+
+//TODO - see if sympy might be better for integration or derivatives 
+
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
