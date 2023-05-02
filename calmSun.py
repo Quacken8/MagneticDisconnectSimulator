@@ -8,9 +8,11 @@ import numpy as np
 
 from dataStructure import SingleTimeDatapoint
 from stateEquationsPT import StateEquationInterface
+from initialConditionsSetterUpper import loadModelS
 
 from gravity import g, massBelowZ
-from scipy.integrate import ode
+from scipy.integrate import ode, odeint
+from scipy.interpolate import interp1d
 import constants as c
 from typing import Type, Callable
 import logging 
@@ -25,6 +27,7 @@ def getCalmSunDatapoint(
     surfaceTemperature: float,
     surfaceZ: float,
     maxDepth: float,
+    guessTheZRange: bool = False
 ) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to calm sun (i.e. one without the flux tube). This model (especially the pressure) is necessary for the calculation of B. It integrates hydrostatic equilibrium (which boils down to solving a set of two ODEs that are a function of logP)
@@ -38,6 +41,8 @@ def getCalmSunDatapoint(
     logSurfacePressure : [Pa] boundary condition of surface pressure
     surfaceTemperature : [K] boundary condition of surface temperature
     maxDepth : [m] depth to which integrate
+    guessTheZRange : if True, will estimate what pressure is at maxDepth using model S, adds a bit of padding (20 %) to it just ot be sure and uses scipy in a bit faster.
+    You don't get the exactly correct z range, but it is ~3 times faster 
     """
 
     def setOfODEs(lnP:float, zlnTArray:np.ndarray) -> np.ndarray:
@@ -65,37 +70,62 @@ def getCalmSunDatapoint(
     currentZ = surfaceZ
     lnPressure = lnSurfacePressure
 
-    # set up the scipy integrator
-    ODEIntegrator = ode(setOfODEs)
-    ODEIntegrator.set_integrator("dopri5") # TODO make sure this is a good choice for integrator
-    ODEIntegrator.set_initial_value(currentZlnTValues, lnPressure)
+    if guessTheZRange == False:
+        # set up the scipy integrator
+        ODEIntegrator = ode(setOfODEs)
+        ODEIntegrator.set_integrator("dopri5") # TODO make sure this is a good choice for integrator
+        ODEIntegrator.set_initial_value(currentZlnTValues, lnPressure)
+        
+        # set up the arrays that will be filled with the results
+        calmSunZs = [currentZ]
+        calmSunTs = [surfaceTemperature]
+        calmSunPs = [np.exp(lnPressure)]
+
+        # integrate
+        L.info("Integrating calm sun")
+
+        while currentZ < maxDepth:
+            # integrate to the next pressure step
+            nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t + dlnP)
+            nextZ = nextZlnTValues[0]
+            nextT = np.exp(nextZlnTValues[1])
+            nextP = np.exp(ODEIntegrator.t + dlnP)
+
+            # append the results
+            calmSunZs.append(nextZ)
+            calmSunTs.append(nextT)
+            calmSunPs.append(nextP)
+
+            # update the current values
+            currentZlnTValues = nextZlnTValues
+            currentZ = nextZ
+
+            if ODEIntegrator.successful() == False:
+                raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")
     
-    # set up the arrays that will be filled with the results
-    calmSunZs = [currentZ]
-    calmSunTs = [surfaceTemperature]
-    calmSunPs = [np.exp(lnPressure)]
+    elif guessTheZRange==True:
 
-    # integrate
-    L.info("Integrating calm sun")
+        # get the guess of the integration domain
 
-    while currentZ < maxDepth:
-        # integrate to the next pressure step
-        nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t + dlnP)
-        nextZ = nextZlnTValues[0]
-        nextT = np.exp(nextZlnTValues[1])
-        nextP = np.exp(ODEIntegrator.t + dlnP)
+        paddingFactor = 0.05 # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth 
+        modelS = loadModelS()
+        modelPs = modelS.pressures
+        modelZs = modelS.zs
+        modelInterpolation = interp1d(modelZs, modelPs)
 
-        # append the results
-        calmSunZs.append(nextZ)
-        calmSunTs.append(nextT)
-        calmSunPs.append(nextP)
+        maxPGuess = modelInterpolation(maxDepth)
+        # get rid of these they might be big
+        del modelS, modelPs, modelZs, modelInterpolation
 
-        # update the current values
-        currentZlnTValues = nextZlnTValues
-        currentZ = nextZ
+        maxLnPGuess = np.log(maxPGuess)*(1+paddingFactor)
 
-        if ODEIntegrator.successful() == False:
-            raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")
+        # set up the integration itself
+        calmSunLnPs = np.arange(lnSurfacePressure, maxLnPGuess, dlnP)
+
+        calmSunZs, calmSunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = calmSunLnPs, tfirst = True, printmessg=True).T
+
+        calmSunPs = np.exp(calmSunLnPs)
+        calmSunTs = np.exp(calmSunLnTs)
     
 
     calmSun = SingleTimeDatapoint(

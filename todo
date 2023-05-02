@@ -1,8 +1,9 @@
 //TODO - test y solver
 //TODO - test T solver
 //TODO - test differences matrices for non uniform steps
+//TODO - make the padding factor of guessed ode int derived from the step size
 
-
+//FIXME - find out why your solution is ~ twice as big -- OPACITY??
 //FIXME - chech that eos derivatives arent d/dlnT but rly d/dT and such
 //FIXME - fix the opacity 
 //FIXME - solve the problem of zero dimensional np arrays better than using the [()] operator

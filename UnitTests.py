@@ -31,19 +31,19 @@ def testCalmSunVsModelS():
     modelSZs = modelS.zs
 
     from scipy.interpolate import interp1d
-    surfaceZ = 1*c.Mm
+    surfaceZ = 0*c.Mm
     surfaceT = interp1d(modelSZs, modelSTemperatures)(surfaceZ)
     surfaceP = interp1d(modelSZs, modelSPressures)(surfaceZ)
 
-    dlnp = 1e-1
-    maxDepth = 80*c.Mm
+    dlnp = 1e-3
+    maxDepth = 160*c.Mm
 
     from stateEquationsPT import MESAEOS
     from opacity import mesaOpacity
 
     import time
     now = time.time()
-    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacity=mesaOpacity)
+    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacity=mesaOpacity, guessTheZRange=True)
     print("time elapsed: ", time.time()-now)
     toPlot = ["temperatures", "pressures"]
     axs = plotSingleTimeDatapoint(calmSun, toPlot, pltshow=False, label="Calm Sun with MESA kappa", log = False)
@@ -52,54 +52,31 @@ def testCalmSunVsModelS():
     plt.legend()
     plt.show()
 
-def testIDLOutput():
-    zs, Ps, Ts, rhos, kappas, nablas, Hs = np.loadtxt("debuggingReferenceFromSvanda/idlOutput.dat", skiprows = 1, unpack=True)
+def testFiniteDifferences():
+    from temperatureSolver import secondCentralDifferencesMatrix
+    N = 100
+    xs = np.sort(np.random.random(N))*2*np.pi
 
+    secondDif = secondCentralDifferencesMatrix(xs)
 
-    from stateEquationsPT import MESAEOS
-    from opacity import modelSNearestOpacity
-    from gravity import massBelowZ, g
+    f = np.sin(xs)
+    expectedDf = -np.sin(xs)
+    aprox = secondDif.dot(f)
 
-    myOpacity = modelSNearestOpacity(Ps, Ts)
-    M_r = massBelowZ(zs)
-    gs = 274
-    myNablas = MESAEOS.radiativeLogGradient(Ts, Ps, M_r, myOpacity)
-    myHs = MESAEOS.pressureScaleHeight(Ts, Ps, gs)
-    myRhos = MESAEOS.density(Ps, Ts)
+    df = np.gradient(f, xs)
+    ddf = np.gradient(df, xs)
+    numpyVersion = ddf
 
-    fig, axs = plt.subplots(2,1, sharex=True)
-    axs[0].plot(zs, nablas, label="Svanda")
-    axs[0].plot(zs, myNablas, label="Mine")
-    axs[0].legend()
-    axs[0].set_ylabel("nabla rad")
-    axs[1].plot(zs, kappas, label="Svanda")
-    axs[1].plot(zs, myOpacity, label="Mine")
-    axs[1].set_ylabel("kappa")
-    axs[1].set_xlabel("z [m]")
-    axs[1].legend()
-
-    fig2, axs2 = plt.subplots(1,1, sharex=True)
-    axs2.plot(zs, Hs, label="Svanda")
-    axs2.plot(zs, myHs, label="Mine")
-    axs2.set_ylabel("H")
-    axs2.set_xlabel("z [m]")
-    axs2.set_yscale("log")
-    axs2.legend()
-
-    fig3, axs3 = plt.subplots(1,1, sharex=True)
-    axs3.plot(zs, rhos, label="Svanda")
-    axs3.plot(zs, myRhos, label="Mine")
-    axs3.set_ylabel("rho")
-    axs3.set_xlabel("z [m]")
-    axs3.set_yscale("log")
-    axs3.legend()
-    
+    import matplotlib.pyplot as plt
+    plt.plot(xs, expectedDf, label="exact solution of d² sin x/dx²")
+    plt.scatter(xs, aprox,      marker = ".", label="second differences δ² sin x/δx²", c = "red")
+    plt.scatter(xs, numpyVersion, marker = ".", label="numpy version of second differences", c = "black")
+    plt.ylim(-3,3)
+    plt.legend()
     plt.show()
-
 
 def main():
     testCalmSunVsModelS()
-    testIDLOutput()
 
 if __name__ == "__main__":
     main()
