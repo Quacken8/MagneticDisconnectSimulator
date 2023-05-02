@@ -8,7 +8,7 @@ from dataStructure import (
 import numpy as np
 from initialConditionsSetterUpper import mockupDataSetterUpper, loadModelS
 from stateEquationsPT import IdealGas
-from calmSun import getCalmSunDatapoint
+from sunSolvers.calmSun import getCalmSunDatapoint
 from dataVizualizer import plotSingleTimeDatapoint
 
 # from solvers import oldYSolver
@@ -53,7 +53,7 @@ def testCalmSunVsModelS():
     plt.show()
 
 def testFiniteDifferences():
-    from temperatureSolver import secondCentralDifferencesMatrix
+    from sunSolvers.temperatureSolver import secondCentralDifferencesMatrix
     N = 100
     xs = np.sort(np.random.random(N))*2*np.pi
 

@@ -4,7 +4,7 @@ import numpy as np
 from initialConditionsSetterUpper import getInitialConditions
 from dataStructure import Data, SingleTimeDatapoint
 import constants as c
-from calmSun import getCalmSunDatapoint
+from sunSolvers.calmSun import getCalmSunDatapoint
 
 # Choise of solvers:
 from solvers import firstOrderTSolver as getNewTs
