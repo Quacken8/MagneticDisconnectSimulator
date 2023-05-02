@@ -13,6 +13,7 @@ from dataVizualizer import plotSingleTimeDatapoint
 
 # from solvers import oldYSolver
 from initialConditionsSetterUpper import loadModelS
+from scipy.integrate import odeint
 import constants as c
 import os
 from matplotlib import pyplot as plt
@@ -39,7 +40,7 @@ def testCalmSunVsModelS():
     maxDepth = 160*c.Mm
 
     from stateEquationsPT import MESAEOS
-    from opacity import mesaOpacity
+    from opacity import mesaOpacity, modelSNearestOpacity
 
     import time
     now = time.time()
@@ -51,6 +52,34 @@ def testCalmSunVsModelS():
     plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log = True)
     plt.legend()
     plt.show()
+
+
+def testCalmSunBottomUp():
+    modelSPressures = modelS.pressures
+    modelSTemperatures = modelS.temperatures
+    modelSZs = modelS.zs
+
+    from scipy.interpolate import interp1d
+    surfaceZ = 160*c.Mm
+    surfaceT = interp1d(modelSZs, modelSTemperatures)(surfaceZ)
+    surfaceP = interp1d(modelSZs, modelSPressures)(surfaceZ)
+
+    dlnp = -1e-3
+    maxDepth = 0.1*c.Mm
+
+    from stateEquationsPT import MESAEOS
+    from opacity import modelSNearestOpacity
+
+    import time
+    now = time.time()
+    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacity=modelSNearestOpacity, guessTheZRange=True)
+    print("time elapsed: ", time.time()-now)
+    toPlot = ["temperatures", "pressures"]
+    axs = plotSingleTimeDatapoint(calmSun, toPlot, pltshow=False, label="Calm Sun with MESA kappa", log = False)
+    plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log = True)
+    plt.legend()
+    plt.show()
+
 
 def testFiniteDifferences():
     from sunSolvers.temperatureSolver import secondCentralDifferencesMatrix
@@ -76,6 +105,7 @@ def testFiniteDifferences():
     plt.show()
 
 def main():
+
     testCalmSunVsModelS()
 
 if __name__ == "__main__":

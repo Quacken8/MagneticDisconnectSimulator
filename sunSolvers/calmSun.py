@@ -102,6 +102,7 @@ def getCalmSunDatapoint(
 
             if ODEIntegrator.successful() == False:
                 raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")
+            L.info("Integration succesful")
     
     elif guessTheZRange==True:
 
@@ -122,6 +123,8 @@ def getCalmSunDatapoint(
         # set up the integration itself
         calmSunLnPs = np.arange(lnSurfacePressure, maxLnPGuess, dlnP)
 
+        # integrate
+        L.info("Integrating calm sun")
         calmSunZs, calmSunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = calmSunLnPs, tfirst = True, printmessg=True).T
 
         calmSunPs = np.exp(calmSunLnPs)

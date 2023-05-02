@@ -10,6 +10,15 @@
 
 //TODO - ask about the direction of integration; is he integrating from bottom up (as schussler rempel suggests?)
 //TODO - how am i supposed to do that? If my initial value is for bottom pressure (from inlow), I need also bottom T, but schussler is fixing top temperature?
+//TODO - he says that "For the temperature, we have to specify boundary condi-
+tions at both ends of the integration domain. At the upper
+boundary (z = 0, taken to be the level of Rosseland op-
+tical depth unity of the external stratification) we fix the
+temperature to a value (typically 3500 K) that is lower
+than the temperature expected at the level τ = 2/3 in the
+sunspot. At the bottom, we keep the temperature gradient
+adiabatic". Tf does "we keep temperature gradient adiabatic" mean?
+//TODO - maybe bottom T is the result of the inflow? cuz we have inflow determining new P, but also the inflow has info on density so just call rho T EOS?
 //TODO - apparently bárta uses modelS temperatures (see solvers.py integrate_pressure)
 
 //TODO - see if sympy might be better for integration or derivatives 

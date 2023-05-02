@@ -62,8 +62,6 @@ class SingleTimeDatapoint:
     NumberOfZStepsPower: the number of steps in z direction will be 2^k + 1 where k is the NumberOfZStepsPower
     """
 
-    
-
     def __init__(
         self,
         temperatures: np.ndarray,
