@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-from dataStructure import SingleTimeDatapoint
-import boundaryConditions as bcs
-from gravity import g
 import numpy as np
-from scipy.sparse import diags
-from scipy.sparse import spmatrix
-from scipy.sparse.linalg import spsolve
-import constants as c
 from stateEquationsPT import StateEquationInterface, F_con, F_rad
+from scipy.linalg import spmatrix
+from scipy.sparse import diags
 import logging
 L = logging.getLogger(__name__)
+
+
+#region matrices of differences
 
 def centralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
@@ -84,7 +82,6 @@ def backwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     backwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps)) # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
     return backwardDifferences
 
-
 def secondCentralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the second central differences of f
 
@@ -105,13 +102,14 @@ def secondCentralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     
     return secondCentral
 
+# endregion
+
 def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float, StateEq: StateEquationInterface) -> np.ndarray:
     """
     solves the T equation 
     dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
-    using scipys ODE integrator
+    in the first order
     """
-    raise NotImplementedError()
 
     zs = currentState.zs
     Ts = currentState.temperatures
@@ -119,7 +117,7 @@ def firstOrderTSolver(currentState: SingleTimeDatapoint, dt: float, StateEq: Sta
 
     F_cons = F_con(Ts, Ps)
     F_rads = F_rad(Ts, Ps)
-    cps =    StateEq.cp(Ts, Ps)
+    cps = StateEq.cp(Ts, Ps)
 
     stepsizes = np.diff(zs)
     dF_rads = np.concatenate( (
@@ -165,134 +163,30 @@ def oldTSolver(currentState: SingleTimeDatapoint, dt: float) -> np.ndarray:
         [(B[-1]-B[-2])/stepsizes[-1]]) )    # this is an array of centered differences used to approximate first derivatives
     
     raise NotImplementedError()
-    
 
-def getNewPs(
-    currentState: SingleTimeDatapoint,
-    dt: float,
-    upflowVelocity: float,
-    totalMagneticFlux: float,
-    bottomExternalPressure: float,
-):
+def rightHandSideOfTEq(zs: np.ndarray, temperatures: np.ndarray, pressures: np.ndarray, StateEq: StateEquationInterface) -> np.ndarray:
     """
-    integrates pressure from the assumption of hydrostatic equilibrium (eq 6)
-    dp/dz = rho(p(z), T(z)) g(z)
+    right hand side of this equation from Schüssler & Rempel (2005) (eq. 8)
+    how temperature changes in time at a fixed depth z 
+    dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
+
+    Parameters:
+    zs: np.ndarray [m] depths
+    temperatures: np.ndarray [K] at depths zs
+    pressures: np.ndarray [Pa] at depths zs
     """
-    bottomPressure = bcs.getBottomPressure(
-        currentState=currentState,
-        dt=dt,
-        upflowVelocity=upflowVelocity,
-        totalMagneticFlux=totalMagneticFlux,
-        bottomExternalPressure=bottomExternalPressure,
-    )
-    # g(z)
+    # NOTE this might be confusing since the zs change from one time to another
 
-    raise NotImplementedError()
+    cps = StateEq.cp(temperatures, pressures)
+    rhos = StateEq.density(temperatures, pressures)
 
+    FplusFs = F_rad(temperatures, pressures)+F_con(temperatures, pressures)
+    dFplusFdz = np.gradient(FplusFs, zs) # TODO this might be slow, so watch out
 
-def getNewYs(innerPs, outerPs, totalMagneticFlux):
-    """
-    solves differential equation 5 to get y = sqrt(B) = y(z)
-    Φ/2π d²y/dz² y = y⁴ - 2μ₀ (pₑ - pᵢ)
-    """
-    raise NotImplementedError()
+    return -dFplusFdz/(rhos * cps)
 
 
-def oldYSolver(
-    zs: np.ndarray,
-    innerPs: np.ndarray,
-    outerPs: np.ndarray,
-    totalMagneticFlux: float,
-    yGuess: np.ndarray,
-    tolerance: float = 1e-5,
-) -> np.ndarray:
-    """
-    solver of the differential equation taken from the bc thesis using tridiagonal matrix
-    this may be very slow cuz it's of the first order
-
-    it tries to solve the equation
-    A y_n+1 = b_n = y^3_n - 2mu/y(p_e-p_i)
-
-    it works according to this flowchart
-
-                   ┌─────────────────────┐
-                   │                     │
-              ┌────▼─┐                   │
-              │get ys│                   │
-        ┌─────┴┬─┬───┴──────────────┐    │
-        │try Ay│ │try y^3-2mu/y(p-p)│    │
-        ├──────┴─┴────┬─────────────┘    │
-        │correction = │                  │
-        │   = y' =    └──────────────┐   │
-        │Solve(Ay'=y-(y^3-2mu/y(p-p))│   │
-        ├──────────────────────┬─────┘   │
-    ┌──►│y_new = y + corrFac*y'│         │
-    │   ├───────┬─┬────────────┴──────┐  │
-    │   │try Ayn│ │try yn^3-2mu/ynp-p)│  │
-    │   └─┬─────┴─┴─────┬─────────────┘  │
-    │     │ Worse?      │Better?         │
-    │   ┌─▼──────────┐  └────────────────┘
-    └───┤corrFac*=0.5│
-        └────────────┘
-    """
-
-    L.warn("Ur using the old Y solver based on Bárta's work")
-
-    numberOfZSteps = zs.size
-    stepsizes = zs[1:] - zs[:-1]
-
-    # setup of matrix of centered differences; after semicolon is the part that takes care of border elements: one sided differencees
-
-
-
-    
-
-    raise NotImplementedError("Hey u sure this is mathematically correct?")
-    matrixOfSecondDifferences = 0.5 * totalMagneticFlux / np.pi * centeredDifferences@centeredDifferences #
-
-    P_eMinusP_i = outerPs - innerPs
-
-    def exactRightHandSide(y: np.ndarray) -> np.ndarray:
-        return y * y * y - 2 * c.mu0 * P_eMinusP_i / y
-
-    rightSide = exactRightHandSide(yGuess)
-    guessRightSide = matrixOfSecondDifferences @ yGuess
-
-    guessError = np.linalg.norm(rightSide - guessRightSide)
-
-    correctionFactor = 1
-    while guessError > tolerance:
-
-        changeInbetweenSteps = scipySparseSolve(
-            matrixOfSecondDifferences, rightSide - guessRightSide
-        )
-        changeInbetweenSteps[0] = 0
-        changeInbetweenSteps[-1] = 0
-
-        newYGuess = yGuess + correctionFactor * changeInbetweenSteps
-
-        newRightSide = exactRightHandSide(newYGuess)
-        newGuessRightSide = matrixOfSecondDifferences @ newYGuess
-
-        newGuessError = np.linalg.norm(newGuessRightSide - guessRightSide)
-
-        if newGuessError < guessError:
-            yGuess = newYGuess
-            rightSide = newRightSide
-            guessRightSide = newGuessRightSide
-            guessError = newGuessError
-
-            correctionFactor *= 1.1
-        else:
-            correctionFactor *= 0.5
-
-    return yGuess
-
-
-def main():
-    """test code for this file"""
-    
-
+def main():    
     N = 100
     xs = np.sort(np.random.random(N))*2*np.pi
 
@@ -313,11 +207,6 @@ def main():
     plt.ylim(-3,3)
     plt.legend()
     plt.show()
-
-
-    
-
-
 
 if __name__ == "__main__":
     main()
