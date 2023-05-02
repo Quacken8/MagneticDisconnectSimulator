@@ -69,8 +69,8 @@ def testFiniteDifferences():
 
     import matplotlib.pyplot as plt
     plt.plot(xs, expectedDf, label="exact solution of d² sin x/dx²")
-    plt.scatter(xs, aprox,      marker = ".", label="second differences δ² sin x/δx²", c = "red")
-    plt.scatter(xs, numpyVersion, marker = ".", label="numpy version of second differences", c = "black")
+    plt.scatter(xs, aprox,      marker = ".", label="second differences δ² sin x/δx²", c = "red") # type: ignore
+    plt.scatter(xs, numpyVersion, marker = ".", label="numpy version of second differences", c = "black") # type: ignore
     plt.ylim(-3,3)
     plt.legend()
     plt.show()

@@ -3,135 +3,127 @@ from dataStructure import SingleTimeDatapoint
 import boundaryConditions as bcs
 from gravity import g
 import numpy as np
-from scipy.sparse import diags
-from scipy.sparse import spmatrix
-from scipy.sparse.linalg import spsolve
+from typing import Callable, Type
 import constants as c
-from stateEquationsPT import StateEquationInterface, F_con, F_rad
+from stateEquationsPT import StateEquationInterface
 import logging
 L = logging.getLogger(__name__)
 
-def getNewPs(
-    currentState: SingleTimeDatapoint,
-    dt: float,
-    upflowVelocity: float,
-    totalMagneticFlux: float,
-    bottomExternalPressure: float,
-):
+def integratePressure(
+    StateEq: Type[StateEquationInterface],
+    opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
+    dlnP: float,
+    lnSurfacePressure: float,
+    surfaceTemperature: float,
+    surfaceZ: float,
+    maxDepth: float,
+    guessTheZRange: bool = False
+) -> SingleTimeDatapoint:
     """
-    integrates pressure from the assumption of hydrostatic equilibrium (eq 6)
-    dp/dz = rho(p(z), T(z)) g(z)
-    """
-    bottomPressure = bcs.getBottomPressure(
-        currentState=currentState,
-        dt=dt,
-        upflowVelocity=upflowVelocity,
-        totalMagneticFlux=totalMagneticFlux,
-        bottomExternalPressure=bottomExternalPressure,
-    )
-    # g(z)
+    returns a datapoint that corresponds to integrated pressure according to hydrostatic equilibrium in the Sun where both magnetic fields and inflow of material play a role FIXME is this even true
 
-    raise NotImplementedError()
-
-
-def getNewYs(innerPs, outerPs, totalMagneticFlux):
-    """
-    solves differential equation 5 to get y = sqrt(B) = y(z)
-    Φ/2π d²y/dz² y = y⁴ - 2μ₀ (pₑ - pᵢ)
-    """
-    raise NotImplementedError()
-
-
-def oldYSolver(
-    zs: np.ndarray,
-    innerPs: np.ndarray,
-    outerPs: np.ndarray,
-    totalMagneticFlux: float,
-    yGuess: np.ndarray,
-    tolerance: float = 1e-5,
-) -> np.ndarray:
-    """
-    solver of the differential equation taken from the bc thesis using tridiagonal matrix
-    this may be very slow cuz it's of the first order
-
-    it tries to solve the equation
-    A y_n+1 = b_n = y^3_n - 2mu/y(p_e-p_i)
-
-    it works according to this flowchart
-
-                   ┌─────────────────────┐
-                   │                     │
-              ┌────▼─┐                   │
-              │get ys│                   │
-        ┌─────┴┬─┬───┴──────────────┐    │
-        │try Ay│ │try y^3-2mu/y(p-p)│    │
-        ├──────┴─┴────┬─────────────┘    │
-        │correction = │                  │
-        │   = y' =    └──────────────┐   │
-        │Solve(Ay'=y-(y^3-2mu/y(p-p))│   │
-        ├──────────────────────┬─────┘   │
-    ┌──►│y_new = y + corrFac*y'│         │
-    │   ├───────┬─┬────────────┴──────┐  │
-    │   │try Ayn│ │try yn^3-2mu/ynp-p)│  │
-    │   └─┬─────┴─┴─────┬─────────────┘  │
-    │     │ Worse?      │Better?         │
-    │   ┌─▼──────────┐  └────────────────┘
-    └───┤corrFac*=0.5│
-        └────────────┘
+    ----------
+    Parameters
+    ----------
+    stateEq: a class with static functions that return the thermodynamic quantities as a function of temperature and pressure; see StateEquations.py for an example
+    opacity: a function that returns the opacity as a function of pressure and temperature
+    dlogP : [Pa] step in pressure gradient by which the integration happens
+    logSurfacePressure : [Pa] boundary condition of surface pressure
+    surfaceTemperature : [K] boundary condition of surface temperature
+    maxDepth : [m] depth to which integrate
+    guessTheZRange : if True, will estimate what pressure is at maxDepth using model S, adds a bit of padding (20 %) to it just ot be sure and uses scipy in a bit faster.
+    You don't get the exactly correct z range, but it is ~3 times faster 
     """
 
-    L.warn("Ur using the old Y solver based on Bárta's work")
+    def setOfODEs(lnP:float, zlnTArray:np.ndarray) -> np.ndarray:
+        """
+        the set of ODEs that are derived from hydrostatic equilibrium
+        dz/dlnP   = H(z,T,P)
+        dlnT/dlnP = ∇(z,T,P)
+        """
+        z = zlnTArray[0]
+        T = np.exp(zlnTArray[1])
+        P = np.exp(lnP)
+        gravAcc = np.array(g(z))
+        m_z = massBelowZ(z)
 
-    numberOfZSteps = zs.size
-    stepsizes = zs[1:] - zs[:-1]
+        H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravAcc)
+        nablaAd = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
+        kappa = opacity(P, T)
+        nablaRad = StateEq.radiativeLogGradient(temperature=T, pressure=P, massBelowZ=m_z, opacity=kappa)
+        nabla = np.minimum(nablaAd, nablaRad)
 
-    # setup of matrix of centered differences; after semicolon is the part that takes care of border elements: one sided differencees
+        return np.array([H, nabla])
+    
+    # initial conditions
+    currentZlnTValues = np.array([surfaceZ, np.log(surfaceTemperature)])
+    currentZ = surfaceZ
+    lnPressure = lnSurfacePressure
 
+    if guessTheZRange == False:
+        # set up the scipy integrator
+        ODEIntegrator = ode(setOfODEs)
+        ODEIntegrator.set_integrator("dopri5") # TODO make sure this is a good choice for integrator
+        ODEIntegrator.set_initial_value(currentZlnTValues, lnPressure)
+        
+        # set up the arrays that will be filled with the results
+        calmSunZs = [currentZ]
+        calmSunTs = [surfaceTemperature]
+        calmSunPs = [np.exp(lnPressure)]
 
+        # integrate
+        L.info("Integrating calm sun")
 
+        while currentZ < maxDepth:
+            # integrate to the next pressure step
+            nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t + dlnP)
+            nextZ = nextZlnTValues[0]
+            nextT = np.exp(nextZlnTValues[1])
+            nextP = np.exp(ODEIntegrator.t + dlnP)
+
+            # append the results
+            calmSunZs.append(nextZ)
+            calmSunTs.append(nextT)
+            calmSunPs.append(nextP)
+
+            # update the current values
+            currentZlnTValues = nextZlnTValues
+            currentZ = nextZ
+
+            if ODEIntegrator.successful() == False:
+                raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")
+    
+    elif guessTheZRange==True:
+
+        # get the guess of the integration domain
+
+        paddingFactor = 0.05 # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth 
+        modelS = loadModelS()
+        modelPs = modelS.pressures
+        modelZs = modelS.zs
+        modelInterpolation = interp1d(modelZs, modelPs)
+
+        maxPGuess = modelInterpolation(maxDepth)
+        # get rid of these they might be big
+        del modelS, modelPs, modelZs, modelInterpolation
+
+        maxLnPGuess = np.log(maxPGuess)*(1+paddingFactor)
+
+        # set up the integration itself
+        calmSunLnPs = np.arange(lnSurfacePressure, maxLnPGuess, dlnP)
+
+        calmSunZs, calmSunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = calmSunLnPs, tfirst = True, printmessg=True).T
+
+        calmSunPs = np.exp(calmSunLnPs)
+        calmSunTs = np.exp(calmSunLnTs)
     
 
-    raise NotImplementedError("Hey u sure this is mathematically correct?")
-    matrixOfSecondDifferences = 0.5 * totalMagneticFlux / np.pi * centeredDifferences@centeredDifferences #
-
-    P_eMinusP_i = outerPs - innerPs
-
-    def exactRightHandSide(y: np.ndarray) -> np.ndarray:
-        return y * y * y - 2 * c.mu0 * P_eMinusP_i / y
-
-    rightSide = exactRightHandSide(yGuess)
-    guessRightSide = matrixOfSecondDifferences @ yGuess
-
-    guessError = np.linalg.norm(rightSide - guessRightSide)
-
-    correctionFactor = 1
-    while guessError > tolerance:
-
-        changeInbetweenSteps = scipySparseSolve(
-            matrixOfSecondDifferences, rightSide - guessRightSide
-        )
-        changeInbetweenSteps[0] = 0
-        changeInbetweenSteps[-1] = 0
-
-        newYGuess = yGuess + correctionFactor * changeInbetweenSteps
-
-        newRightSide = exactRightHandSide(newYGuess)
-        newGuessRightSide = matrixOfSecondDifferences @ newYGuess
-
-        newGuessError = np.linalg.norm(newGuessRightSide - guessRightSide)
-
-        if newGuessError < guessError:
-            yGuess = newYGuess
-            rightSide = newRightSide
-            guessRightSide = newGuessRightSide
-            guessError = newGuessError
-
-            correctionFactor *= 1.1
-        else:
-            correctionFactor *= 0.5
-
-    return yGuess
-
+    calmSun = SingleTimeDatapoint(
+        zs=np.array(calmSunZs),
+        temperatures=np.array(calmSunTs),
+        pressures=np.array(calmSunPs),
+    )
+    return calmSun
 
 def main():
     """test code for this file"""
