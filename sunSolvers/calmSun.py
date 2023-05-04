@@ -54,7 +54,7 @@ def getCalmSunDatapoint(
         z = zlnTArray[0]
         T = np.exp(zlnTArray[1])
         P = np.exp(lnP)
-        gravAcc = np.array(g(z))
+        gravAcc = g(z)
         m_z = massBelowZ(z)
 
         H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravAcc)
@@ -102,7 +102,7 @@ def getCalmSunDatapoint(
 
             if ODEIntegrator.successful() == False:
                 raise Exception(f"Integration of calm sun failed at z={currentZ/c.Mm} Mm")
-            L.info("Integration succesful")
+        L.info("Integration succesful")
     
     elif guessTheZRange==True:
 

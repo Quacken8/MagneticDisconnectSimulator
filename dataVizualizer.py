@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import matplotlib.pyplot as plt
 from dataStructure import (
     Data,
@@ -8,9 +7,10 @@ from dataStructure import (
     dictionaryOfVariables,
     unitsDictionary,
 )
-import numpy.typing as npt
 import constants as c
 from typing import Iterable, Dict
+import logging
+L = logging.getLogger(__name__)
     
 def plotSingleTimeDatapoint(
     datapoint: SingleTimeDatapoint,
@@ -41,7 +41,14 @@ def plotSingleTimeDatapoint(
             axs[plot] = ax
         else:
             ax = axs[plot]
-        dataToPlot = variables[plot]
+        try:
+            dataToPlot = variables[plot]
+        except KeyError:
+            try:
+                dataToPlot = datapoint.derivedQuantities[plot]
+            except KeyError:
+                L.info(f"plotSingleTimeDatapoint: {plot} not found in datapoint")
+                continue
         if log:
             ax.loglog(zs, dataToPlot, label=plot + " " + label)
         else:

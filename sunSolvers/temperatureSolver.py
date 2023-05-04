@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 from stateEquationsPT import StateEquationInterface, F_con, F_rad
-from scipy.linalg import spmatrix
-from scipy.sparse import diags
+from scipy.sparse import diags, spmatrix
 import logging
 
 L = logging.getLogger(__name__)
@@ -10,9 +9,7 @@ from dataStructure import SingleTimeDatapoint
 from typing import Callable
 from gravity import g, massBelowZ
 
-
 # region matrices of differences
-
 
 def centralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
@@ -44,7 +41,6 @@ def centralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     )
     return centeredDifferences
 
-
 def forwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
     Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the forward differences of f
@@ -70,7 +66,6 @@ def forwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     forwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps))  # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
     return forwardDifferences
 
-
 def backwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
     Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the backward differences of f
@@ -95,7 +90,6 @@ def backwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     backwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps))  # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
     return backwardDifferences
 
-
 def secondCentralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the second central differences of f
 
@@ -115,7 +109,6 @@ def secondCentralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     secondCentral[0, :] = secondCentral[1, :]
 
     return secondCentral
-
 
 # endregion
 

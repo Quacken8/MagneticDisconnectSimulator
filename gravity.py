@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline as ScipySpline
+from scipy.interpolate import UnivariateSpline
+from initialConditionsSetterUpper import loadModelS
 import constants as c
 
 
@@ -21,22 +22,21 @@ def volumeOfSphericalLayer(
         )
     )
 
-pathToModeS = "externalData/model_S_new.dat"
-modelRs, modelRhos = np.loadtxt(pathToModeS, skiprows=1, usecols=(0, 3), dtype=float).T
-modelLength = len(modelRs)
-assert modelLength == len(modelRhos)
+modelS = loadModelS()
+modelSZs = modelS.zs
+modelRhosBottomUp = modelS.derivedQuantities["rhos"][::-1]
+del modelS
 
-modelRs = modelRs[::-1]
-modelRhos = modelRhos[::-1]
+centerOfTheSun = modelSZs[-1]
+modelRsBottomUp = (centerOfTheSun - modelSZs)[::-1]
 
-currentWidth = np.diff(modelRs, prepend=0)
-currentVolume = volumeOfSphericalLayer(modelRs, currentWidth)
-currentMass = currentVolume * modelRhos
-massesBelowR = np.cumsum(currentMass)
+widthsOfLayers = np.diff(modelRsBottomUp, prepend=0)
+volumesOfLayers = volumeOfSphericalLayer(modelRsBottomUp, widthsOfLayers)
+massesOfLayers = volumesOfLayers * modelRhosBottomUp
+massesBelowR = np.cumsum(massesOfLayers)
 
-modelZs = (modelRs.max() - modelRs)[::-1]
 
-mBelowZSpline = ScipySpline(modelZs, massesBelowR[::-1], s=0, k=1, ext=3)
+mBelowZSpline = UnivariateSpline(modelSZs, massesBelowR[::-1], s=0, k=1, ext=3)
 
 def massBelowZ(z: float | np.ndarray) -> np.ndarray:
     """
@@ -44,12 +44,12 @@ def massBelowZ(z: float | np.ndarray) -> np.ndarray:
     """
     return np.array(mBelowZSpline(z))
 
-gravitationalAccelerations = c.G * massesBelowR / (modelRs * modelRs)
+gravitationalAccelerations = c.G * massesBelowR / (modelRsBottomUp * modelRsBottomUp)
 
-gravitationalAccelerationsInZs = gravitationalAccelerations[::-1]
+gravitationalAccelerationsInZs = gravitationalAccelerations[:0:-1]
 
 
-gSpline = ScipySpline(modelZs, gravitationalAccelerationsInZs, s=0, k=1, ext=3)
+gSpline = UnivariateSpline(modelSZs[:-1], gravitationalAccelerationsInZs, s=0, k=1, ext=3)
 def g(z: float | np.ndarray) -> np.ndarray:
     """
     gravitational acceleration in m/s^2 z meters below the surface
@@ -61,7 +61,9 @@ def g(z: float | np.ndarray) -> np.ndarray:
 
 def main():
     """debug function for the gravity code"""
-    pass
+    import matplotlib.pyplot as plt
+    plt.plot(modelSZs, gravitationalAccelerations)
+    plt.show()
 
 
 

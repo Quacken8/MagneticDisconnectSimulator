@@ -255,6 +255,14 @@ class MESAEOS(StateEquationInterface):
 
     @np.vectorize
     @staticmethod
+    def fullOutput(temperature: float, pressure: float):
+        """
+        returns full output of MESA EOS
+        """
+        return MESAEOS._cache[(temperature, pressure)]
+
+    @np.vectorize
+    @staticmethod
     def density(temperature: float, pressure: float) -> float:
         """
         returns density

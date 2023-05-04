@@ -22,5 +22,4 @@ adiabatic". Tf does "we keep temperature gradient adiabatic" mean?
 //TODO - apparently bárta uses modelS temperatures (see solvers.py integrate_pressure)
 
 //TODO - see if sympy might be better for integration or derivatives 
-
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
