@@ -11,7 +11,7 @@ from stateEquationsPT import StateEquationInterface
 from initialConditionsSetterUpper import loadModelS
 
 from gravity import g, massBelowZ
-from scipy.integrate import ode, odeint
+from scipy.integrate import ode, odeint, solve_ivp
 from scipy.interpolate import interp1d
 import constants as c
 from typing import Type, Callable
@@ -21,12 +21,13 @@ L = logging.getLogger(__name__)
 
 def getCalmSunDatapoint(
     StateEq: Type[StateEquationInterface],
-    opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
+    opacityFunction: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
     lnSurfacePressure: float,
     surfaceTemperature: float,
     surfaceZ: float,
     maxDepth: float,
+    convectiveAlpha: float,
     guessTheZRange: bool = False
 ) -> SingleTimeDatapoint:
     """
@@ -58,9 +59,9 @@ def getCalmSunDatapoint(
         m_z = massBelowZ(z)
 
         H = StateEq.pressureScaleHeight(temperature=T, pressure=P, gravitationalAcceleration=gravAcc)
-        nablaAd = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
-        kappa = opacity(P, T)
+        kappa = opacityFunction(P, T)
         nablaRad = StateEq.radiativeLogGradient(temperature=T, pressure=P, massBelowZ=m_z, opacity=kappa)
+        nablaAd = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
         nabla = np.minimum(nablaAd, nablaRad)
 
         return np.array([H, nabla])

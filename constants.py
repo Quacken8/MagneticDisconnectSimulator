@@ -14,8 +14,8 @@ BoltzmannConstant = 1.380649e-23  # J/K [CODATA 2018]
 gasConstant = 8.314462618  # J/K/mol [CODATA 2018]
 AH = 1.0078250322  # atomic weight of hydrogen atom [CIAAW 2000]
 AHe = 4.002_603_2545  # atomic weight of helium atom [CIAAW 2000]
-massFractionOfHydrogen = 0.6  # of solar matter
-massFractionOfHelium = 0.4  # of solar matter
+massFractionOfHydrogen = 0.73725196 # hydrogen abundance
+massFractionOfHelium= 0.24468639 # of solar matter
 meanMolecularWeight = gram / (
     massFractionOfHydrogen / AH + massFractionOfHelium / AHe
 )  # kg/mol of solar matter

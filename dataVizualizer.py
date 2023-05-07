@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
 from dataStructure import (
     Data,
     SingleTimeDatapoint,
@@ -20,6 +22,7 @@ def plotSingleTimeDatapoint(
     log: bool=True,
     title: str = "",
     label: str = "",
+    linestyle:str = "-",
 ) -> Dict[str, plt.Axes]:
     """
     Plots a single time datapoint into provided axes (if they are provided) and returns the axes.
@@ -29,6 +32,7 @@ def plotSingleTimeDatapoint(
     zs = datapoint.zs / c.Mm
     if axs is None:
         axs = {}
+    figs = {}
 
     variables = dictionaryOfVariables(datapoint)
 
@@ -38,6 +42,7 @@ def plotSingleTimeDatapoint(
         plot = plot.lower()
         if not plot in axs.keys():
             fig, ax = plt.subplots()
+            figs[plot] = fig
             axs[plot] = ax
         else:
             ax = axs[plot]
@@ -50,10 +55,10 @@ def plotSingleTimeDatapoint(
                 L.info(f"plotSingleTimeDatapoint: {plot} not found in datapoint")
                 continue
         if log:
-            ax.loglog(zs, dataToPlot, label=plot + " " + label)
+            ax.loglog(zs, dataToPlot, label=plot + " " + label, linestyle=linestyle)
         else:
-            ax.plot(zs, dataToPlot, label=plot + " " + label)
-        ax.set_xlabel(f"z [{unitsDictionary['zs']}]")
+            ax.plot(zs, dataToPlot, label=plot + " " + label,   linestyle=linestyle)
+        ax.set_xlabel(f"z [M{unitsDictionary['zs']}]")
         ax.set_ylabel(f"{plot} [{unitsDictionary[plot]}]")
         ax.set_title(f"{title}{plot} vs depth")
         ax.legend()

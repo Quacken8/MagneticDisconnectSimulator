@@ -25,7 +25,12 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
     @staticmethod
     @abc.abstractmethod
     def convectiveLogGradient(
-        temperature: np.ndarray, pressure: np.ndarray
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        opacity: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
+        massBelowZ: np.ndarray,
+        convectiveAlpha: float,
     ) -> np.ndarray:
         """
         returns convectiveGradient
@@ -225,20 +230,23 @@ class IdealGas(StateEquationInterface):
 class MESACache:
     _cache = {}
 
+    simpleSolarAbundances = {
+        "h1": c.massFractionOfHydrogen,
+        "he4": c.massFractionOfHelium,}
+
     def __init__(self):
         self._cache = {}
 
     def __getitem__(self, key):  # when you call MESACache[(temperature, pressure)]
-        if key not in self._cache.keys(): # not found in cahce, call Fortran
+        if key not in self._cache.keys(): # not found in cache, call Fortran
             temperature, pressure = key
             self._cache[(temperature, pressure)] = getEosResult(
-                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
+                temperature, pressure, massFractions=MESACache.simpleSolarAbundances, cgsOutput=False
             )
         return self._cache[key]
 
     def clear(self):
         self._cache = {}
-
 
 class MESAEOS(StateEquationInterface):
     """
@@ -246,8 +254,6 @@ class MESAEOS(StateEquationInterface):
     """
 
     _cache = MESACache()
-
-    simpleSolarAbundances = {"h1": 0.7, "he4": 0.3}
 
     @staticmethod
     def cacheClear():
@@ -278,18 +284,18 @@ class MESAEOS(StateEquationInterface):
         convectiveAlpha: float,
         opacity: float,
         gravitationalAcceleration: float,
+        massBelowZ: float,
     ) -> float:
         """
         returns convectiveGradient
         """
 
-        raise NotImplementedError()
-
         density = MESAEOS.density(temperature, pressure)
-        Hp = MESAEOS.pressureScaleHeight(temperature, pressure)
+        Hp = MESAEOS.pressureScaleHeight(temperature, pressure, gravitationalAcceleration = gravitationalAcceleration)
         T3 = temperature * temperature * temperature
         c_p = MESAEOS.cp(temperature, pressure)
         nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
+        nablaRad = MESAEOS.radiativeLogGradient(temperature, pressure, massBelowZ, opacity)
 
         # these are parameters of convection used in Schüssler & Rempel 2005
         a = 0.125
@@ -305,8 +311,10 @@ class MESAEOS(StateEquationInterface):
             / (c_p * density * opacity * Hp * Hp)
             * np.sqrt(Hp / gravitationalAcceleration)
         )
-        gradTick = nablaAd - 2 * u * u + 2 * u * np.sqrt(realGradient - nablaAd + u * u)
-        return gradTick
+
+        nablaConv = (nablaRad - nablaAd + 2*u*u)*(nablaRad - nablaAd + 2*u*u)/4/u/u + nablaAd - u*u
+        
+        return nablaConv
 
     @np.vectorize
     @staticmethod
@@ -326,10 +334,10 @@ class MESAEOS(StateEquationInterface):
 
     @staticmethod
     def radiativeLogGradient(
-        temperature: np.ndarray,
-        pressure: np.ndarray,
-        massBelowZ: np.ndarray,
-        opacity: np.ndarray,
+        temperature: float | np.ndarray,
+        pressure: float | np.ndarray,
+        massBelowZ: float | np.ndarray,
+        opacity: float | np.ndarray,
     ) -> np.ndarray:
         """
         returns radiative log gradient according to Harmanec Broz 2011
@@ -444,3 +452,10 @@ def F_con(
     # TODO equation 10 from rempel schussler
     raise NotImplementedError()
     return toReturn
+
+
+zs, nablas = np.loadtxt("debuggingReferenceFromSvanda/actualNabla.dat", unpack=True)
+from scipy.interpolate import interp1d
+interpolatedNablas = interp1d(zs, nablas, kind="linear")
+def interpolatedNabla(z):
+    return interpolatedNablas(z)

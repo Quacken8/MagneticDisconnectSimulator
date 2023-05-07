@@ -44,9 +44,9 @@ def massBelowZ(z: float | np.ndarray) -> np.ndarray:
     """
     return np.array(mBelowZSpline(z))
 
-gravitationalAccelerations = c.G * massesBelowR / (modelRsBottomUp * modelRsBottomUp)
+gravitationalAccelerations = c.G * massesBelowR[1:] / (modelRsBottomUp[1:] * modelRsBottomUp[1:])
 
-gravitationalAccelerationsInZs = gravitationalAccelerations[:0:-1]
+gravitationalAccelerationsInZs = gravitationalAccelerations[::-1]
 
 
 gSpline = UnivariateSpline(modelSZs[:-1], gravitationalAccelerationsInZs, s=0, k=1, ext=3)
@@ -62,7 +62,7 @@ def g(z: float | np.ndarray) -> np.ndarray:
 def main():
     """debug function for the gravity code"""
     import matplotlib.pyplot as plt
-    plt.plot(modelSZs, gravitationalAccelerations)
+    plt.plot(modelSZs[:-1], gravitationalAccelerations)
     plt.show()
 
 

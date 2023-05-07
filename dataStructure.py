@@ -35,7 +35,8 @@ this dictionary is used to put units next to values that come up in the simulatu
 """
 unitsDictionary = {
     "times": "h",
-    "zs": "Mm",
+    "zs": "m",
+    "hs": "m",
     "numberofzsteps": "1",
     "maxdepth": "Mm",
     "temperatures": "K",
@@ -45,12 +46,14 @@ unitsDictionary = {
     "f_rads": "W/m^2",
     "f_cons": "W/m^2",
     "entropies": "J/K",
-    "nablaads": "log(Pa)/m",  # TODO this aint correct lol
+    "nablaads": "1",
+    "nablarads": "1",
+    "nablatots": "1",
     "cps": "J/(kg.K)",
     "cvs": "J/(kg.K)",
-    "deltas": "",  # TODO the fuck is delta
+    "deltas": "1",
     "kappas": "m^2/kg",
-    "gamma1s": "", # TODO
+    "gamma1s": "1",
 }
 
 
