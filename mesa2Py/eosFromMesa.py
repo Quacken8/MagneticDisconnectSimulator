@@ -6,9 +6,10 @@ import numpy as np
 import constants as c
 import warnings
 import logging
+
 L = logging.getLogger(__name__)
 
-try: 
+try:
     mesaInit
 except NameError:
     try:
@@ -30,6 +31,7 @@ d_dabar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 d_dzbar_const_TRho = np.zeros(mesaInit.eosBasicResultsNum, dtype=float)
 ierr = 0
 
+
 def getEosResult(
     temperature: float, pressure: float, massFractions=None, cgsOutput=False
 ) -> mesaInit.EOSFullResults:
@@ -46,6 +48,7 @@ def getEosResult(
     temperature: float in Kelvin
     pressure: float in Pa
     """
+    assert temperature != np.nan; assert pressure != np.nan
 
     if massFractions is None:
         massFractions = mesaInit.solarAbundancesDict
@@ -101,13 +104,18 @@ def getEosResult(
     d_dlndens = eos_res["d_dlnrho_const_t"]
 
     # now for each of eosResults entry we want to map it to a name based on the indexer
-    eosResultsDict = {"rho": eos_res['rho']}
+    eosResultsDict = {"rho": eos_res["rho"]}
+    dlnT_dlnPgas_const_Rho = np.where((eos_res["dlnrho_dlnpgas_const_t"] == 0) & (eos_res["dlnrho_dlnt_const_pgas"] == 0), 1,
+        np.divide(-eos_res["dlnrho_dlnpgas_const_t"],eos_res["dlnrho_dlnt_const_pgas"])
+    )  # implicit partial derivative. The np.where looks for situations where we have 0/0 which apparently happens; TODO choice of 1 is arbitrary, is this a good idea?
 
-    dlnT_dlnPgas_const_Rho = - eos_res['dlnrho_dlnpgas_const_t']/eos_res['dlnrho_dlnt_const_pgas'] # implicit partial derivative
-
-    d_dlnTDict = {"rho": eos_res['dlnrho_dlnpgas_const_t'] * eos_res['rho']} # NOTE this wasnt tested
+    d_dlnTDict = {
+        "rho": eos_res["dlnrho_dlnpgas_const_t"] * eos_res["rho"]
+    }  # NOTE this wasnt tested
     blendInfoDict = {}
-    d_dlnPDict = {"rho": eos_res['dlnrho_dlnpgas_const_t'] * eos_res['rho']} # NOTE this wasnt tested
+    d_dlnPDict = {
+        "rho": eos_res["dlnrho_dlnpgas_const_t"] * eos_res["rho"]
+    }  # NOTE this wasnt tested
     for i, _ in enumerate(eosResults):
         entryName = mesaInit.namer[i + 1]
         if entryName in mesaInit.blenInfoNames:
@@ -116,8 +124,9 @@ def getEosResult(
             eosResultsDict[entryName] = eosResults[i]
             d_dlnTDict[entryName] = d_dlnTemp[i]
             # convert to P T partial derivatives
-            d_dlnPDict[entryName] = d_dlndens[i] * (eos_res['dlnrho_dlnpgas_const_t']) + (d_dlnTemp[i]) * (dlnT_dlnPgas_const_Rho)
-
+            d_dlnPDict[entryName] = d_dlndens[i] * (
+                eos_res["dlnrho_dlnpgas_const_t"]
+            ) + (d_dlnTemp[i]) * (dlnT_dlnPgas_const_Rho)
 
     # and covert to SI
 
@@ -133,8 +142,12 @@ def getEosResult(
         eosResultsDict["mu"] *= c.gram
 
         d_dlnTDict["rho"] *= c.gram / c.cm / c.cm / c.cm
-        d_dlnTDict["lnE"] += 0 # becuase the constant gets derivated away since it's in a log
-        d_dlnTDict["lnS"] += 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnTDict[
+            "lnE"
+        ] += 0  # becuase the constant gets derivated away since it's in a log
+        d_dlnTDict[
+            "lnS"
+        ] += 0  # becuase the constant gets derivated away since it's in a log
         d_dlnTDict["Cv"] *= c.erg / c.gram
         d_dlnTDict["Cp"] *= c.erg / c.gram
         d_dlnTDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
@@ -144,8 +157,12 @@ def getEosResult(
 
         gOverCCC = c.gram / c.cm / c.cm / c.cm
         d_dlnPDict["rho"] *= c.gram / c.cm / c.cm / c.cm / gOverCCC
-        d_dlnPDict["lnE"] += 0 # becuase the constant gets derivated away since it's in a log
-        d_dlnPDict["lnS"] += 0 # becuase the constant gets derivated away since it's in a log
+        d_dlnPDict[
+            "lnE"
+        ] += 0  # becuase the constant gets derivated away since it's in a log
+        d_dlnPDict[
+            "lnS"
+        ] += 0  # becuase the constant gets derivated away since it's in a log
         d_dlnPDict["Cv"] *= c.erg / c.gram / gOverCCC
         d_dlnPDict["Cp"] *= c.erg / c.gram / gOverCCC
         d_dlnPDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram / gOverCCC
@@ -228,9 +245,9 @@ def getEosResultRhoTCGS(
     d_dlndens = eos_res["d_dlnd"]
 
     # now for each of eosResults entry we want to map it to a name based on the indexer
-    eosResultsDict = {"rho" : densityCGS}
-    d_dlnTDict = {"rho" : 0}
-    d_dlndDict = {"rho" : 1}
+    eosResultsDict = {"rho": densityCGS}
+    d_dlnTDict = {"rho": 0}
+    d_dlndDict = {"rho": 1}
     blendInfoDict = {}
     for i, _ in enumerate(eosResults):
         entryName = mesaInit.namer[i + 1]
@@ -254,15 +271,9 @@ def getEosResultRhoTCGS(
 
 
 if __name__ == "__main__":
-    temperature = 4348.195622 # K surface of model S
-    pressure = 94.5576395   # Pa surface of model S
-    density = 3.292483196e-06   # kg/m^3 surface of model S
+    temperature = 9648.431107324368 
+    pressure = 4.855351698266971e-15 
+    massFractions = {"h1": 0.73725196, "he4": 0.24468639}
 
-    results = getEosResultRhoTCGS(temperature, density).results
-
-    P = np.exp(results.lnPgas)
-    print(P, P*c.barye)
-
-    for name, value in vars(results).items():
-        print(f"{name} \t {getattr(results, name):.6e}")
-
+    results = getEosResult(temperature, pressure, massFractions=massFractions)
+    print(results)

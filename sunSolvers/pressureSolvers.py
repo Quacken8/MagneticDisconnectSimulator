@@ -11,14 +11,14 @@ from stateEquationsPT import StateEquationInterface
 import logging
 L = logging.getLogger(__name__)
 
-def integratePressure(
+def integrateHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],
     opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
-    lnBottomPressure: float,
-    bottomTemperature: float,
-    bottomZ: float,
-    minDepth: float,
+    lnInitialPressure: float,
+    initialTemperature: float,
+    initialZ: float,
+    finalZ: float,
     guessTheZRange: bool = False
 ) -> SingleTimeDatapoint:
     """
@@ -59,11 +59,11 @@ def integratePressure(
         return np.array([H, nabla])
     
     # initial conditions
-    currentZlnTValues = np.array([bottomZ, np.log(bottomTemperature)])
-    currentZ = bottomZ
-    lnPressure = lnBottomPressure
+    currentZlnTValues = np.array([initialZ, np.log(initialTemperature)])
+    currentZ = initialZ
+    lnPressure = lnInitialPressure
 
-    if guessTheZRange == False:
+    if guessTheZRange == False: # FIXME this doesnt work
         # set up the scipy integrator
         ODEIntegrator = ode(setOfODEs)
         ODEIntegrator.set_integrator("dopri5") # TODO make sure this is a good choice for integrator
@@ -71,18 +71,22 @@ def integratePressure(
         
         # set up the arrays that will be filled with the results
         sunZs = [currentZ]
-        sunTs = [bottomTemperature]
+        sunTs = [initialTemperature]
         sunPs = [np.exp(lnPressure)]
+
+        # find out the direction of the integration
+        bottomUp = finalZ > initialZ
+        if bottomUp: dlnP *= -1
 
         # integrate
         L.info("Integrating hydrostatic equilibrium")
 
-        while currentZ > minDepth:
+        while currentZ < finalZ if bottomUp else currentZ >finalZ:
             # integrate to the next pressure step
             nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t - dlnP)
             nextZ = nextZlnTValues[0]
             nextT = np.exp(nextZlnTValues[1])
-            nextP = np.exp(ODEIntegrator.t - dlnP)
+            nextP = np.exp(ODEIntegrator.t + dlnP)
 
             # append the results
             sunZs.append(nextZ)
@@ -106,14 +110,14 @@ def integratePressure(
         modelZs = modelS.zs
         modelInterpolation = interp1d(modelZs, modelPs)
 
-        minPGuess = modelInterpolation(minDepth)
+        minPGuess = modelInterpolation(finalZ)
         # get rid of these they might be big
         del modelS, modelPs, modelZs, modelInterpolation
 
         minLnPGuess = np.log(minPGuess)*(1-paddingFactor)
 
         # set up the integration itself
-        sunLnPs = np.arange(lnBottomPressure, minLnPGuess, dlnP)
+        sunLnPs = np.arange(lnInitialPressure, minLnPGuess, dlnP)
 
         sunZs, sunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = sunLnPs, tfirst = True, printmessg=True).T
 

@@ -241,7 +241,7 @@ class MESACache:
         if key not in self._cache.keys(): # not found in cache, call Fortran
             temperature, pressure = key
             self._cache[(temperature, pressure)] = getEosResult(
-                temperature, pressure, massFractions=MESACache.simpleSolarAbundances, cgsOutput=False
+                temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
             )
         return self._cache[key]
 

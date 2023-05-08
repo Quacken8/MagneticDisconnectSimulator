@@ -14,6 +14,7 @@ from dataVizualizer import plotSingleTimeDatapoint
 # from solvers import oldYSolver
 from initialConditionsSetterUpper import loadModelS
 from scipy.integrate import odeint
+from scipy.interpolate import interp1d
 import constants as c
 import os
 from matplotlib import pyplot as plt
@@ -254,7 +255,7 @@ def testIDLAsDatapoint():
     from opacity import mesaOpacity, modelSNearestOpacity
     from gravity import g, massBelowZ
     convectiveAlpha = 0.3
-    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=1e-2, lnSurfacePressure=np.log(ps[0]), surfaceTemperature=ts[0], surfaceZ=zs[0], maxDepth=160*c.Mm, opacityFunction=modelSNearestOpacity, guessTheZRange=True, convectiveAlpha=convectiveAlpha)
+    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=1e-2, lnSurfacePressure=np.log(ps[0]), surfaceTemperature=ts[0], surfaceZ=zs[0], maxDepth=160*c.Mm, opacityFunction=modelSNearestOpacity, guessTheZRange=True)
     calmSun.derivedQuantities["rhos"] = MESAEOS.density(calmSun.temperatures, calmSun.pressures)
     calmSun.derivedQuantities["kappas"] = modelSNearestOpacity(calmSun.pressures, calmSun.temperatures)
     calmSun.derivedQuantities["hs"] = MESAEOS.pressureScaleHeight(calmSun.temperatures, calmSun.pressures, g(calmSun.zs))
@@ -263,13 +264,14 @@ def testIDLAsDatapoint():
     calmSun.derivedQuantities["nablatots"] = np.minimum(calmSun.derivedQuantities["nablarads"], calmSun.derivedQuantities["nablaads"])
 
 
-    calmSunWithMesaOpacity = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=1e-2, lnSurfacePressure=np.log(ps[0]), surfaceTemperature=ts[0], surfaceZ=zs[0], maxDepth=160*c.Mm, opacityFunction=mesaOpacity, guessTheZRange=True, convectiveAlpha=convectiveAlpha)
+    calmSunWithMesaOpacity = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=1e-2, lnSurfacePressure=np.log(ps[0]), surfaceTemperature=ts[0], surfaceZ=zs[0], maxDepth=160*c.Mm, opacityFunction=mesaOpacity, guessTheZRange=True)
     calmSunWithMesaOpacity.derivedQuantities["rhos"] = MESAEOS.density(calmSunWithMesaOpacity.temperatures, calmSunWithMesaOpacity.pressures)
     calmSunWithMesaOpacity.derivedQuantities["kappas"] = mesaOpacity(calmSunWithMesaOpacity.pressures, calmSunWithMesaOpacity.temperatures)
     calmSunWithMesaOpacity.derivedQuantities["hs"] = MESAEOS.pressureScaleHeight(calmSunWithMesaOpacity.temperatures, calmSunWithMesaOpacity.pressures, g(calmSunWithMesaOpacity.zs))
     calmSunWithMesaOpacity.derivedQuantities["nablarads"] = MESAEOS.radiativeLogGradient(calmSunWithMesaOpacity.temperatures, calmSunWithMesaOpacity.pressures, massBelowZ(calmSunWithMesaOpacity.zs), calmSunWithMesaOpacity.derivedQuantities["kappas"])
     calmSunWithMesaOpacity.derivedQuantities["nablaads"] = MESAEOS.adiabaticLogGradient(calmSunWithMesaOpacity.temperatures, calmSunWithMesaOpacity.pressures)
     calmSunWithMesaOpacity.derivedQuantities["nablatots"] = np.minimum(calmSunWithMesaOpacity.derivedQuantities["nablarads"], calmSunWithMesaOpacity.derivedQuantities["nablaads"])
+
 
 
     toPlot = ["temperatures", "pressures", "rhos", "kappas", "Hs", "nablaRads", "nablaAds", "nablaTots"]
@@ -282,10 +284,48 @@ def testIDLAsDatapoint():
     for ax in axs.values():
         ax.set_xlim(8e-1, 26)
         ax.autoscale_view(tight = True)
-    figs = [plt.figure(i) for i in plt.get_fignums()]
-    for i, fig in enumerate(figs):
-        fig.savefig(f"debuggingReferenceFromSvanda/{i}.pdf")
+
     plt.show()
+
+    modSData = Data(1, 1)
+    modSData.appendDatapoint(modelS)
+    modSData.saveToFolder("debuggingReferenceFromSvanda/modelSData")
+
+    idlData = Data(1, 1)
+    idlData.appendDatapoint(idlDatapoint)
+    idlData.saveToFolder("debuggingReferenceFromSvanda/idlData")
+
+    calmSunData = Data(1, 1)
+    calmSunData.appendDatapoint(calmSun)
+    calmSunData.saveToFolder("debuggingReferenceFromSvanda/calmSunData")
+
+    calmSunWithMesaOpacityData = Data(1, 1)
+    calmSunWithMesaOpacityData.appendDatapoint(calmSunWithMesaOpacity)
+    calmSunWithMesaOpacityData.saveToFolder("debuggingReferenceFromSvanda/calmSunWithMesaOpacityData")
+
+def testBottomUpVsTopDown():
+    surfaceZ = 1*c.Mm
+    surfaceP = interp1d(modelS.zs, modelS.pressures)(surfaceZ)
+    surfaceT = interp1d(modelS.zs, modelS.temperatures)(surfaceZ)
+
+    dLnp = 1e-1
+    from stateEquationsPT import MESAEOS
+    from opacity import modelSNearestOpacity
+
+    topDownSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dLnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=30*c.Mm, opacityFunction=modelSNearestOpacity, guessTheZRange=True)
+
+    topZ = topDownSun.zs[-1]
+    topP = topDownSun.pressures[-1]
+    topT = topDownSun.temperatures[-1]
+
+    bottomUpSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=-dLnp, lnSurfacePressure=np.log(topP), surfaceTemperature=topT, surfaceZ=topZ, maxDepth=surfaceZ, opacityFunction=modelSNearestOpacity, guessTheZRange=True)
+
+    toPlot = ["temperatures", "pressures"]
+    axs = plotSingleTimeDatapoint(topDownSun, toPlot, pltshow=False, label="top down", log = True)
+    axs = plotSingleTimeDatapoint(bottomUpSun, toPlot, axs=axs, pltshow=False, label="bottom up", log = True, linestyle = "--")
+    plt.show()
+    
+
 
 def main():
 

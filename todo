@@ -11,6 +11,7 @@
 //TODO - how am i supposed to do that? If my initial value is for bottom pressure (from inlow), I need also bottom T, but schussler is fixing top temperature?
 //TODO - try the solve_ivp
 
+//TODO - ask about boundary conditions of B, theyre given at the top and bottom of the integration domain as opposed to using bottom value and derivative of it; use scipy boundary value problem solver?
 
 //TODO - see if sympy might be better for integration or derivatives 
 //TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
