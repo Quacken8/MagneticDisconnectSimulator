@@ -54,18 +54,7 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
     yYgradGuess = np.array([yGuess, yGradGuess])
 
     # integration
-    ( # we get a bunch of results from the scipy solver
-        solutionSpline, # spline of the solution
-        _,  # none if we werent looking for extra parameters as scipy can (and we didnt)
-        outZs,  # the output will be evaluated at different Zs
-        outYGradYs, # yGradY at output Zs
-        outDerivative, # derivative of yGradY wrt z
-        residuals,  # relative residuals
-        niter,  # number of iterations 
-        status, # why the integration stopped; 0 means success, 1 means max number of meshNodes reached, 2 means singular Jacobian encountered during integration
-        message, # verbal description of the termination reason
-        success, # True if integration was successful
-    ) = solve_bvp(
+    integrationResult = solve_bvp(
         setOfODEs,
         boundaryConditions,
         zs,
@@ -75,10 +64,15 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
         tol=1e-5,  # FIXME copilot suggested this
     )
 
+    success = integrationResult.success
+
     if not success:
+        message = integrationResult.message
         raise RuntimeError(
             f"Integration of magnetic equation failed with message {message}"
         )
+
+    yYgradArray = integrationResult.y
 
     return yYgradArray[:, 0]
 

@@ -10,6 +10,8 @@ from initialConditionsSetterUpper import mockupDataSetterUpper, loadModelS
 from stateEquationsPT import IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
 from dataVizualizer import plotSingleTimeDatapoint
+from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
+import time
 
 # from solvers import oldYSolver
 from initialConditionsSetterUpper import loadModelS
@@ -46,8 +48,8 @@ def testCalmSunVsModelS():
 
     import time
     now = time.time()
-    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacityFunction=mesaOpacity, guessTheZRange=True, convectiveAlpha=convectiveAlpha)
-    calmSunWithModelSOpacity = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacityFunction=modelSNearestOpacity, guessTheZRange=True, convectiveAlpha=convectiveAlpha)
+    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacityFunction=mesaOpacity, guessTheZRange=True)
+    calmSunWithModelSOpacity = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacityFunction=modelSNearestOpacity, guessTheZRange=True)
     print("time elapsed: ", time.time()-now)
     toPlot = ["temperatures", "pressures"]
     axs = plotSingleTimeDatapoint(calmSun, toPlot, pltshow=False, label="Calm Sun with MESA kappa", log = False)
@@ -324,12 +326,9 @@ def testBottomUpVsTopDown():
     axs = plotSingleTimeDatapoint(topDownSun, toPlot, pltshow=False, label="top down", log = True)
     axs = plotSingleTimeDatapoint(bottomUpSun, toPlot, axs=axs, pltshow=False, label="bottom up", log = True, linestyle = "--")
     plt.show()
-    
-
 
 def main():
-
-    testIDLAsDatapoint()
+    pass
 
 if __name__ == "__main__":
     main()

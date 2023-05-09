@@ -4,7 +4,6 @@ This file provides interface between MESA eos verson r.?? and python
 """
 import numpy as np
 import constants as c
-import warnings
 import logging
 
 L = logging.getLogger(__name__)
@@ -172,11 +171,11 @@ def getEosResult(
 
     basicResults = mesaInit.EOSBasicResults(**eosResultsDict)
     d_dT = mesaInit.EOSd_dTResults(**d_dlnTDict)
-    d_dRho = mesaInit.EOSd_dPOrRhoResults(**d_dlnPDict)
+    d_dRho = mesaInit.EOSd_dPResults(**d_dlnPDict)
     blendInfo = mesaInit.EOSBledningInfo(**blendInfoDict)
 
     completeResults = mesaInit.EOSFullResults(
-        results=basicResults, d_dT=d_dT, d_dPOrRho=d_dRho, blendInfo=blendInfo
+        results=basicResults, d_dT=d_dT, d_dP=d_dRho, blendInfo=blendInfo
     )
 
     return completeResults
@@ -260,11 +259,11 @@ def getEosResultRhoTCGS(
 
     basicResults = mesaInit.EOSBasicResults(**eosResultsDict)
     d_dT = mesaInit.EOSd_dTResults(**d_dlnTDict)
-    d_dRho = mesaInit.EOSd_dPOrRhoResults(**d_dlndDict)
+    d_dRho = mesaInit.EOSd_dRhoResults(**d_dlndDict)
     blendInfo = mesaInit.EOSBledningInfo(**blendInfoDict)
 
     completeResults = mesaInit.EOSFullResults(
-        results=basicResults, d_dT=d_dT, d_dPOrRho=d_dRho, blendInfo=blendInfo
+        results=basicResults, d_dT=d_dT, d_dRho=d_dRho, blendInfo=blendInfo
     )
 
     return completeResults

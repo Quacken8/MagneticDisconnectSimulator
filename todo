@@ -3,12 +3,11 @@
 //TODO - test differences matrices for non uniform steps
 //TODO - make the padding factor of guessed ode int derived from the step size
 
-//FIXME - find out why your solution is ~ twice as big -- OPACITY??
 //FIXME - chech that eos derivatives arent d/dlnT but rly d/dT and such
 //FIXME - fix the opacity 
 //FIXME - solve the problem of zero dimensional np arrays better than using the [()] operator
 
-//TODO - how am i supposed to do that? If my initial value is for bottom pressure (from inlow), I need also bottom T, but schussler is fixing top temperature?
+//TODO - how am i supposed to do that? If my initial value is for bottom pressure (from inlow), I need also bottom T, but schussler is fixing top temperature? -- solution the way bárta did it 
 //TODO - try the solve_ivp
 
 //TODO - ask about boundary conditions of B, theyre given at the top and bottom of the integration domain as opposed to using bottom value and derivative of it; use scipy boundary value problem solver?

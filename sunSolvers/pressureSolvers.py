@@ -3,7 +3,7 @@ from dataStructure import SingleTimeDatapoint
 from gravity import g, massBelowZ
 import numpy as np
 from typing import Callable, Type
-from scipy.integrate import ode, odeint
+from scipy.integrate import ode, odeint, solve_ivp
 from scipy.interpolate import interp1d
 import constants as c
 from initialConditionsSetterUpper import loadModelS
@@ -19,7 +19,7 @@ def integrateHydrostaticEquilibrium(
     initialTemperature: float,
     initialZ: float,
     finalZ: float,
-    guessTheZRange: bool = False
+    guessTheZRange: bool = False,
 ) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to integrated pressure according to hydrostatic equilibrium in the Sun where both magnetic fields and inflow of material play a role FIXME is this even true
@@ -122,8 +122,7 @@ def integrateHydrostaticEquilibrium(
         sunZs, sunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = sunLnPs, tfirst = True, printmessg=True).T
 
         sunPs = np.exp(sunLnPs)
-        sunTs = np.exp(sunLnTs)
-    
+        sunTs = np.exp(sunLnTs)         
 
     sun = SingleTimeDatapoint(
         zs=np.array(sunZs),

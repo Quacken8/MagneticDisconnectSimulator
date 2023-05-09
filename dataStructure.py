@@ -121,10 +121,6 @@ class Data:
             raise ValueError("your start T equals end T")
         self.finalT = finalT
         self.times = np.linspace(start=startT, stop=self.finalT, num=numberOfTSteps)
-        try:
-            self.dt = self.times[1]  # TODO - uniform timestep might not be the smartest
-        except IndexError:
-            self.dt = 0
         L.warn("Assuming uniform timestep when creating data")
         self.numberOfTSteps = numberOfTSteps
 

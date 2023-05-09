@@ -60,12 +60,12 @@ def getMESAOpacityRhoT(
         d_eta_dlnT = 0.0
     else:
         lnfree_e = MesaEOSOutput.results.lnfree_e
-        d_lnfree_e_dlnRho = MesaEOSOutput.d_dPOrRho.lnfree_e
+        d_lnfree_e_dlnRho = MesaEOSOutput.d_dP.lnfree_e
         d_lnfree_e_dlnT = (
             MesaEOSOutput.d_dT.lnfree_e
-        )  # FIXME maybe create a new class for rho T and P T results?
+        )
         eta = MesaEOSOutput.results.eta
-        d_eta_dlnRho = MesaEOSOutput.d_dPOrRho.eta
+        d_eta_dlnRho = MesaEOSOutput.d_dP.eta
         d_eta_dlnT = MesaEOSOutput.d_dT.eta
 
     Nspec = len(massFractions)  # number of species in the model

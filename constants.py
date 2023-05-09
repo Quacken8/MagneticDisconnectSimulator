@@ -25,12 +25,9 @@ solarLuminosity = 3.828e26  # W [IAU 2015]
 speedOfLight = 299792458  # m/s [CODATA 2018]
 SteffanBoltzmann = 5.670374419e-8  # W/(m^2 K^4) [CODATA 2018]
 aRad = 4*SteffanBoltzmann/speedOfLight # W/(m^2 K^4)
-ionizationEnergyOfHydrogen = (
-    13.59844 * eV
-)  # TODO get better source [Lide, 1992, Ionization potentials of atoms and atomic ions]
+ionizationEnergyOfHydrogen = 13.605_693_122_994 * eV # J -1 Ry [CODATA 2018]
 L_sun = 3.845e26  # W [IAU 2015]
 M_sun = 1.3271244e20 / G  # kg [IAU 2015]
-
 
 solarAbundances = { # according to Anders, Grevesse (1989)
     "h1": 0.70573,

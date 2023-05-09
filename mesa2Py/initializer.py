@@ -272,7 +272,11 @@ class EOSd_dTResults(EOSBasicResults):
 
 
 @dataclass
-class EOSd_dPOrRhoResults(EOSBasicResults):
+class EOSd_dPResults(EOSBasicResults):
+    pass
+
+@dataclass
+class EOSd_dRhoResults(EOSBasicResults):
     pass
 
 
@@ -280,8 +284,9 @@ class EOSd_dPOrRhoResults(EOSBasicResults):
 class EOSFullResults:
     results: EOSBasicResults
     d_dT: EOSd_dTResults
-    d_dPOrRho: EOSd_dPOrRhoResults
     blendInfo: EOSBledningInfo
+    d_dRho : EOSd_dRhoResults | None = None
+    d_dP: EOSd_dPResults | None = None
 
 
 # endregion
