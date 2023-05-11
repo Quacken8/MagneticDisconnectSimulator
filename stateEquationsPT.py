@@ -332,13 +332,14 @@ class MESAEOS(StateEquationInterface):
         mu = MESAEOS._cache[(temperature, pressure)].results.mu
         return mu
 
+    @np.vectorize
     @staticmethod
     def radiativeLogGradient(
-        temperature: float | np.ndarray,
-        pressure: float | np.ndarray,
-        massBelowZ: float | np.ndarray,
-        opacity: float | np.ndarray,
-    ) -> np.ndarray:
+        temperature: float,
+        pressure: float,
+        massBelowZ: float,
+        opacity: float,
+    ) -> float:
         """
         returns radiative log gradient according to Harmanec Broz 2011
         assumes constant luminosity, therefore is only applicable near Sun's surface

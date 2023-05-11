@@ -3,6 +3,8 @@ import numpy as np
 import logging
 import constants as c
 from scipy.integrate import solve_bvp
+from scipy.sparse.linalg import spsolve
+from handySolverStuff import secondCentralDifferencesMatrix
 
 L = logging.getLogger(__name__)
 
@@ -15,7 +17,6 @@ def rightHandSideOfYEq(y, innerP, outerP, totalMagneticFlux):
         totalMagneticFlux / (2 * np.pi)
     )
 
-
 def setOfODEs(yYgradArray, innerP, outerP, totalMagneticFlux):
     """
     turns the second order diff eq into a set of two first order diff eqs
@@ -26,7 +27,6 @@ def setOfODEs(yYgradArray, innerP, outerP, totalMagneticFlux):
     ygrad = yYgradArray[1]
 
     return np.array([ygrad, rightHandSideOfYEq(y, innerP, outerP, totalMagneticFlux)])
-
 
 def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
     """
@@ -76,7 +76,6 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
 
     return yYgradArray[:, 0]
 
-
 def oldYSolver(
     zs: np.ndarray,
     innerPs: np.ndarray,
@@ -115,40 +114,28 @@ def oldYSolver(
         └────────────┘
     """
 
-    L.warn("Ur using the old Y solver based on Bárta's work")
-
-    numberOfZSteps = zs.size
-    stepsizes = zs[1:] - zs[:-1]
-
-    # setup of matrix of centered differences; after semicolon is the part that takes care of border elements: one sided differencees
-
-    raise NotImplementedError("Hey u sure this is mathematically correct?")
-    matrixOfSecondDifferences = (
-        0.5 * totalMagneticFlux / np.pi * centeredDifferences @ centeredDifferences
-    )  #
+    matrixOfSecondDifferences = secondCentralDifferencesMatrix(zs, constantBoundaries = True)
 
     P_eMinusP_i = outerPs - innerPs
 
     def exactRightHandSide(y: np.ndarray) -> np.ndarray:
-        return y * y * y - 2 * c.mu0 * P_eMinusP_i / y
+        return (y * y * y - 2 * c.mu0 * P_eMinusP_i / y)/(totalMagneticFlux / (2 * np.pi))
 
     rightSide = exactRightHandSide(yGuess)
-    guessRightSide = matrixOfSecondDifferences @ yGuess
+    guessRightSide = matrixOfSecondDifferences.dot(yGuess)
 
     guessError = np.linalg.norm(rightSide - guessRightSide)
 
     correctionFactor = 1
     while guessError > tolerance:
-        changeInbetweenSteps = scipySparseSolve(
+        changeInbetweenSteps = spsolve(
             matrixOfSecondDifferences, rightSide - guessRightSide
         )
-        changeInbetweenSteps[0] = 0
-        changeInbetweenSteps[-1] = 0
 
         newYGuess = yGuess + correctionFactor * changeInbetweenSteps
 
         newRightSide = exactRightHandSide(newYGuess)
-        newGuessRightSide = matrixOfSecondDifferences @ newYGuess
+        newGuessRightSide = matrixOfSecondDifferences.dot(newYGuess)
 
         newGuessError = np.linalg.norm(newGuessRightSide - guessRightSide)
 
@@ -158,7 +145,7 @@ def oldYSolver(
             guessRightSide = newGuessRightSide
             guessError = newGuessError
 
-            correctionFactor *= 1.1
+            correctionFactor *= 1.1 # TODO - optimize this
         else:
             correctionFactor *= 0.5
 

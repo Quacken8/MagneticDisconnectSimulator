@@ -19,7 +19,8 @@ def integrateHydrostaticEquilibrium(
     initialTemperature: float,
     initialZ: float,
     finalZ: float,
-    guessTheZRange: bool = False,
+    guessTheZRange: bool = True,
+    regularizeGrid: bool = False,
 ) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to integrated pressure according to hydrostatic equilibrium in the Sun where both magnetic fields and inflow of material play a role FIXME is this even true
@@ -36,6 +37,7 @@ def integrateHydrostaticEquilibrium(
     maxDepth : [m] depth to which integrate
     guessTheZRange : if True, will estimate what pressure is at maxDepth using model S, adds a bit of padding (20 %) to it just ot be sure and uses scipy in a bit faster.
     You don't get the exactly correct z range, but it is ~3 times faster 
+    homogenizeGrid : if True, the grid will be made equidistant by linear interpolation at the end
     """
 
     def setOfODEs(lnP:float, zlnTArray:np.ndarray) -> np.ndarray:
@@ -108,11 +110,10 @@ def integrateHydrostaticEquilibrium(
         modelS = loadModelS()
         modelPs = modelS.pressures
         modelZs = modelS.zs
-        modelInterpolation = interp1d(modelZs, modelPs)
+        minPGuess = np.interp(finalZ, modelZs, modelPs)
 
-        minPGuess = modelInterpolation(finalZ)
         # get rid of these they might be big
-        del modelS, modelPs, modelZs, modelInterpolation
+        del modelS, modelPs, modelZs
 
         minLnPGuess = np.log(minPGuess)*(1-paddingFactor)
 
@@ -129,6 +130,8 @@ def integrateHydrostaticEquilibrium(
         temperatures=np.array(sunTs),
         pressures=np.array(sunPs),
     )
+    if regularizeGrid:
+        sun.regularizeGrid()
     return sun
 
 def main():

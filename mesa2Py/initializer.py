@@ -3,7 +3,6 @@
 # initializes everything important for mesa interface and registers cleanup functions
 import numpy as np
 import pyMesaUtils as pym
-import atexit
 import logging
 from dataclasses import dataclass
 
@@ -43,8 +42,6 @@ ierr = 0
 # this trick makes sure these inits only happen once
 if not hasattr(pym, 'mesa2Py'):
     # EOS initialization
-    atexit.register(L.info, "Shutting down eos tables...")
-    atexit.register(eos_lib.eos_shutdown)
     const_lib.const_init(pym.MESA_DIR, ierr)
     chem_lib.chem_init("isotopes.data", ierr)
 
@@ -303,15 +300,11 @@ num_kap_fracs = kap_def.num_kap_fracs
 num_chem_isos = chem_def.num_chem_isos
 
 if not hasattr(pym, 'mesa2Py'):
-    atexit.register(L.info, "Shutting down kappa tables...")
-    atexit.register(kap_lib.kap_shutdown)
     useCache = True
     kap_lib.kap_init(useCache, pym.KAP_CACHE, ierr)
     kap_handle = kap_lib.alloc_kap_handle(ierr)
     kap_lib.kap_setup_tables(kap_handle, ierr)
     kap_lib.kap_setup_hooks(kap_handle, ierr)
-    atexit.register(L.info, "Deallocating kap_handle...")
-    atexit.register(kap_lib.free_kap_handle, kap_handle)
 
 @dataclass
 class KappaBleningInfo:

@@ -327,8 +327,62 @@ def testBottomUpVsTopDown():
     axs = plotSingleTimeDatapoint(bottomUpSun, toPlot, axs=axs, pltshow=False, label="bottom up", log = True, linestyle = "--")
     plt.show()
 
+def plotCalmSunZs():
+    modelSZs = modelS.zs
+    modelSPressures = modelS.pressures
+    modelSTemperatures = modelS.temperatures
+    from scipy.interpolate import interp1d
+    surfaceZ = 0*c.Mm
+    surfaceT = interp1d(modelSZs, modelSTemperatures)(surfaceZ)
+    surfaceP = interp1d(modelSZs, modelSPressures)(surfaceZ)
+
+    dlnp = 1e-3
+    maxDepth = 16*c.Mm
+
+    from stateEquationsPT import MESAEOS
+    from opacity import modelSNearestOpacity
+
+    import time
+    now = time.time()
+    calmSun = getCalmSunDatapoint(StateEq = MESAEOS, dlnP=dlnp, lnSurfacePressure=np.log(surfaceP), surfaceTemperature=surfaceT, surfaceZ=surfaceZ, maxDepth=maxDepth, opacityFunction=modelSNearestOpacity, guessTheZRange=True)
+    print("time elapsed: ", time.time()-now)
+
+    indeces = np.arange(len(calmSun.zs))
+    plt.plot(indeces, calmSun.zs)
+    plt.show()
+
+def benchmarkDifferentLinearInterpolations():
+    tests = 100000
+    points = 1000
+    xs = np.linspace(1, 100, points)
+    expxs = np.logspace(0, 2, points)
+
+    ys = np.sin(expxs)
+
+    from scipy.interpolate import interp1d
+    from scipy.interpolate import UnivariateSpline
+
+
+    now = time.time()
+    for _ in range(tests):
+        interp1d(expxs, ys)(xs)
+    print("interp1d: ", time.time()-now)
+
+    now = time.time()
+    for _ in range(tests):
+        UnivariateSpline(expxs, ys, k = 1)(xs)
+    print("UnivariateSpline: ", time.time()-now)
+
+    now = time.time()
+    for _ in range(tests):
+        np.interp(xs, expxs, ys)
+    print("numpy: ", time.time()-now)
+
+
+
+
 def main():
-    pass
+    benchmarkDifferentLinearInterpolations()
 
 if __name__ == "__main__":
     main()

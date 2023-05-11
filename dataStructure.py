@@ -104,7 +104,25 @@ class SingleTimeDatapoint:
                 unitsDictionary[variableName.lower()]
             except KeyError:
                 raise ValueError(f"We don't have units for {variableName} defined!")
+    
+    def regularizeGrid(self, nSteps:int | None = None) -> None:
+        """turns current z grid into an equidistant one by linearly interpolating all variables onto it. If nSteps is given, the grid will have nSteps elements, otherwise it will use the current grid size
 
+        Args:
+            nSteps (int | None, optional): How many elements the new grid should have. Defaults to None, i.e. same number of elements as before the regularization.
+        """
+
+        if nSteps is None:
+            nSteps = self.numberOfZSteps
+        
+        newZs = np.linspace(self.zs[0], self.zs[-1], nSteps)
+        self.temperatures = np.interp(newZs, self.zs, self.temperatures)
+        self.pressures = np.interp(newZs, self.zs, self.pressures)
+
+        for key, value in self.derivedQuantities.items():
+            self.derivedQuantities[key] = np.interp(newZs, self.zs, value)
+        
+        self.zs = newZs
 
 class Data:
     """

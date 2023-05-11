@@ -30,7 +30,7 @@ def getMESAOpacityRhoT(
     density: float,
     temperature: float,
     massFractions: dict | None = None,
-    MesaEOSOutput: mesaInit.EOSFullResults | None = None,
+    MesaRhoTEOSOutput: mesaInit.EOSFullResults | None = None,
 ):
     """
     returns the opacity or full mesa output in SI for a given temperature and density
@@ -51,7 +51,7 @@ def getMESAOpacityRhoT(
     logRhoCGS = np.log10(density * c.cm * c.cm * c.cm / c.gram)
     logTCGS = np.log10(temperature)
 
-    if MesaEOSOutput is None:
+    if MesaRhoTEOSOutput is None:
         lnfree_e = 0.0  # free_e := total combined number per nucleon of free electrons and positrons
         d_lnfree_e_dlnRho = 0.0
         d_lnfree_e_dlnT = 0.0
@@ -59,14 +59,14 @@ def getMESAOpacityRhoT(
         d_eta_dlnRho = 0.0
         d_eta_dlnT = 0.0
     else:
-        lnfree_e = MesaEOSOutput.results.lnfree_e
-        d_lnfree_e_dlnRho = MesaEOSOutput.d_dP.lnfree_e
+        lnfree_e = MesaRhoTEOSOutput.results.lnfree_e
+        d_lnfree_e_dlnRho = MesaRhoTEOSOutput.d_dRho.lnfree_e
         d_lnfree_e_dlnT = (
-            MesaEOSOutput.d_dT.lnfree_e
+            MesaRhoTEOSOutput.d_dT.lnfree_e
         )
-        eta = MesaEOSOutput.results.eta
-        d_eta_dlnRho = MesaEOSOutput.d_dP.eta
-        d_eta_dlnT = MesaEOSOutput.d_dT.eta
+        eta = MesaRhoTEOSOutput.results.eta
+        d_eta_dlnRho = MesaRhoTEOSOutput.d_dRho.eta
+        d_eta_dlnT = MesaRhoTEOSOutput.d_dT.eta
 
     Nspec = len(massFractions)  # number of species in the model
     massFractionsInArr = np.array(
@@ -158,7 +158,7 @@ def getMesaOpacity(
     rhoTEosResults = getEosResultRhoTCGS(density, temperature)
 
     return getMESAOpacityRhoT(
-        density, temperature, massFractions, MesaEOSOutput=rhoTEosResults
+        density, temperature, massFractions, MesaRhoTEOSOutput=rhoTEosResults
     )
 
 
