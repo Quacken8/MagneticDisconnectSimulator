@@ -378,11 +378,42 @@ def benchmarkDifferentLinearInterpolations():
         np.interp(xs, expxs, ys)
     print("numpy: ", time.time()-now)
 
+def bechmarkAndTestDifferentQuadratures():
+    nPoints = 2**10 + 1
+    xs = np.logspace(0, np.log10(np.pi), nPoints)
+    ys = np.sin(xs)
+    expectedResult = 2
+    numberOfTests = 10000
 
+    from scipy.integrate import trapz, simps, romb, quad
+
+    result = 0
+    now = time.time()
+    for _ in range(numberOfTests):
+        if np.isclose(xs[0]-xs[1], xs[1]-xs[2]):
+            pass
+        result = trapz(ys, xs)
+    print(f"trapz: \t{(time.time()-now):.3e} error: \t{np.abs(result-expectedResult):.3e}")
+
+    result = 0
+    now = time.time()
+    for _ in range(numberOfTests):
+        if np.isclose(xs[0]-xs[1], xs[1]-xs[2]):
+            pass
+        result = simps(ys, xs)
+    print(f"simps: \t{(time.time()-now):.3e} error: \t{np.abs(result-expectedResult):.3e}")
+
+    result = 0
+    now = time.time()
+    for _ in range(numberOfTests):
+        if np.isclose(xs[0]-xs[1], xs[1]-xs[2]):
+            pass        
+        result = np.trapz(ys, xs)
+    print(f"np: \t{(time.time()-now):.3e} error: \t{np.abs(result-expectedResult):.3e}")
 
 
 def main():
-    benchmarkDifferentLinearInterpolations()
+    bechmarkAndTestDifferentQuadratures()
 
 if __name__ == "__main__":
     main()

@@ -61,8 +61,6 @@ class SingleTimeDatapoint:
     """
     class that saves an instanteanous state of the simulation. Similar to Data class, but only for one t
     all datapoints are expected in SI
-
-    NumberOfZStepsPower: the number of steps in z direction will be 2^k + 1 where k is the NumberOfZStepsPower
     """
 
     def __init__(
@@ -70,6 +68,7 @@ class SingleTimeDatapoint:
         temperatures: np.ndarray,
         pressures: np.ndarray,
         zs: np.ndarray,
+        Bs: np.ndarray | None = None,
         **kwargs,
     ) -> None:
         self.zs = zs
@@ -77,6 +76,9 @@ class SingleTimeDatapoint:
         self.temperatures = temperatures
         self.pressures = pressures
         fundamentalVariables = dictionaryOfVariables(self)
+        if Bs is None:
+            Bs = np.zeros_like(zs)
+        self.Bs = Bs
         self.derivedQuantities = {}
 
         for key, value in kwargs.items():

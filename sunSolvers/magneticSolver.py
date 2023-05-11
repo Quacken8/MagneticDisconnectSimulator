@@ -32,6 +32,7 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
     """
     solves differential equation 5 to get y = sqrt(B) = y(z)
     Φ/2π d²y/dz² y = y⁴ - 2μ₀ (pₑ - pᵢ)
+    FIXME probably not gonna use this
     """
 
     # boundaryConditions
@@ -89,7 +90,7 @@ def oldYSolver(
     this may be very slow cuz it's of the first order
 
     it tries to solve the equation
-    A y_n+1 = b_n = y^3_n - 2mu/y(p_e-p_i)
+    A y_n+1 = b_n = (y^3_n - 2mu/y(p_e-p_i)) / (Φ/2π)
 
     it works according to this flowchart
 

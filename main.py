@@ -1,94 +1,149 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from initialConditionsSetterUpper import getInitialConditions
+from initialConditionsSetterUpper import getInitialConditions, loadModelS
 from dataStructure import Data, SingleTimeDatapoint
 import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
+from sunSolvers.temperatureSolver import oldTSolver
+from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
+from sunSolvers.magneticSolver import oldYSolver
+from stateEquationsPT import MESAEOS
+from opacity import mesaOpacity
 
 
-# EVERYTHING IN SI!!!!
-
-# ok, here's the deal
-# we solving the differential equation based on the paper Schüssler Rempel 2018
-# Phi/2pi y d^2y/dz^2 = y^4 - 8 pi (p_e -p_i)
-# y = sqrt(B_0(z))
-# at the bottom they always assume that B = sqrt(8 pi (p_e - p_i))
-
-# they in particular choose some weird iteration btw
-# p_e is fixed external pressure far away from the sunspot
-# phi is ughhhh idk? is it fixed? cant be TBD!!
-
-# p_i comes from hydrodynamic equilibrium dp/dz = g rho
-
-# we also solve temperature from energy transport
-# for that we need opacity and some thingies for convection which also use opacity and rho
-
-# each timestep there is mass flowing in at the bottom, that changes the pressure
-# it needs to be adjusted using eq 15 (solved in the paper via newton method)
-# velocity of the inflow which is in that eq also caculated form elsewhere, here the eq 17
-# after adjustment it has to be updated (i e integrated) throughout the whole tube
+modelS = loadModelS()
 
 
-def main(initialConditions, finalT=100, numberOfTSteps = 2**4, maxDepth=100, outputFolderName="output"):
-    """
-    integrates the whole thing
-    ----
-    PARAMETERS
-    ----
-    finalT, double: total length of the simulation in hours
-    dt, double: length of the time step in hours
-    maxDepth, double: total depth of the simulation in Mm
-    dz, double: step in the depth direction in Mm
+def main(
+    backgroundReference: SingleTimeDatapoint = modelS,
+    surfaceTemperature: float = 3500,  # value used by Schüssler and Rempel 2005
+    finalT: float = 100,
+    numberOfTSteps: int = 2**4,
+    maxDepth: float = 100,
+    outputFolderName: str = "output",
+    dlnP: float = 1e-2,
+) -> None:
+    """Simulates the evolution of a sunspot and saves the simulation into a folder
+
+
+    Args:
+        backgroundReference (SingleTimeDatapoint, optional): Model on which to base calm Sun model. Should be properly deep. Defaults to modelS. # FIXME this is kinda lame I actually only need surface z, pressure and temperature
+        finalT (float, optional): Total length of the simulation in hours. Defaults to 100.
+        numberOfTSteps (int, optional): How many time steps to take from 0 to finalT. Defaults to 2**4.
+        maxDepth (float, optional): Approximate maximum depth of the simulation in Mm. Defaults to 100. # TODO check that these dont get too weird, you havent rly made sure that the max pressure well corresponds to max Z
+        outputFolderName (str, optional): Name of the folder in which to save the output of the simulation. Defaults to "output".
+        dlnpP (float, optional): Step by which to integrate hydrostatic equilibrium in ln(Pa). Defaults to 1e-2.
+
+    Raises:
+        NotImplementedError: _description_
     """
 
     # turn user input to SI
     finalT *= c.hour
     maxDepth *= c.Mm
 
-    raise NotImplementedError("this is not finished yet")
-    # get the calm sun model
-    calmSun = getCalmSunDatapoint()
+    # first prepare calm sun as a reference of background outside pressure
+    calmSun = getCalmSunDatapoint(
+        StateEq=MESAEOS,
+        opacityFunction=mesaOpacity,
+        dlnP=dlnP,
+        lnSurfacePressure=np.log(backgroundReference.pressures[-1]),
+        surfaceTemperature=backgroundReference.temperatures[-1],
+        surfaceZ=backgroundReference.zs[-1],
+        maxDepth=maxDepth,
+    )
+
+    externalPressures = calmSun.pressures[
+        :
+    ]  # only P_e is important from the background model
+    # these *can* be be quite big, get rid of them
+    del calmSun
+    del backgroundReference
 
     # create empty data structure with only initial conditions
     data = Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
-    dt = data.dt
-
     numberOfTSteps = data.numberOfTSteps
-    data.addDatapointAtIndex(initialConditions, 0)
+    currentState = getInitialConditions()
+    data.addDatapointAtIndex(currentState, 0)
+    lastYs = np.sqrt(
+        currentState.Bs
+    )  # these will be used as initial guess for the magnetic equation
 
-    timeIndex = 0 # time index, not actual time
-    while (timeIndex < numberOfTSteps): # hey, did you know that in python for cycles are just while cycles that interanlly increment their made up indeces?
+    time = 0  # time index, not actual time
+    while time < finalT:
+        time += dt # maybe use non constant dt?
 
-        currentState = data.datapoints[timeIndex]
+        # first integrate the temperature equation
+        newTs = oldTSolver(
+            currentState,
+            dt,
+            opacityFunction=mesaOpacity,
+            surfaceTemperature=surfaceTemperature,
+        )
+        boundaryTemperature = newTs[-1]
 
-        newTs = getNewTs(currentState, dt)
-        newPs = getNewPs(currentState, dt, upflowVelocity, totalMagneticFlux)
-        newYs = getNewYs()
-        newB_0s = newYs*newYs
-        newF_cons = solvers.getNewF_cons()
-        newF_rads = solvers.getNewF_rads()
+        # with new temperatures now get new bottom pressure from inflow of material
+        boundaryPressure = 0
 
+        # then integrate hydrostatic equilibrium from bottom to the top
+        initialZ = currentState.zs[-1]
+        finalZ = currentState.zs[0]
 
-        newDatapoint = SingleTimeDatapoint(temperatures = newTs, pressures=newPs, B_0s=newB_0s, F_cons=newF_cons, F_rads=newF_rads)
+        newState = integrateHydrostaticEquilibrium(
+            StateEq=MESAEOS,
+            opacity=mesaOpacity,
+            dlnP=dlnP,
+            lnBoundaryPressure=np.log(externalPressures[-1]),
+            boundaryTemperature=boundaryTemperature,
+            initialZ=initialZ,
+            finalZ=finalZ,
+            guessTheZRange=True,
+            regularizeGrid=True,
+        )  # FIXME ye this is weird cuz hydrostatic equilibrium also returns temperature, so why do I need temperature equation for the whole thing?
 
-        timeIndex += 1
-        data.addDatapointAtIndex(newDatapoint, timeIndex)
+        # finally solve the magnetic equation
+        newYs = oldYSolver(
+            currentState.zs[:],
+            newPs[:],
+            externalPressures[:],
+            totalMagneticFlux=1e20,
+            yGuess=lastYs,
+            tolerance=1e-6,
+        )
+        lastYs = newYs
+        newBs = newYs * newYs
+
+        # and save the new datapoint
+        currentState = SingleTimeDatapoint(
+            zs=newZs,
+            temperatures=newTs,
+            pressures=newPs,
+            Bs=newBs,
+        )
+
+        data.appendDatapoint(newDatapoint)
 
     data.saveToFolder(outputFolderName)
+    raise NotImplementedError("this is not finished yet")
     visualizeData(data)
 
 
-
 if __name__ == "__main__":
-
     maxDepth = 100  # depth in Mm
     numberOfZSteps = 100
 
-    initialConditions = getInitialConditions(maxDepth = maxDepth, numberOfZSteps=numberOfZSteps)
+    initialConditions = getInitialConditions(
+        maxDepth=maxDepth, numberOfZSteps=numberOfZSteps
+    )
 
-    finalT = 100 # final time in hours
-    numberOfTSteps = 32 # number of time steps
+    finalT = 100  # final time in hours
+    numberOfTSteps = 32  # number of time steps
 
-    main(initialConditions, finalT=finalT, maxDepth=maxDepth,
-         numberOfTSteps=numberOfTSteps, outputFolderName="FirstTestHaha")
+    main(
+        initialConditions,
+        finalT=finalT,
+        maxDepth=maxDepth,
+        numberOfTSteps=numberOfTSteps,
+        outputFolderName="FirstTestHaha",
+    )

@@ -46,8 +46,8 @@ def getCalmSunDatapoint(
         StateEq=StateEq,
         opacity=opacityFunction,
         dlnP=dlnP,
-        lnInitialPressure=lnSurfacePressure,
-        initialTemperature=surfaceTemperature,
+        lnBoundaryPressure=lnSurfacePressure,
+        boundaryTemperature=surfaceTemperature,
         initialZ=surfaceZ,
         finalZ=maxDepth,
         guessTheZRange=guessTheZRange

@@ -15,8 +15,8 @@ def integrateHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],
     opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
-    lnInitialPressure: float,
-    initialTemperature: float,
+    lnBoundaryPressure: float,
+    boundaryTemperature: float,
     initialZ: float,
     finalZ: float,
     guessTheZRange: bool = True,
@@ -30,13 +30,21 @@ def integrateHydrostaticEquilibrium(
     Parameters
     ----------
     stateEq: a class with static functions that return the thermodynamic quantities as a function of temperature and pressure; see StateEquations.py for an example
+
     opacity: a function that returns the opacity as a function of pressure and temperature
+    
     dlogP : [Pa] step in pressure gradient by which the integration happens
-    logSurfacePressure : [Pa] boundary condition of surface pressure
-    surfaceTemperature : [K] boundary condition of surface temperature
+    
+    logBoundaryPressure : [Pa] boundary condition of surface or bottom pressure
+    
+    boundaryTemperature : [K] boundary condition of surface or bottom temperature
+    
     maxDepth : [m] depth to which integrate
-    guessTheZRange : if True, will estimate what pressure is at maxDepth using model S, adds a bit of padding (20 %) to it just ot be sure and uses scipy in a bit faster.
+    
+    guessTheZRange : if True, will estimate what pressure is at maxDepth using model S, adds a bit of padding (20 %) to it just ot be sure 
+    and uses scipy in a bit faster.
     You don't get the exactly correct z range, but it is ~3 times faster 
+    
     homogenizeGrid : if True, the grid will be made equidistant by linear interpolation at the end
     """
 
@@ -61,9 +69,9 @@ def integrateHydrostaticEquilibrium(
         return np.array([H, nabla])
     
     # initial conditions
-    currentZlnTValues = np.array([initialZ, np.log(initialTemperature)])
+    currentZlnTValues = np.array([initialZ, np.log(boundaryTemperature)])
     currentZ = initialZ
-    lnPressure = lnInitialPressure
+    lnPressure = lnBoundaryPressure
 
     if guessTheZRange == False: # FIXME this doesnt work
         # set up the scipy integrator
@@ -73,7 +81,7 @@ def integrateHydrostaticEquilibrium(
         
         # set up the arrays that will be filled with the results
         sunZs = [currentZ]
-        sunTs = [initialTemperature]
+        sunTs = [boundaryTemperature]
         sunPs = [np.exp(lnPressure)]
 
         # find out the direction of the integration
@@ -118,7 +126,7 @@ def integrateHydrostaticEquilibrium(
         minLnPGuess = np.log(minPGuess)*(1-paddingFactor)
 
         # set up the integration itself
-        sunLnPs = np.arange(lnInitialPressure, minLnPGuess, dlnP)
+        sunLnPs = np.arange(lnBoundaryPressure, minLnPGuess, dlnP)
 
         sunZs, sunLnTs = odeint(func = setOfODEs , y0 = currentZlnTValues, t = sunLnPs, tfirst = True, printmessg=True).T
 
