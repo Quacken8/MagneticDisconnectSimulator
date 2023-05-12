@@ -10,7 +10,7 @@ from initialConditionsSetterUpper import mockupDataSetterUpper, loadModelS
 from stateEquationsPT import IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
 from dataVizualizer import plotSingleTimeDatapoint
-from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
+from sunSolvers.pressureSolvers import integrateHydrostaticEquilibriumAndTemperatureGradient
 import time
 
 # from solvers import oldYSolver
@@ -211,7 +211,7 @@ def testCalmSunBottomUp():
     plt.show()
 
 def testFiniteDifferences():
-    from sunSolvers.temperatureSolver import secondCentralDifferencesMatrix
+    from sunSolvers.temperatureSolvers import secondCentralDifferencesMatrix
     N = 100
     xs = np.sort(np.random.random(N))*2*np.pi
 
@@ -411,9 +411,41 @@ def bechmarkAndTestDifferentQuadratures():
         result = np.trapz(ys, xs)
     print(f"np: \t{(time.time()-now):.3e} error: \t{np.abs(result-expectedResult):.3e}")
 
+def benchamrkLinearInterpolationsWithRandomAccesses():
+    nPoints = 2**10 + 1
+    xs = np.logspace(0, np.log10(np.pi), nPoints)
+    ys = np.sin(xs)
+    numberOfTests = 1000
+    numberOfAccesses = 1000
+
+    from scipy.interpolate import interp1d
+    from scipy.interpolate import UnivariateSpline
+
+    accesses = np.random.random(numberOfAccesses)*(np.pi-1)+1
+
+    now = time.time()
+    for _ in range(numberOfTests):
+        interp = interp1d(xs, ys)
+        for access in accesses:
+            interp(access)
+    print(f"interp1d: \t{(time.time()-now):.3e}")
+
+    now = time.time()
+    for _ in range(numberOfTests):
+        interp = UnivariateSpline(xs, ys, k = 1)
+        for access in accesses:
+            interp(access)
+    print(f"UnivariateSpline: \t{(time.time()-now):.3e}")
+
+    now = time.time()
+    for _ in range(numberOfTests):
+        for access in accesses:
+            np.interp(access, xs, ys)
+    print(f"numpy: \t{(time.time()-now):.3e}")
+
 
 def main():
-    bechmarkAndTestDifferentQuadratures()
+    benchamrkLinearInterpolationsWithRandomAccesses()
 
 if __name__ == "__main__":
     main()

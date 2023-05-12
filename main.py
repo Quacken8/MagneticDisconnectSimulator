@@ -5,9 +5,9 @@ from initialConditionsSetterUpper import getInitialConditions, loadModelS
 from dataStructure import Data, SingleTimeDatapoint
 import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
-from sunSolvers.temperatureSolver import oldTSolver
+from sunSolvers.temperatureSolvers import oldTSolver
 from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
-from sunSolvers.magneticSolver import oldYSolver
+from sunSolvers.magneticSolvers import oldYSolver
 from stateEquationsPT import MESAEOS
 from opacity import mesaOpacity
 
@@ -23,6 +23,7 @@ def main(
     maxDepth: float = 100,
     outputFolderName: str = "output",
     dlnP: float = 1e-2,
+    dt: float = 1e-2,
 ) -> None:
     """Simulates the evolution of a sunspot and saves the simulation into a folder
 
@@ -34,6 +35,7 @@ def main(
         maxDepth (float, optional): Approximate maximum depth of the simulation in Mm. Defaults to 100. # TODO check that these dont get too weird, you havent rly made sure that the max pressure well corresponds to max Z
         outputFolderName (str, optional): Name of the folder in which to save the output of the simulation. Defaults to "output".
         dlnpP (float, optional): Step by which to integrate hydrostatic equilibrium in ln(Pa). Defaults to 1e-2.
+        dt (float, optional): Step by which to integrate temperature in hours. Defaults to 1e-2.
 
     Raises:
         NotImplementedError: _description_
@@ -70,19 +72,18 @@ def main(
         currentState.Bs
     )  # these will be used as initial guess for the magnetic equation
 
-    time = 0  # time index, not actual time
+    time = 0
     while time < finalT:
-        time += dt # maybe use non constant dt?
+        time += dt  # TODO maybe use non constant dt?
 
         # first integrate the temperature equation
         newTs = oldTSolver(
-            currentState,
-            dt,
+            currentState = currentState,
+            StateEq=MESAEOS,
+            dt = dt,
             opacityFunction=mesaOpacity,
             surfaceTemperature=surfaceTemperature,
         )
-        boundaryTemperature = newTs[-1]
-
         # with new temperatures now get new bottom pressure from inflow of material
         boundaryPressure = 0
 
@@ -90,22 +91,20 @@ def main(
         initialZ = currentState.zs[-1]
         finalZ = currentState.zs[0]
 
-        newState = integrateHydrostaticEquilibrium(
+        newZs, newPs = integrateHydrostaticEquilibrium(
+            temperatures=newTs,
+            zs=currentState.zs,
             StateEq=MESAEOS,
-            opacity=mesaOpacity,
             dlnP=dlnP,
-            lnBoundaryPressure=np.log(externalPressures[-1]),
-            boundaryTemperature=boundaryTemperature,
+            lnBoundaryPressure=np.log(boundaryPressure),
             initialZ=initialZ,
             finalZ=finalZ,
-            guessTheZRange=True,
-            regularizeGrid=True,
-        )  # FIXME ye this is weird cuz hydrostatic equilibrium also returns temperature, so why do I need temperature equation for the whole thing?
+        )
 
         # finally solve the magnetic equation
         newYs = oldYSolver(
-            currentState.zs[:],
-            newPs[:],
+            newZs,
+            newPs,
             externalPressures[:],
             totalMagneticFlux=1e20,
             yGuess=lastYs,
@@ -122,7 +121,7 @@ def main(
             Bs=newBs,
         )
 
-        data.appendDatapoint(newDatapoint)
+        data.appendDatapoint(currentState)
 
     data.saveToFolder(outputFolderName)
     raise NotImplementedError("this is not finished yet")

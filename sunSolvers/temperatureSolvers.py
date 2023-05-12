@@ -1,26 +1,23 @@
 #!/usr/bin/env python3
 import numpy as np
 from stateEquationsPT import StateEquationInterface, F_con, F_rad
-from scipy.sparse import diags, spmatrix
+from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 import constants as c
 import logging
+from typing import Type
 
 L = logging.getLogger(__name__)
 from dataStructure import SingleTimeDatapoint
 from typing import Callable
 from gravity import g, massBelowZ
-from handySolverStuff import (
-    centralDifferencesMatrix,
-    forwardDifferencesMatrix,
-    backwardDifferencesMatrix,
-    secondCentralDifferencesMatrix,
-)
+from handySolverStuff import centralDifferencesMatrix
 
 
 def oldTSolver(
     currentState: SingleTimeDatapoint,
     dt: float,
+    StateEq: Type[StateEquationInterface],
     opacityFunction: Callable[[np.ndarray, np.ndarray], np.ndarray],
     surfaceTemperature: float,
 ) -> np.ndarray:
@@ -32,9 +29,10 @@ def oldTSolver(
     v are the temperatures at different zs at time t+dt
     b is a vector containing derivatives of F_conv and rho cp T/dt at time t
 
+    requires that the grid is equidistant. If it's not, it will be made that way
+
     returns the new temperatures
     """
-    L.warn("Ur using the old T solver based on Bárta's work")
     zs = currentState.zs
     # make sure the zs are equidistant, otherwise the matrix equation will be wrong
     if not np.allclose(np.diff(zs), np.diff(zs)[0]):
@@ -43,16 +41,17 @@ def oldTSolver(
 
     Ts = currentState.temperatures
     Ps = currentState.pressures
-    rhos = currentState.derivedQuantities["rhos"]
+
+    rhos = StateEq.density(Ts, Ps)
+    cps = StateEq.cp(Ts, Ps)
     F_cons = currentState.derivedQuantities["F_cons"]
-    cps = currentState.derivedQuantities["cps"]
     opacities = opacityFunction(Ts, Ps)  # TODO maybe save them in the datapoint?
 
-    bottomH = currentState.derivedQuantities["Hs"][-1]
-    bottomNablaAd = currentState.derivedQuantities["nablaAds"][-1]
+    bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], g(zs[-1]))
+    bottomNablaAd = StateEq.adiabaticLogGradient(Ts[-1], Ps[-1])
     bottomAdiabaticT = Ts[-1] * (
         1 + bottomNablaAd / bottomH * dz
-    )  # this is the temperature at the bottom of the domain which is supposed to be the result of adiabatic gradient
+    )  # this is the temperature at the bottom of the domain which is supposed to be the result of adiabatic gradient as said in Bárta and Schüssler & Rempel (2005)
 
     centeredDifferencesM = centralDifferencesMatrix(zs)
 

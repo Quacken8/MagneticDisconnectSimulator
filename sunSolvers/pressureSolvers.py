@@ -11,7 +11,7 @@ from stateEquationsPT import StateEquationInterface
 import logging
 L = logging.getLogger(__name__)
 
-def integrateHydrostaticEquilibrium(
+def integrateHydrostaticEquilibriumAndTemperatureGradient(
     StateEq: Type[StateEquationInterface],
     opacity: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
@@ -141,6 +141,67 @@ def integrateHydrostaticEquilibrium(
     if regularizeGrid:
         sun.regularizeGrid()
     return sun
+
+def integrateHydrostaticEquilibrium(
+    StateEq: Type[StateEquationInterface],
+    temperatures: np.ndarray,
+    zs: np.ndarray,
+    dlnP: float,
+    lnBoundaryPressure: float,
+    initialZ: float,
+    finalZ: float,
+    regularizeGrid: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Integrates the hydrostatic equilibrium equation d z/dlnP = H if temperatures at zs are known
+
+    Args:
+        StateEq (Type[StateEquationInterface]): State equation to use in a form of a static class
+        dlnP (float): step in ln(pressure) by which to integrate
+        lnBoundaryPressure (float): natural log of the boundary pressure
+        initialZ (float): depth at which to start the integration and also at which the boundary condition is set
+        finalZ (float): final depth to which to integrate
+        regularizeGrid (bool, optional): if True will return results on regular grid in zs. Defaults to False.
+
+    Returns:
+        np.ndarray: depths z
+        np.ndarray: pressures along the tube at depths z
+    """
+    assert len(temperatures) == len(zs), "temperatures and zs must have the same length"
+
+    def rightHandSide(lnP:np.ndarray, z:np.ndarray) -> np.ndarray:
+        """
+        right hand side of the hydrostatic equilibrium equation dz/dlnP = H
+        """
+        pressure = np.exp(lnP)
+        temperature = np.interp(z, sunZs, temperatures)
+        gravAcc = g(z)
+        H = StateEq.pressureScaleHeight(temperature=temperature, pressure=pressure, gravitationalAcceleration=gravAcc)
+        return H
+    
+    # guess the z range
+    paddingFactor = 0.05 # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth
+    modelS = loadModelS()
+    modelPs = modelS.pressures
+    modelZs = modelS.zs
+    minPGuess = np.interp(finalZ, modelZs, modelPs)
+
+    # integrate it with scipy
+    sunLnPs = np.arange(lnBoundaryPressure, np.log(minPGuess)*(1-paddingFactor), dlnP)
+    sunZs = odeint(func = rightHandSide, y0 = initialZ, t = sunLnPs, tfirst = True).T
+
+    if regularizeGrid:
+        regularZs = np.linspace(sunZs[0], sunZs[-1], len(sunZs))
+        sunLnPs = np.interp(regularZs, sunZs, sunLnPs)
+        sunZs = regularZs
+    
+    sunPs = np.exp(sunLnPs)
+
+    return sunZs, sunPs
+
+
+
+
 
 def main():
     """test code for this file"""

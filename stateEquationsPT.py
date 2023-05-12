@@ -16,7 +16,7 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def density(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+    def density(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
         """
         returns density
         """

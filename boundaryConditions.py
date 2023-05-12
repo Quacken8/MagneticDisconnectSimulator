@@ -15,7 +15,7 @@ def getBottomB(
     """
     straight up from the thin tube approximation
     """
-    return np.sqrt(2 * c.mu0 * (externalPressure - bottomPressure))
+    return np.sqrt(np.sqrt(2 * c.mu0 * (externalPressure - bottomPressure)))
 
 
 def getTopB() -> float:

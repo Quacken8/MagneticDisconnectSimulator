@@ -14,7 +14,7 @@ from typing import Type, Callable
 import logging 
 logging.basicConfig(level=logging.DEBUG)
 L = logging.getLogger(__name__)
-from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
+from sunSolvers.pressureSolvers import integrateHydrostaticEquilibriumAndTemperatureGradient
 
 def getCalmSunDatapoint(
     StateEq: Type[StateEquationInterface],
@@ -42,7 +42,7 @@ def getCalmSunDatapoint(
     You don't get the exactly correct z range, but it is ~3 times faster 
     """
 
-    calmSun = integrateHydrostaticEquilibrium(
+    calmSun = integrateHydrostaticEquilibriumAndTemperatureGradient(
         StateEq=StateEq,
         opacity=opacityFunction,
         dlnP=dlnP,

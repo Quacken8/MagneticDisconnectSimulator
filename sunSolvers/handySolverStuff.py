@@ -84,7 +84,8 @@ def secondCentralDifferencesMatrix(steps: np.ndarray, constantBoundaries = False
     """Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the second central differences of f
 
     Args:
-        steps (np.ndarray): _description_
+        steps (np.ndarray): array of steps, i.e. x_(i+1) - x_i
+        constantBoundaries (bool, optional): whether to use constant boundary conditions, i.e. identity at x_0 and x_n. Defaults to False.
 
     Returns:
         spmatrix: _description_
@@ -95,6 +96,7 @@ def secondCentralDifferencesMatrix(steps: np.ndarray, constantBoundaries = False
     secondCentral = forward.dot(backward)
     # becuase of the nature of the one sided differences
     # and their behaviour at the edges
+    # and the order of the matrix multiplication above
     # the first row gets obliterated
     if constantBoundaries:
         const = np.zeros(len(steps))
