@@ -16,7 +16,9 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def density(temperature: float | np.ndarray, pressure: float | np.ndarray) -> float | np.ndarray:
+    def density(
+        temperature: float | np.ndarray, pressure: float | np.ndarray
+    ) -> float | np.ndarray:
         """
         returns density
         """
@@ -232,13 +234,14 @@ class MESACache:
 
     simpleSolarAbundances = {
         "h1": c.massFractionOfHydrogen,
-        "he4": c.massFractionOfHelium,}
+        "he4": c.massFractionOfHelium,
+    }
 
     def __init__(self):
         self._cache = {}
 
     def __getitem__(self, key):  # when you call MESACache[(temperature, pressure)]
-        if key not in self._cache.keys(): # not found in cache, call Fortran
+        if key not in self._cache.keys():  # not found in cache, call Fortran
             temperature, pressure = key
             self._cache[(temperature, pressure)] = getEosResult(
                 temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
@@ -247,6 +250,7 @@ class MESACache:
 
     def clear(self):
         self._cache = {}
+
 
 class MESAEOS(StateEquationInterface):
     """
@@ -291,11 +295,15 @@ class MESAEOS(StateEquationInterface):
         """
 
         density = MESAEOS.density(temperature, pressure)
-        Hp = MESAEOS.pressureScaleHeight(temperature, pressure, gravitationalAcceleration = gravitationalAcceleration)
+        Hp = MESAEOS.pressureScaleHeight(
+            temperature, pressure, gravitationalAcceleration=gravitationalAcceleration
+        )
         T3 = temperature * temperature * temperature
         c_p = MESAEOS.cp(temperature, pressure)
         nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
-        nablaRad = MESAEOS.radiativeLogGradient(temperature, pressure, massBelowZ, opacity)
+        nablaRad = MESAEOS.radiativeLogGradient(
+            temperature, pressure, massBelowZ, opacity
+        )
 
         # these are parameters of convection used in Schüssler & Rempel 2005
         a = 0.125
@@ -312,8 +320,16 @@ class MESAEOS(StateEquationInterface):
             * np.sqrt(Hp / gravitationalAcceleration)
         )
 
-        nablaConv = (nablaRad - nablaAd + 2*u*u)*(nablaRad - nablaAd + 2*u*u)/4/u/u + nablaAd - u*u
-        
+        nablaConv = (
+            (nablaRad - nablaAd + 2 * u * u)
+            * (nablaRad - nablaAd + 2 * u * u)
+            / 4
+            / u
+            / u
+            + nablaAd
+            - u * u
+        )
+
         return nablaConv
 
     @np.vectorize
@@ -457,6 +473,9 @@ def F_con(
 
 zs, nablas = np.loadtxt("debuggingReferenceFromSvanda/actualNabla.dat", unpack=True)
 from scipy.interpolate import interp1d
+
 interpolatedNablas = interp1d(zs, nablas, kind="linear")
+
+
 def interpolatedNabla(z):
     return interpolatedNablas(z)

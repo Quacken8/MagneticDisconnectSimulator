@@ -16,8 +16,8 @@ modelS = loadModelS()
 
 
 def main(
+    initialConditions: SingleTimeDatapoint,
     backgroundReference: SingleTimeDatapoint = modelS,
-    surfaceTemperature: float = 3500,  # value used by Schüssler and Rempel 2005
     finalT: float = 100,
     numberOfTSteps: int = 2**4,
     maxDepth: float = 100,
@@ -29,6 +29,7 @@ def main(
 
 
     Args:
+        initialConditions (SingleTimeDatapoint): Initial conditions of the simulation. Surface temperature of this model will stay constant during the simulation # FIXME maybe the surface temperature should be separate from the initial conditions?
         backgroundReference (SingleTimeDatapoint, optional): Model on which to base calm Sun model. Should be properly deep. Defaults to modelS. # FIXME this is kinda lame I actually only need surface z, pressure and temperature
         finalT (float, optional): Total length of the simulation in hours. Defaults to 100.
         numberOfTSteps (int, optional): How many time steps to take from 0 to finalT. Defaults to 2**4.
@@ -56,9 +57,8 @@ def main(
         maxDepth=maxDepth,
     )
 
-    externalPressures = calmSun.pressures[
-        :
-    ]  # only P_e is important from the background model
+    externalPressures = calmSun.pressures[:]
+    # only P_e is important from the background model
     # these *can* be be quite big, get rid of them
     del calmSun
     del backgroundReference
@@ -66,11 +66,12 @@ def main(
     # create empty data structure with only initial conditions
     data = Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
     numberOfTSteps = data.numberOfTSteps
-    currentState = getInitialConditions()
+    currentState = initialConditions
     data.addDatapointAtIndex(currentState, 0)
     lastYs = np.sqrt(
         currentState.Bs
     )  # these will be used as initial guess for the magnetic equation
+    surfaceTemperature = currentState.temperatures[0] # this will be held constant during the simulation
 
     time = 0
     while time < finalT:
@@ -78,9 +79,9 @@ def main(
 
         # first integrate the temperature equation
         newTs = oldTSolver(
-            currentState = currentState,
+            currentState=currentState,
             StateEq=MESAEOS,
-            dt = dt,
+            dt=dt,
             opacityFunction=mesaOpacity,
             surfaceTemperature=surfaceTemperature,
         )
@@ -130,11 +131,11 @@ def main(
 
 if __name__ == "__main__":
     maxDepth = 100  # depth in Mm
+    minDepth = 1 # depth in Mm
+    surfaceTemperature = 3500  # temperature in K
     numberOfZSteps = 100
 
     initialConditions = getInitialConditions(
-        maxDepth=maxDepth, numberOfZSteps=numberOfZSteps
-    )
 
     finalT = 100  # final time in hours
     numberOfTSteps = 32  # number of time steps

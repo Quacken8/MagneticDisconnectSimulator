@@ -17,6 +17,7 @@ def rightHandSideOfYEq(y, innerP, outerP, totalMagneticFlux):
         totalMagneticFlux / (2 * np.pi)
     )
 
+
 def setOfODEs(yYgradArray, innerP, outerP, totalMagneticFlux):
     """
     turns the second order diff eq into a set of two first order diff eqs
@@ -27,6 +28,7 @@ def setOfODEs(yYgradArray, innerP, outerP, totalMagneticFlux):
     ygrad = yYgradArray[1]
 
     return np.array([ygrad, rightHandSideOfYEq(y, innerP, outerP, totalMagneticFlux)])
+
 
 def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
     """
@@ -77,6 +79,7 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
 
     return yYgradArray[:, 0]
 
+
 def oldYSolver(
     zs: np.ndarray,
     innerPs: np.ndarray,
@@ -115,12 +118,16 @@ def oldYSolver(
         └────────────┘
     """
 
-    matrixOfSecondDifferences = secondCentralDifferencesMatrix(zs, constantBoundaries = True)
+    matrixOfSecondDifferences = secondCentralDifferencesMatrix(
+        zs, constantBoundaries=True
+    )
 
     P_eMinusP_i = outerPs - innerPs
 
     def exactRightHandSide(y: np.ndarray) -> np.ndarray:
-        return (y * y * y - 2 * c.mu0 * P_eMinusP_i / y)/(totalMagneticFlux / (2 * np.pi))
+        return (y * y * y - 2 * c.mu0 * P_eMinusP_i / y) / (
+            totalMagneticFlux / (2 * np.pi)
+        )
 
     rightSide = exactRightHandSide(yGuess)
     guessRightSide = matrixOfSecondDifferences.dot(yGuess)
@@ -146,7 +153,7 @@ def oldYSolver(
             guessRightSide = newGuessRightSide
             guessError = newGuessError
 
-            correctionFactor *= 1.1 # TODO - optimize this
+            correctionFactor *= 1.1  # TODO - optimize this
         else:
             correctionFactor *= 0.5
 

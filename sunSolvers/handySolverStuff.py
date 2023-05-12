@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.sparse import diags, spmatrix
 
+
 def centralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
     Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the central differences of f
@@ -31,6 +32,7 @@ def centralDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     )
     return centeredDifferences
 
+
 def forwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
     Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the forward differences of f
@@ -56,6 +58,7 @@ def forwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     forwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps))  # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
     return forwardDifferences
 
+
 def backwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     """
     Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the backward differences of f
@@ -80,7 +83,10 @@ def backwardDifferencesMatrix(steps: np.ndarray) -> spmatrix:
     backwardDifferences = diags([underDiag, diag, overDiag], [-1, 0, 1], shape=(numberOfSteps, numberOfSteps))  # type: ignore I'm unsure why the [-1, 0, 1] is throwing an error, this is literally the example from the documentation
     return backwardDifferences
 
-def secondCentralDifferencesMatrix(steps: np.ndarray, constantBoundaries = False) -> spmatrix:
+
+def secondCentralDifferencesMatrix(
+    steps: np.ndarray, constantBoundaries=False
+) -> spmatrix:
     """Given an array of steps (i.e. x_i) at which a function f is evaluated (i.e. f_i) returns a tridiagonal matrix such that Af are the second central differences of f
 
     Args:
@@ -110,7 +116,7 @@ def secondCentralDifferencesMatrix(steps: np.ndarray, constantBoundaries = False
 
 
 if __name__ == "__main__":
-    a = secondCentralDifferencesMatrix(np.arange(8), constantBoundaries = True)
+    a = secondCentralDifferencesMatrix(np.arange(8), constantBoundaries=True)
     b = a.toarray()
     print(b)
     pass
