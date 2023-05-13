@@ -71,7 +71,9 @@ def main(
     lastYs = np.sqrt(
         currentState.Bs
     )  # these will be used as initial guess for the magnetic equation
-    surfaceTemperature = currentState.temperatures[0] # this will be held constant during the simulation
+    surfaceTemperature = currentState.temperatures[
+        0
+    ]  # this will be held constant during the simulation
 
     time = 0
     while time < finalT:
@@ -131,11 +133,11 @@ def main(
 
 if __name__ == "__main__":
     maxDepth = 100  # depth in Mm
-    minDepth = 1 # depth in Mm
+    minDepth = 1  # depth in Mm
     surfaceTemperature = 3500  # temperature in K
     numberOfZSteps = 100
 
-    initialConditions = getInitialConditions(
+    initialConditions = getInitialConditions()
 
     finalT = 100  # final time in hours
     numberOfTSteps = 32  # number of time steps

@@ -279,6 +279,15 @@ class MESAEOS(StateEquationInterface):
         """
         rho = MESAEOS._cache[(temperature, pressure)].results.rho
         return rho
+    
+    @np.vectorize
+    @staticmethod
+    def entropy(temperature: float, pressure: float) -> float:
+        """
+        returns entropy
+        """
+        lnEntropy = MESAEOS._cache[(temperature, pressure)].results.lnS
+        return np.exp(lnEntropy)
 
     @np.vectorize
     @staticmethod

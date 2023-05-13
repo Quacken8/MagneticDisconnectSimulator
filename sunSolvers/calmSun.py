@@ -48,7 +48,7 @@ def getCalmSunDatapoint(
 
     calmSun = integrateHydrostaticEquilibriumAndTemperatureGradient(
         StateEq=StateEq,
-        opacity=opacityFunction,
+        opacityFunction=opacityFunction,
         dlnP=dlnP,
         lnBoundaryPressure=lnSurfacePressure,
         boundaryTemperature=surfaceTemperature,
