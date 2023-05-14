@@ -56,16 +56,29 @@ unitsDictionary = {
     "gamma1s": "1",
 }
 
-class DatapointArray:
-    def __init__(self, values, zs):
-        self._values = np.array(values)
-        self._zs = zs
+class DatapointArray(np.ndarray):
+    """
+    class that saves an array of values and the corresponding zs. Behaves just like a np array but when called as a function with parameter z it returns an interpolated value at the given z
+    """
+    def __new__(cls, values, zs:np.ndarray):
+        obj = np.asarray(values).view(cls)
+        obj._zs = zs
+        return obj
 
-    def __getitem__(self, index):
-        return self._values[index]
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self._zs = getattr(obj, '_zs', None)
 
     def __call__(self, z):
-        return np.interp(z, self._zs, self._values)
+        xp = np.asarray(self._zs, dtype=float)
+        return np.interp(z, xp, self)
+
+    def __repr__(self):
+        return repr(np.asarray(self))
+
+    def __str__(self):
+        return str(np.asarray(self))
 
 
 class SingleTimeDatapoint:
@@ -76,24 +89,37 @@ class SingleTimeDatapoint:
 
     def __init__(
         self,
-        temperatures: np.ndarray,
-        pressures: np.ndarray,
+        temperatures: DatapointArray,
+        pressures: DatapointArray,
         zs: np.ndarray,
-        Bs: np.ndarray | None = None,
+        Bs: DatapointArray | None = None,
         **kwargs,
     ) -> None:
         self.zs = zs
         self.numberOfZSteps = len(zs)
-        self.temperatures = temperatures
-        self.pressures = pressures
+        if isinstance(temperatures, DatapointArray):
+            self.temperatures = temperatures
+        else:
+            self.temperatures = DatapointArray(temperatures, zs)
+
+        if isinstance(pressures, DatapointArray):
+            self.pressures = pressures
+        else:
+            self.pressures = DatapointArray(pressures, zs)
+
         fundamentalVariables = dictionaryOfVariables(self)
+        
         if Bs is None:
-            Bs = np.zeros_like(zs)
+            Bs = DatapointArray(np.zeros_like(zs), zs)
         self.Bs = Bs
         self.derivedQuantities = {}
 
         for key, value in kwargs.items():
-            self.derivedQuantities[key] = value
+            if isinstance(value, DatapointArray):
+                self.derivedQuantities[key] = value
+            else:
+                self.derivedQuantities[key] = DatapointArray(value, zs)
+
         self.maxDepth = zs[-1]
 
         self.allVariables = (

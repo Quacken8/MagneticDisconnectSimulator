@@ -357,6 +357,7 @@ def testIDLAsDatapoint():
     from opacity import mesaOpacity, modelSNearestOpacity
     from gravity import g, massBelowZ
 
+    now = time.time()
     convectiveAlpha = 0.3
     calmSun = getCalmSunDatapoint(
         StateEq=MESAEOS,
@@ -426,6 +427,7 @@ def testIDLAsDatapoint():
         calmSunWithMesaOpacity.derivedQuantities["nablarads"],
         calmSunWithMesaOpacity.derivedQuantities["nablaads"],
     )
+    print("time elapsed: ", time.time() - now)
 
     toPlot = [
         "temperatures",
@@ -703,9 +705,8 @@ def testBartasInitialModel():
     )
     plotSingleTimeDatapoint(init, ["temperatures", "pressures"], log=True)
 
-
 def main():
-    testBartasInitialModel()
+    testIDLAsDatapoint()
 
 
 if __name__ == "__main__":
