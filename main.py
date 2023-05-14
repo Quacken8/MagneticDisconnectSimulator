@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     initialConditions = getBartaInit(p0_ratio, maxDepth, minDepth, dlnP=dlnP)
 
-    finalT = 100  # final time in hours
+    finalT = 1 # final time in hours
     numberOfTSteps = 32  # number of time steps
 
     main(

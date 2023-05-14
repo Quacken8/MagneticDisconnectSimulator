@@ -3,7 +3,7 @@ import numpy as np
 from dataHandling.dataStructure import SingleTimeDatapoint, Data, subsampleArray
 from stateEquationsPT import MESAEOS
 from opacity import mesaOpacity
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, bisect
 import constants as c
 from sunSolvers.pressureSolvers import integrateAdiabaticHydrostaticEquilibrium
 from dataHandling.modelS import loadModelS
@@ -49,15 +49,15 @@ def getBartaInit(
     modelS = loadModelS()
 
     def surfaceTfromBottomS(
-        bottomS: float, surfaceP: float, guessT: float = 3500
+        bottomS: float, surfaceP: float, lowGuess:float = 3000, highGuess: float = 7000
     ) -> float:
         """
         returns the temperature at the surface of the tube with entropy bottomS
         """
-        T = fsolve(lambda T: bottomS - MESAEOS.entropy(T, surfaceP), x0=guessT)[0]
+        T = bisect(lambda T: bottomS - MESAEOS.entropy(T, surfaceP), a=lowGuess, b = highGuess)[0]
         return T
 
-    sunSurfacePressure = np.interp(surfaceZ, modelS.zs, modelS.pressures)[0]
+    sunSurfacePressure = np.interp(surfaceZ, modelS.zs, modelS.pressures).item()
     lnSurfacePressure = np.log(sunSurfacePressure * p0_ratio)
     surfaceTemperature = surfaceTfromBottomS(
         modelS.derivedQuantities["entropies"][-1], np.exp(lnSurfacePressure)
