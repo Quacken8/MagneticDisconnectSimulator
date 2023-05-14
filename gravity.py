@@ -2,7 +2,7 @@
 
 import numpy as np
 from scipy.interpolate import UnivariateSpline
-from initialConditionsSetterUpper import loadModelS
+from dataHandling.modelS import loadModelS
 import constants as c
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-from dataStructure import SingleTimeDatapoint
+from dataHandling.dataStructure import SingleTimeDatapoint
 from stateEquationsPT import IdealGas as StateEq
 import constants as c
 from scipy.integrate import simps

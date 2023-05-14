@@ -3,7 +3,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
-from dataStructure import (
+from dataHandling.dataStructure import (
     Data,
     SingleTimeDatapoint,
     dictionaryOfVariables,

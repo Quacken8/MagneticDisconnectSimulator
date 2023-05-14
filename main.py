@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from initialConditionsSetterUpper import getInitialConditions, loadModelS
-from dataStructure import Data, SingleTimeDatapoint
+from dataHandling.initialConditionsSetterUpper import getInitialConditions
+from dataHandling.modelS import loadModelS
+from dataHandling.dataStructure import Data, SingleTimeDatapoint
 import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
 from sunSolvers.temperatureSolvers import oldTSolver

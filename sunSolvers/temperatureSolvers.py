@@ -8,10 +8,10 @@ import logging
 from typing import Type
 
 L = logging.getLogger(__name__)
-from dataStructure import SingleTimeDatapoint
+from dataHandling.dataStructure import SingleTimeDatapoint
 from typing import Callable
 from gravity import g, massBelowZ
-from handySolverStuff import centralDifferencesMatrix
+from sunSolvers.handySolverStuff import centralDifferencesMatrix
 
 
 def oldTSolver(

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-from dataStructure import SingleTimeDatapoint
+from dataHandling.dataStructure import SingleTimeDatapoint
 from gravity import g, massBelowZ
 import numpy as np
 from typing import Callable, Type
 from scipy.integrate import ode, odeint, solve_ivp
 from scipy.interpolate import interp1d
 import constants as c
-from initialConditionsSetterUpper import loadModelS
+from dataHandling.modelS import loadModelS
 from stateEquationsPT import StateEquationInterface
 import logging
 

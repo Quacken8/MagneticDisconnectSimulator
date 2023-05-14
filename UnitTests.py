@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
-from dataStructure import (
+from dataHandling.dataStructure import (
     Data,
     SingleTimeDatapoint,
     createDataFromFolder,
     dictionaryOfVariables,
 )
 import numpy as np
-from initialConditionsSetterUpper import mockupDataSetterUpper, loadModelS
+from dataHandling.initialConditionsSetterUpper import mockupDataSetterUpper
+from dataHandling.modelS import loadModelS
 from stateEquationsPT import IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
-from dataVizualizer import plotSingleTimeDatapoint
+from dataHandling.dataVizualizer import plotSingleTimeDatapoint
 from sunSolvers.pressureSolvers import (
     integrateHydrostaticEquilibriumAndTemperatureGradient,
 )
 import time
 
 # from solvers import oldYSolver
-from initialConditionsSetterUpper import loadModelS
+from dataHandling.modelS import loadModelS
 from scipy.integrate import odeint
 from scipy.interpolate import interp1d
 import constants as c
@@ -291,7 +292,7 @@ def testCalmSunBottomUp():
 
 
 def testFiniteDifferences():
-    from sunSolvers.temperatureSolvers import secondCentralDifferencesMatrix
+    from sunSolvers.handySolverStuff import secondCentralDifferencesMatrix
 
     N = 100
     xs = np.sort(np.random.random(N)) * 2 * np.pi

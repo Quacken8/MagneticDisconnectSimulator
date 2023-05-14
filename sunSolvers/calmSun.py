@@ -6,7 +6,7 @@ This script models stellar interior with absent flux tube
 
 import numpy as np
 
-from dataStructure import SingleTimeDatapoint
+from dataHandling.dataStructure import SingleTimeDatapoint
 from stateEquationsPT import StateEquationInterface
 
 import constants as c

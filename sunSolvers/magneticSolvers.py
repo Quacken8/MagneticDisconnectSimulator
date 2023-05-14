@@ -4,7 +4,7 @@ import logging
 import constants as c
 from scipy.integrate import solve_bvp
 from scipy.sparse.linalg import spsolve
-from handySolverStuff import secondCentralDifferencesMatrix
+from sunSolvers.handySolverStuff import secondCentralDifferencesMatrix
 
 L = logging.getLogger(__name__)
 
