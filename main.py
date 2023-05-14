@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from dataHandling.initialConditionsSetterUpper import getInitialConditions
+from dataHandling.initialConditionsSetterUpper import getInitialConditions, getBartaInit
 from dataHandling.modelS import loadModelS
 from dataHandling.dataStructure import Data, SingleTimeDatapoint
 import constants as c
@@ -135,10 +135,12 @@ def main(
 if __name__ == "__main__":
     maxDepth = 100  # depth in Mm
     minDepth = 1  # depth in Mm
+    p0_ratio = 1  # ratio of initial pressure to the pressure at the top of the model S
     surfaceTemperature = 3500  # temperature in K
     numberOfZSteps = 100
+    dlnP = 1e-2
 
-    initialConditions = getInitialConditions()
+    initialConditions = getBartaInit(p0_ratio, maxDepth, minDepth, dlnP=dlnP)
 
     finalT = 100  # final time in hours
     numberOfTSteps = 32  # number of time steps

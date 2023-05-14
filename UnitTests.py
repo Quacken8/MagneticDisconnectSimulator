@@ -676,9 +676,15 @@ def benchamrkLinearInterpolationsWithRandomAccesses():
             np.interp(access, xs, ys)
     print(f"numpy: \t{(time.time()-now):.3e}")
 
+def getModelSEntropyFromMesa():
+    Ts = modelS.temperatures
+    Ps = modelS.pressures
+    from stateEquationsPT import MESAEOS
+    entropies = MESAEOS.entropy(Ts, Ps)
+    print(entropies)
 
 def main():
-    benchamrkLinearInterpolationsWithRandomAccesses()
+    getModelSEntropyFromMesa()
 
 
 if __name__ == "__main__":
