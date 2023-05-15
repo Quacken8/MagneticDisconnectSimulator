@@ -56,17 +56,6 @@ unitsDictionary = {
     "gamma1s": "1",
 }
 
-class DatapointArray:
-    def __init__(self, values, zs):
-        self._values = np.array(values)
-        self._zs = zs
-
-    def __getitem__(self, index):
-        return self._values[index]
-
-    def __call__(self, z):
-        return np.interp(z, self._zs, self._values)
-
 
 class SingleTimeDatapoint:
     """

@@ -676,36 +676,15 @@ def benchamrkLinearInterpolationsWithRandomAccesses():
             np.interp(access, xs, ys)
     print(f"numpy: \t{(time.time()-now):.3e}")
 
-
-def testBartasInitialModel():
-    from dataHandling.initialConditionsSetterUpper import getBartaInit
-    from dataHandling.dataVizualizer import plotSingleTimeDatapoint
+def getModelSEntropyFromMesa():
+    Ts = modelS.temperatures
+    Ps = modelS.pressures
     from stateEquationsPT import MESAEOS
-
-    maxDepth = 100  # depth in Mm
-    Ts = np.linspace(1000, 10000, 1000)
-    topP = np.interp(0, modelS.zs, modelS.pressures)
-    botS = np.interp(maxDepth*c.Mm, modelS.zs, modelS.derivedQuantities["entropies"])
-    Ss = MESAEOS.entropy(Ts, topP) - botS
-    plt.plot(Ts, Ss)
-    plt.show()
-
-    minDepth = 1  # depth in Mm
-    p0_ratio = 1  # ratio of initial pressure to the pressure at the top of the model S
-    surfaceTemperature = 3500  # temperature in K
-    numberOfZSteps = 100
-    dlnP = 1e-2
-    init = getBartaInit(
-        maxDepth=maxDepth,
-        surfaceZ=minDepth,
-        p0_ratio=p0_ratio,
-        dlnP=dlnP,
-    )
-    plotSingleTimeDatapoint(init, ["temperatures", "pressures"], log=True)
-
+    entropies = MESAEOS.entropy(Ts, Ps)
+    print(entropies)
 
 def main():
-    testBartasInitialModel()
+    getModelSEntropyFromMesa()
 
 
 if __name__ == "__main__":

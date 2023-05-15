@@ -9,7 +9,7 @@
 
 // TODO - how am i supposed to do that? If my initial value is for bottom pressure (from inlow), I need also bottom T, but schussler is fixing top temperature? -- solution the way bárta did it
 // TODO - ask about boundary conditions of B, theyre given at the top and bottom of the integration domain as opposed to using bottom value and derivative of it; use scipy boundary value problem solver?
-// TODO - get entropies from model S <- You made them using MESA, but are they in the model too?
+// TODO - get entropies from model S
 
 // TODO - rethink Data and how it stores new datapoints
 // TODO - benchmark root finding algos
