@@ -23,11 +23,12 @@ from scipy.interpolate import interp1d
 import constants as c
 import os
 from matplotlib import pyplot as plt
+import loggingConfig
 import logging
+L = loggingConfig.configureLogging(logging.DEBUG, __name__)
+L.info("hi")
+L.debug("J")
 
-logging.getLogger("matplotlib").setLevel(logging.ERROR)
-L = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
 pathToModelS = "externalData/model_S_new.dat"
 modelS = loadModelS()
@@ -683,8 +684,25 @@ def getModelSEntropyFromMesa():
     entropies = MESAEOS.entropy(Ts, Ps)
     print(entropies)
 
+def testBartaInitialConditions():
+    from dataHandling.initialConditionsSetterUpper import getBartaInit
+    p0ratio = 1
+    maxDepth = 16*c.Mm
+    surfaceDepth = 1*c.Mm
+    dlnP = 1e-3
+    initialModel = getBartaInit(p0ratio, maxDepth, surfaceDepth, dlnP)
+    from stateEquationsPT import MESAEOS
+    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(initialModel.temperatures, initialModel.pressures)
+    toPlot = ["temperatures", "pressures", "entropies"]
+    axs = plotSingleTimeDatapoint(
+        initialModel, toPlot, pltshow=False, label="Barta initial model", log=False
+    )
+    plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log=True)
+
 def main():
-    getModelSEntropyFromMesa()
+    L.info("hi")
+    L.debug("hi")
+    testBartaInitialConditions()
 
 
 if __name__ == "__main__":

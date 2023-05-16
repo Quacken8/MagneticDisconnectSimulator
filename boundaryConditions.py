@@ -5,8 +5,9 @@ from stateEquationsPT import IdealGas as StateEq
 import constants as c
 from scipy.integrate import simps
 from scipy.optimize import newton, brentq
+import loggingConfig
 import logging
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
 def getBottomB(

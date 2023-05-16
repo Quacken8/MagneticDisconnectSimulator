@@ -11,8 +11,9 @@ from dataHandling.dataStructure import (
 )
 import constants as c
 from typing import Iterable, Dict
+import loggingConfig
 import logging
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
     
 def plotSingleTimeDatapoint(
     datapoint: SingleTimeDatapoint,

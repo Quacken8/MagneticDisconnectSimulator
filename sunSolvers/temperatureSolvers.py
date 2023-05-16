@@ -4,10 +4,10 @@ from stateEquationsPT import StateEquationInterface, F_con, F_rad
 from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 import constants as c
-import logging
 from typing import Type
-
-L = logging.getLogger(__name__)
+import loggingConfig
+import logging
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 from dataHandling.dataStructure import SingleTimeDatapoint
 from typing import Callable
 from gravity import g, massBelowZ

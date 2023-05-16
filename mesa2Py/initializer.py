@@ -3,12 +3,10 @@
 # initializes everything important for mesa interface and registers cleanup functions
 import numpy as np
 import pyMesaUtils as pym
-import logging
 from dataclasses import dataclass
-
-
-L = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+import loggingConfig
+import logging
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 if not hasattr(pym, 'mesa2Py'):
     L.info("Initializing mesa interface")

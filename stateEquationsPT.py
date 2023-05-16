@@ -4,9 +4,9 @@ import constants as c
 import abc
 from dataclasses import dataclass
 from mesa2Py.eosFromMesa import getEosResult
+import loggingConfig
 import logging
-
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
 class StateEquationInterface(metaclass=abc.ABCMeta):

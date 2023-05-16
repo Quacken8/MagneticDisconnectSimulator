@@ -4,9 +4,9 @@ This file provides interface between MESA eos verson r.?? and python
 """
 import numpy as np
 import constants as c
+import loggingConfig
 import logging
-
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 try:
     mesaInit

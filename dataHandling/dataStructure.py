@@ -2,8 +2,9 @@
 import numpy as np
 import constants as c
 import os
+import loggingConfig
 import logging
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
 def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarray:

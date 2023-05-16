@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import numpy as np
-import logging
 import constants as c
 from scipy.integrate import solve_bvp
 from scipy.sparse.linalg import spsolve
 from sunSolvers.handySolverStuff import secondCentralDifferencesMatrix
-
-L = logging.getLogger(__name__)
+import loggingConfig
+import logging
+L = loggingConfig.configureLogging(logging.info, __name__)
 
 
 def rightHandSideOfYEq(y, innerP, outerP, totalMagneticFlux):

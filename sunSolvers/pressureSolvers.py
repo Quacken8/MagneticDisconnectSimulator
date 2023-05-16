@@ -8,9 +8,10 @@ from scipy.interpolate import interp1d
 import constants as c
 from dataHandling.modelS import loadModelS
 from stateEquationsPT import StateEquationInterface
+import loggingConfig
 import logging
 
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
 def integrateHydrostaticEquilibriumAndTemperatureGradient(
@@ -163,7 +164,6 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
 
 def integrateAdiabaticHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],
-    opacityFunction: Callable[[np.ndarray, np.ndarray], np.ndarray],
     dlnP: float,
     lnBoundaryPressure: float,
     boundaryTemperature: float,
@@ -210,13 +210,11 @@ def integrateAdiabaticHydrostaticEquilibrium(
         T = np.exp(zlnTArray[1])
         P = np.exp(lnP)
         gravAcc = np.array(g(z))
-        m_z = massBelowZ(z)
 
         H = StateEq.pressureScaleHeight(
             temperature=T, pressure=P, gravitationalAcceleration=gravAcc
         )
         nablaAd = StateEq.adiabaticLogGradient(temperature=T, pressure=P)
-        kappa = opacityFunction(P, T)
 
         return np.array([H, nablaAd])
 

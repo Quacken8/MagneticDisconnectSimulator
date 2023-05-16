@@ -11,10 +11,9 @@ from stateEquationsPT import StateEquationInterface
 
 import constants as c
 from typing import Type, Callable
+import loggingConfig
 import logging
-
-logging.basicConfig(level=logging.DEBUG)
-L = logging.getLogger(__name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 from sunSolvers.pressureSolvers import (
     integrateHydrostaticEquilibriumAndTemperatureGradient,
 )

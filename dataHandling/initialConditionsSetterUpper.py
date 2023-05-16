@@ -7,6 +7,10 @@ from scipy.optimize import fsolve
 import constants as c
 from sunSolvers.pressureSolvers import integrateAdiabaticHydrostaticEquilibrium
 from dataHandling.modelS import loadModelS
+import loggingConfig
+import logging
+L = loggingConfig.configureLogging(logging.INFO, __name__)
+
 
 def getInitialConditions(
     numberOfZSteps: int,
@@ -39,12 +43,10 @@ def getBartaInit(
 
     Args:
         p0_ratio (float): ratio of initial pressure to the pressure at the top of the model S
-        maxDepth (float): [Mm] depth to which integrate
-        surfaceZ (float): [Mm] depth of the surface
+        maxDepth (float): [m] depth to which integrate
+        surfaceZ (float): [m] depth of the surface
         dlnP (float, optional): [Pa] step in pressure gradient by which the integration happens. Defaults to 1e-2.
     """
-    maxDepth *= c.Mm
-    surfaceZ *= c.Mm
 
     modelS = loadModelS()
 
@@ -57,15 +59,16 @@ def getBartaInit(
         T = fsolve(lambda T: bottomS - MESAEOS.entropy(T, surfaceP), x0=guessT)[0]
         return T
 
-    sunSurfacePressure = np.interp(surfaceZ, modelS.zs, modelS.pressures)[0]
+    sunSurfacePressure = np.interp(surfaceZ, modelS.zs, modelS.pressures).item()
     lnSurfacePressure = np.log(sunSurfacePressure * p0_ratio)
+    bottomS = modelS.derivedQuantities["entropies"][-1]
+    L.debug(f"bottomS: {bottomS}")
     surfaceTemperature = surfaceTfromBottomS(
-        modelS.derivedQuantities["entropies"][-1], np.exp(lnSurfacePressure)
+        bottomS, np.exp(lnSurfacePressure)
     )
 
     initialSun = integrateAdiabaticHydrostaticEquilibrium(
         StateEq=MESAEOS,
-        opacityFunction=mesaOpacity,
         dlnP=dlnP,
         initialZ=surfaceZ,
         lnBoundaryPressure=lnSurfacePressure,
@@ -102,7 +105,6 @@ def mockupDataSetterUpper(zLength: int = 10) -> SingleTimeDatapoint:
 
 def main():
     pass
-
 
 if __name__ == "__main__":
     main()
