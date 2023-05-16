@@ -59,8 +59,13 @@ def plotSingleTimeDatapoint(
             ax.loglog(zs, dataToPlot, label=plot + " " + label, linestyle=linestyle)
         else:
             ax.plot(zs, dataToPlot, label=plot + " " + label,   linestyle=linestyle)
+        
         ax.set_xlabel(f"z [M{unitsDictionary['zs']}]")
-        ax.set_ylabel(f"{plot} [{unitsDictionary[plot]}]")
+        try:
+            ax.set_ylabel(f"{plot} [{unitsDictionary[plot]}]")
+        except KeyError:
+            L.warning(f"plotSingleTimeDatapoint: {plot} not found in unitsDictionary")
+            ax.set_ylabel(f"{plot}")
         ax.set_title(f"{title}{plot} vs depth")
         ax.legend()
 

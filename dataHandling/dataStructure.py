@@ -66,36 +66,27 @@ class SingleTimeDatapoint:
 
     def __init__(
         self,
-        temperatures: DatapointArray,
-        pressures: DatapointArray,
+        temperatures: np.ndarray,
+        pressures: np.ndarray,
         zs: np.ndarray,
-        Bs: DatapointArray | None = None,
+        Bs: np.ndarray | None = None,
         **kwargs,
     ) -> None:
         self.zs = zs
         self.numberOfZSteps = len(zs)
-        if isinstance(temperatures, DatapointArray):
-            self.temperatures = temperatures
-        else:
-            self.temperatures = DatapointArray(temperatures, zs)
+        self.temperatures = temperatures
 
-        if isinstance(pressures, DatapointArray):
-            self.pressures = pressures
-        else:
-            self.pressures = DatapointArray(pressures, zs)
+        self.pressures = pressures
 
         fundamentalVariables = dictionaryOfVariables(self)
         
         if Bs is None:
-            Bs = DatapointArray(np.zeros_like(zs), zs)
+            Bs = np.zeros_like(zs)
         self.Bs = Bs
         self.derivedQuantities = {}
 
         for key, value in kwargs.items():
-            if isinstance(value, DatapointArray):
-                self.derivedQuantities[key] = value
-            else:
-                self.derivedQuantities[key] = DatapointArray(value, zs)
+            self.derivedQuantities[key] = value
 
         self.maxDepth = zs[-1]
 
@@ -119,7 +110,7 @@ class SingleTimeDatapoint:
             try:
                 unitsDictionary[variableName.lower()]
             except KeyError:
-                raise ValueError(f"We don't have units for {variableName} defined!")
+                L.warning(f"We don't have units for {variableName} defined!")
     
     def regularizeGrid(self, nSteps:int | None = None) -> None:
         """turns current z grid into an equidistant one by linearly interpolating all variables onto it. If nSteps is given, the grid will have nSteps elements, otherwise it will use the current grid size
