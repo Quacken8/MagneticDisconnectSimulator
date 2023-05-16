@@ -27,8 +27,8 @@ def getInitialConditions(
 
     modelS = loadModelS()
 
-    initialPs = np.interp(zs, modelS.zs, modelS.pressures)
-    initialTs = np.interp(zs, modelS.zs, modelS.temperatures)
+    initialPs = modelS.pressures(zs)
+    initialTs = modelS.temperatures(zs)
     initialBs = 0
 
     raise NotImplementedError()

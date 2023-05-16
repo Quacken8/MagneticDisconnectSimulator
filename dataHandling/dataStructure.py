@@ -66,24 +66,37 @@ class SingleTimeDatapoint:
 
     def __init__(
         self,
-        temperatures: np.ndarray,
-        pressures: np.ndarray,
+        temperatures: DatapointArray,
+        pressures: DatapointArray,
         zs: np.ndarray,
-        Bs: np.ndarray | None = None,
+        Bs: DatapointArray | None = None,
         **kwargs,
     ) -> None:
         self.zs = zs
         self.numberOfZSteps = len(zs)
-        self.temperatures = temperatures
-        self.pressures = pressures
+        if isinstance(temperatures, DatapointArray):
+            self.temperatures = temperatures
+        else:
+            self.temperatures = DatapointArray(temperatures, zs)
+
+        if isinstance(pressures, DatapointArray):
+            self.pressures = pressures
+        else:
+            self.pressures = DatapointArray(pressures, zs)
+
         fundamentalVariables = dictionaryOfVariables(self)
+        
         if Bs is None:
-            Bs = np.zeros_like(zs)
+            Bs = DatapointArray(np.zeros_like(zs), zs)
         self.Bs = Bs
         self.derivedQuantities = {}
 
         for key, value in kwargs.items():
-            self.derivedQuantities[key] = value
+            if isinstance(value, DatapointArray):
+                self.derivedQuantities[key] = value
+            else:
+                self.derivedQuantities[key] = DatapointArray(value, zs)
+
         self.maxDepth = zs[-1]
 
         self.allVariables = (
