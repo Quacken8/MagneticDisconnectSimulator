@@ -146,7 +146,7 @@ class Data:
             raise ValueError("your start T equals end T")
         self.finalT = finalT
         self.times = np.linspace(start=startT, stop=self.finalT, num=numberOfTSteps)
-        L.warn("Assuming uniform timestep when creating data")
+        L.info("Assuming uniform timestep when creating data")
         self.numberOfTSteps = numberOfTSteps
 
         self.datapoints = np.empty(self.numberOfTSteps, dtype=SingleTimeDatapoint)

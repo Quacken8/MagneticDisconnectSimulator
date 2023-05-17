@@ -476,7 +476,6 @@ def F_con(
         * np.power(temperature * differenceOfGradients, 1.5)
     )
     # TODO equation 10 from rempel schussler
-    raise NotImplementedError()
     return toReturn
 
 

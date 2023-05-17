@@ -20,6 +20,7 @@ def oldTSolver(
     StateEq: Type[StateEquationInterface],
     opacityFunction: Callable[[np.ndarray, np.ndarray], np.ndarray],
     surfaceTemperature: float,
+    convectiveAlpha: float,
 ) -> np.ndarray:
     """
     solves the T equation the same way Bárta did
@@ -47,7 +48,7 @@ def oldTSolver(
     cps = StateEq.cp(Ts, Ps)
     m_zs = massBelowZ(zs)
     F_cons = F_con(
-        convectiveAlpha=0,
+        convectiveAlpha=convectiveAlpha,
         temperature=Ts,
         pressure=Ps,
         meanMolecularWeight=StateEq.meanMolecularWeight(Ts, Ps),
@@ -80,7 +81,7 @@ def oldTSolver(
     lambdas = 2 * A / (dz * dz)
     mus = gradA - 0.5 * lambdas
     nus = -gradA - 0.5 * lambdas
-    M = diags([mus, lambdas, nus], [-1, 0, 1], shape=(len(zs), len(zs)))  # type: ignore
+    M = diags([mus, lambdas, nus], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
 
     fs = (
         centeredDifferencesM.dot(F_cons) + 2 * rhos * cps * Ts / dt

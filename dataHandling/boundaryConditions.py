@@ -102,9 +102,9 @@ def getAdjustedBottomPressure(
         x0 = initialGuess,
         full_output = True,
         )
-        if not r.converged: raise ValueError("Newton method did not converge")
+        if not r.converged: raise RuntimeError("Newton method did not converge")
 
-    except ValueError or RuntimeError:
+    except RuntimeError:
         L.warn("Newton method did not converge, trying Brent's method")
         upperBoundary = currentPs[-1]*1.1 # FIXME get a better guess for these
         lowerBoundary = bottomExternalPressure

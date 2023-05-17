@@ -11,6 +11,7 @@
 // TODO - ask about boundary conditions of B, theyre given at the top and bottom of the integration domain as opposed to using bottom value and derivative of it; use scipy boundary value problem solver?
 // TODO - get entropies from model S
 // FIXME - check the simulation isnt overshooting the calm sun model. You added padding in main but it might not be enough
+// TODO - get some smart upflow velocity and total magentic flux numbers in main
 
 // TODO - rethink Data and how it stores new datapoints
 // TODO - benchmark root finding algos
