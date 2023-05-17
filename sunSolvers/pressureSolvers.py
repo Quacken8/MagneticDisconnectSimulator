@@ -22,7 +22,6 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     boundaryTemperature: float,
     initialZ: float,
     finalZ: float,
-    guessTheZRange: bool = True,
     regularizeGrid: bool = False,
 ) -> SingleTimeDatapoint:
     """
@@ -79,78 +78,33 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
 
     # initial conditions
     currentZlnTValues = np.array([initialZ, np.log(boundaryTemperature)])
-    currentZ = initialZ
-    lnPressure = lnBoundaryPressure
 
-    if guessTheZRange == False:  # FIXME this doesnt work
-        # set up the scipy integrator
-        ODEIntegrator = ode(setOfODEs)
-        ODEIntegrator.set_integrator(
-            "dopri5"
-        )  # TODO make sure this is a good choice for integrator
-        ODEIntegrator.set_initial_value(currentZlnTValues, lnPressure)
+    # get the guess of the integration domain
 
-        # set up the arrays that will be filled with the results
-        sunZs = [currentZ]
-        sunTs = [boundaryTemperature]
-        sunPs = [np.exp(lnPressure)]
+    paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 102 % of the ln(pressure) expected at maxDepth
+    modelS = loadModelS()
+    modelPs = modelS.pressures
+    modelZs = modelS.zs
+    finalPGuess = np.interp(finalZ, modelZs, modelPs)
 
-        # find out the direction of the integration
-        bottomUp = finalZ > initialZ
-        if bottomUp:
-            dlnP *= -1
+    # get rid of these they might be big
+    del modelS, modelPs, modelZs
 
-        # integrate
-        L.info("Integrating hydrostatic equilibrium")
+    bottomUp = initialZ > finalZ # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
+    finalLnPGuess = np.log(finalPGuess) * (1 + (- paddingFactor if bottomUp else paddingFactor))
 
-        while currentZ < finalZ if bottomUp else currentZ > finalZ:
-            # integrate to the next pressure step
-            nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t - dlnP)
-            nextZ = nextZlnTValues[0]
-            nextT = np.exp(nextZlnTValues[1])
-            nextP = np.exp(ODEIntegrator.t + dlnP)
+    # set up the integration itself
+    sunLnPs = np.arange(lnBoundaryPressure, finalLnPGuess, dlnP)
 
-            # append the results
-            sunZs.append(nextZ)
-            sunTs.append(nextT)
-            sunPs.append(nextP)
+    sunZs, sunLnTs = odeint(
+        func=setOfODEs,
+        y0=currentZlnTValues,
+        t=sunLnPs,
+        tfirst=True,
+    ).T
 
-            # update the current values
-            currentZlnTValues = nextZlnTValues
-            currentZ = nextZ
-
-            if ODEIntegrator.successful() == False:
-                raise Exception(
-                    f"Integration of pressure failed at z={currentZ/c.Mm} Mm"
-                )
-
-    elif guessTheZRange == True:
-        # get the guess of the integration domain
-
-        paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth
-        modelS = loadModelS()
-        modelPs = modelS.pressures
-        modelZs = modelS.zs
-        minPGuess = np.interp(finalZ, modelZs, modelPs)
-
-        # get rid of these they might be big
-        del modelS, modelPs, modelZs
-
-        minLnPGuess = np.log(minPGuess) * (1 - paddingFactor)
-
-        # set up the integration itself
-        sunLnPs = np.arange(lnBoundaryPressure, minLnPGuess, dlnP)
-
-        sunZs, sunLnTs = odeint(
-            func=setOfODEs,
-            y0=currentZlnTValues,
-            t=sunLnPs,
-            tfirst=True,
-            printmessg=True,
-        ).T
-
-        sunPs = np.exp(sunLnPs)
-        sunTs = np.exp(sunLnTs)
+    sunPs = np.exp(sunLnPs)
+    sunTs = np.exp(sunLnTs)
 
     sun = SingleTimeDatapoint(
         zs=np.array(sunZs),
@@ -161,7 +115,6 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
         sun.regularizeGrid()
     return sun
 
-
 def integrateAdiabaticHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],
     dlnP: float,
@@ -169,7 +122,6 @@ def integrateAdiabaticHydrostaticEquilibrium(
     boundaryTemperature: float,
     initialZ: float,
     finalZ: float,
-    guessTheZRange: bool = True,
     regularizeGrid: bool = False,
 ) -> SingleTimeDatapoint:
     """
@@ -220,78 +172,33 @@ def integrateAdiabaticHydrostaticEquilibrium(
 
     # initial conditions
     currentZlnTValues = np.array([initialZ, np.log(boundaryTemperature)])
-    currentZ = initialZ
-    lnPressure = lnBoundaryPressure
 
-    if guessTheZRange == False:  # FIXME this doesnt work
-        # set up the scipy integrator
-        ODEIntegrator = ode(setOfODEs)
-        ODEIntegrator.set_integrator(
-            "dopri5"
-        )  # TODO make sure this is a good choice for integrator
-        ODEIntegrator.set_initial_value(currentZlnTValues, lnPressure)
+    # get the guess of the integration domain
 
-        # set up the arrays that will be filled with the results
-        sunZs = [currentZ]
-        sunTs = [boundaryTemperature]
-        sunPs = [np.exp(lnPressure)]
+    paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth
+    modelS = loadModelS()
+    modelPs = modelS.pressures
+    modelZs = modelS.zs
+    finalPGuess = np.interp(finalZ, modelZs, modelPs)
 
-        # find out the direction of the integration
-        bottomUp = finalZ > initialZ
-        if bottomUp:
-            dlnP *= -1
+    # get rid of these they might be big
+    del modelS, modelPs, modelZs
 
-        # integrate
-        L.info("Integrating hydrostatic equilibrium")
+    bottomUp = initialZ > finalZ # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
+    finalLnPGuess = np.log(finalPGuess) * (1 + (- paddingFactor if bottomUp else paddingFactor))
 
-        while currentZ < finalZ if bottomUp else currentZ > finalZ:
-            # integrate to the next pressure step
-            nextZlnTValues = ODEIntegrator.integrate(ODEIntegrator.t - dlnP)
-            nextZ = nextZlnTValues[0]
-            nextT = np.exp(nextZlnTValues[1])
-            nextP = np.exp(ODEIntegrator.t + dlnP)
+    # set up the integration itself
+    sunLnPs = np.arange(lnBoundaryPressure, finalLnPGuess, dlnP)
 
-            # append the results
-            sunZs.append(nextZ)
-            sunTs.append(nextT)
-            sunPs.append(nextP)
+    sunZs, sunLnTs = odeint(
+        func=setOfODEs,
+        y0=currentZlnTValues,
+        t=sunLnPs,
+        tfirst=True,
+    ).T
 
-            # update the current values
-            currentZlnTValues = nextZlnTValues
-            currentZ = nextZ
-
-            if ODEIntegrator.successful() == False:
-                raise Exception(
-                    f"Integration of pressure failed at z={currentZ/c.Mm} Mm"
-                )
-
-    elif guessTheZRange == True:
-        # get the guess of the integration domain
-
-        paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth
-        modelS = loadModelS()
-        modelPs = modelS.pressures
-        modelZs = modelS.zs
-        minPGuess = np.interp(finalZ, modelZs, modelPs)
-
-        # get rid of these they might be big
-        del modelS, modelPs, modelZs
-
-        minLnPGuess = np.log(minPGuess) * (1 - paddingFactor)
-
-        # set up the integration itself
-        sunLnPs = np.arange(lnBoundaryPressure, minLnPGuess, dlnP)
-
-        sunZs, sunLnTs = odeint(
-            func=setOfODEs,
-            y0=currentZlnTValues,
-            t=sunLnPs,
-            tfirst=True,
-            printmessg=True,
-        ).T
-
-        sunPs = np.exp(sunLnPs)
-        sunTs = np.exp(sunLnTs)
+    sunPs = np.exp(sunLnPs)
+    sunTs = np.exp(sunLnTs)
 
     sun = SingleTimeDatapoint(
         zs=np.array(sunZs),
@@ -301,7 +208,6 @@ def integrateAdiabaticHydrostaticEquilibrium(
     if regularizeGrid:
         sun.regularizeGrid()
     return sun
-
 
 def integrateHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],

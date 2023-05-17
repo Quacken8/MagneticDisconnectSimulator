@@ -11,6 +11,10 @@ from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
 from sunSolvers.magneticSolvers import oldYSolver
 from stateEquationsPT import MESAEOS
 from opacity import mesaOpacity
+from loggingConfig import configureLogging
+import logging
+
+L = configureLogging(logging.INFO, __name__)
 
 
 modelS = loadModelS()
@@ -46,16 +50,25 @@ def main(
     # turn user input to SI
     finalT *= c.hour
     maxDepth *= c.Mm
-
+    L.info("Prepairing background reference...")
     # first prepare calm sun as a reference of background outside pressure
+    calmMaxDepth = maxDepth * 1.3  # just a bit of padding to be sure
+    calmMinDepth = -1e5  # TODO these may need adjusting
+
     calmSun = getCalmSunDatapoint(
         StateEq=MESAEOS,
         opacityFunction=mesaOpacity,
         dlnP=dlnP,
-        lnSurfacePressure=np.log(backgroundReference.pressures[-1]),
-        surfaceTemperature=backgroundReference.temperatures[-1],
-        surfaceZ=backgroundReference.zs[-1],
-        maxDepth=maxDepth,
+        lnSurfacePressure=np.log(
+            np.interp(
+                calmMinDepth, backgroundReference.zs, backgroundReference.pressures
+            ).item()
+        ),
+        surfaceTemperature=np.interp(
+            calmMinDepth, backgroundReference.zs, backgroundReference.temperatures
+        ).item(),
+        surfaceZ=calmMinDepth,
+        maxDepth=calmMaxDepth,
     )
 
     externalPressures = calmSun.pressures[:]
@@ -70,12 +83,12 @@ def main(
     currentState = initialConditions
     data.addDatapointAtIndex(currentState, 0)
     lastYs = np.sqrt(
-        currentState.Bs
+        currentState.bs
     )  # these will be used as initial guess for the magnetic equation
     surfaceTemperature = currentState.temperatures[
         0
     ]  # this will be held constant during the simulation
-
+    L.info("Starting simulation...")
     time = 0
     while time < finalT:
         time += dt  # TODO maybe use non constant dt?
@@ -122,11 +135,11 @@ def main(
             zs=newZs,
             temperatures=newTs,
             pressures=newPs,
-            Bs=newBs,
+            bs=newBs,
         )
 
         data.appendDatapoint(currentState)
-
+    L.info(f"Simulation finished, saving results to folder {outputFolderName}")
     data.saveToFolder(outputFolderName)
     raise NotImplementedError("this is not finished yet")
     visualizeData(data)

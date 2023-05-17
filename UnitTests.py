@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from sympy import li
 from dataHandling.dataStructure import (
     Data,
     SingleTimeDatapoint,
@@ -12,6 +13,7 @@ from stateEquationsPT import IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
 from dataHandling.dataVizualizer import plotSingleTimeDatapoint
 from sunSolvers.pressureSolvers import (
+    integrateAdiabaticHydrostaticEquilibrium,
     integrateHydrostaticEquilibriumAndTemperatureGradient,
 )
 import time
@@ -26,8 +28,6 @@ from matplotlib import pyplot as plt
 import loggingConfig
 import logging
 L = loggingConfig.configureLogging(logging.DEBUG, __name__)
-L.info("hi")
-L.debug("J")
 
 
 pathToModelS = "externalData/model_S_new.dat"
@@ -63,7 +63,6 @@ def testCalmSunVsModelS():
         surfaceZ=surfaceZ,
         maxDepth=maxDepth,
         opacityFunction=mesaOpacity,
-        guessTheZRange=True,
     )
     calmSunWithModelSOpacity = getCalmSunDatapoint(
         StateEq=MESAEOS,
@@ -73,7 +72,6 @@ def testCalmSunVsModelS():
         surfaceZ=surfaceZ,
         maxDepth=maxDepth,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
     print("time elapsed: ", time.time() - now)
     toPlot = ["temperatures", "pressures"]
@@ -91,7 +89,6 @@ def testCalmSunVsModelS():
     plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log=True)
     plt.legend()
     plt.show()
-
 
 def testIDLOutput():
     modelSPressures = modelS.pressures
@@ -160,7 +157,6 @@ def testIDLOutput():
 
     plt.show()
 
-
 def testNewIDLOutput():
     zsS, pressureS, temperatureS, kappaS = (
         modelS.zs,
@@ -201,7 +197,6 @@ def testNewIDLOutput():
 
     plt.show()
 
-
 def testCalmSunVsIDLS():
     idlZs, idlPs, idlTs = np.loadtxt(
         "debuggingReferenceFromSvanda/anotherIdlOutput.dat",
@@ -239,7 +234,6 @@ def testCalmSunVsIDLS():
         surfaceZ=surfaceZ,
         maxDepth=maxDepth,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
     print("time elapsed: ", time.time() - now)
     toPlot = ["temperatures", "pressures"]
@@ -280,7 +274,6 @@ def testCalmSunBottomUp():
         surfaceZ=surfaceZ,
         maxDepth=maxDepth,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
     print("time elapsed: ", time.time() - now)
     toPlot = ["temperatures", "pressures"]
@@ -359,7 +352,6 @@ def testIDLAsDatapoint():
     from gravity import g, massBelowZ
 
     now = time.time()
-    convectiveAlpha = 0.3
     calmSun = getCalmSunDatapoint(
         StateEq=MESAEOS,
         dlnP=1e-2,
@@ -368,7 +360,6 @@ def testIDLAsDatapoint():
         surfaceZ=zs[0],
         maxDepth=160 * c.Mm,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
     calmSun.derivedQuantities["rhos"] = MESAEOS.density(
         calmSun.temperatures, calmSun.pressures
@@ -400,7 +391,6 @@ def testIDLAsDatapoint():
         surfaceZ=zs[0],
         maxDepth=160 * c.Mm,
         opacityFunction=mesaOpacity,
-        guessTheZRange=True,
     )
     calmSunWithMesaOpacity.derivedQuantities["rhos"] = MESAEOS.density(
         calmSunWithMesaOpacity.temperatures, calmSunWithMesaOpacity.pressures
@@ -512,7 +502,6 @@ def testBottomUpVsTopDown():
         surfaceZ=surfaceZ,
         maxDepth=30 * c.Mm,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
 
     topZ = topDownSun.zs[-1]
@@ -527,7 +516,6 @@ def testBottomUpVsTopDown():
         surfaceZ=topZ,
         maxDepth=surfaceZ,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
 
     toPlot = ["temperatures", "pressures"]
@@ -573,7 +561,6 @@ def plotCalmSunZs():
         surfaceZ=surfaceZ,
         maxDepth=maxDepth,
         opacityFunction=modelSNearestOpacity,
-        guessTheZRange=True,
     )
     print("time elapsed: ", time.time() - now)
 
@@ -679,6 +666,7 @@ def benchamrkLinearInterpolationsWithRandomAccesses():
             np.interp(access, xs, ys)
     print(f"numpy: \t{(time.time()-now):.3e}")
 
+
 def getModelSEntropyFromMesa():
     Ts = modelS.temperatures
     Ps = modelS.pressures
@@ -686,26 +674,81 @@ def getModelSEntropyFromMesa():
     entropies = MESAEOS.entropy(Ts, Ps)
     print(entropies)
 
+
 def testBartaInitialConditions():
     from dataHandling.initialConditionsSetterUpper import getBartaInit
     p0ratio = 1
     maxDepth = 16*c.Mm
-    surfaceDepth = 1*c.Mm
+    surfaceDepth = 0*c.Mm
     dlnP = 1e-3
     initialModel = getBartaInit(p0ratio, maxDepth, surfaceDepth, dlnP)
     from stateEquationsPT import MESAEOS
     initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(initialModel.temperatures, initialModel.pressures)
-    toPlot = ["temperatures", "pressures", "entropies"]
+    toPlot = ["temperatures", "pressures", "entropies", "bs"]
     axs = plotSingleTimeDatapoint(
         initialModel, toPlot, pltshow=False, label="Barta initial model", log=False
     )
     plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log=True)
 
 
+def testAdiabaticHydrostaticEquilibrium():
+    from stateEquationsPT import MESAEOS
+    from sunSolvers.pressureSolvers import integrateHydrostaticEquilibriumAndTemperatureGradient
+    from opacity import mesaOpacity
+    surfaceZ = 0 * c.Mm
+    maxDepth = 160 * c.Mm
+    surfaceT = np.interp(surfaceZ, modelS.zs, modelS.temperatures).item()
+    surfaceP = np.interp(surfaceZ, modelS.zs, modelS.pressures).item()
+    dlnP = 1e-2
+    initialModel = integrateAdiabaticHydrostaticEquilibrium(
+        StateEq=MESAEOS,
+        dlnP=dlnP,
+        lnBoundaryPressure=np.log(surfaceP),
+        boundaryTemperature=surfaceT,
+        initialZ=surfaceZ,
+        finalZ=maxDepth,
+    )
+    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(initialModel.temperatures, initialModel.pressures)
+
+    nonAdiabaticiInitialModel = integrateHydrostaticEquilibriumAndTemperatureGradient(
+        StateEq=MESAEOS,
+        dlnP=dlnP,
+        lnBoundaryPressure=np.log(surfaceP),
+        boundaryTemperature=surfaceT,
+        initialZ=surfaceZ,
+        finalZ=maxDepth,
+        opacityFunction=mesaOpacity,
+    )
+    nonAdiabaticiInitialModel.derivedQuantities["entropies"] = MESAEOS.entropy(nonAdiabaticiInitialModel.temperatures, nonAdiabaticiInitialModel.pressures)
+    calmSun = getCalmSunDatapoint(
+        StateEq=MESAEOS,
+        dlnP=dlnP,
+        lnSurfacePressure=np.log(surfaceP),
+        surfaceTemperature=surfaceT,
+        surfaceZ=surfaceZ,
+        maxDepth=maxDepth,
+        opacityFunction=mesaOpacity,
+    )
+    calmSun.derivedQuantities["entropies"] = MESAEOS.entropy(calmSun.temperatures, calmSun.pressures)
+
+    toPlot = ["entropies", "temperatures", "pressures"]
+    axs = plotSingleTimeDatapoint(
+        modelS, toPlot, pltshow=False, label="Model S", log=False
+    )
+    axs = plotSingleTimeDatapoint(
+        calmSun, toPlot, axs=axs, label="Calm Sun", log=False, pltshow=False
+    )
+    axs = plotSingleTimeDatapoint(
+        nonAdiabaticiInitialModel, toPlot, axs=axs, label="Non adiabatic Hydrostatic Equilibrium", log=False, pltshow=False, linestyle=":"
+    )
+    plotSingleTimeDatapoint(
+        initialModel, toPlot, pltshow=True, axs = axs, label="Adiabatic Hydrostatic Equilibrium", log=False, linestyle="--"
+    )
+
 def main():
-    L.info("hi")
-    L.debug("hi")
     testBartaInitialConditions()
+    pass
+    pass
 
 
 if __name__ == "__main__":

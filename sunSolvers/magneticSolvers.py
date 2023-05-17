@@ -6,7 +6,7 @@ from scipy.sparse.linalg import spsolve
 from sunSolvers.handySolverStuff import secondCentralDifferencesMatrix
 import loggingConfig
 import logging
-L = loggingConfig.configureLogging(logging.info, __name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
 def rightHandSideOfYEq(y, innerP, outerP, totalMagneticFlux):
@@ -78,7 +78,6 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux):
     yYgradArray = integrationResult.y
 
     return yYgradArray[:, 0]
-
 
 def oldYSolver(
     zs: np.ndarray,

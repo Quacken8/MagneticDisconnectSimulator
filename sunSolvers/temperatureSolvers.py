@@ -42,10 +42,22 @@ def oldTSolver(
     Ts = currentState.temperatures
     Ps = currentState.pressures
 
+    opacities = opacityFunction(Ts, Ps)
     rhos = StateEq.density(Ts, Ps)
     cps = StateEq.cp(Ts, Ps)
-    F_cons = currentState.derivedQuantities["F_cons"]
-    opacities = opacityFunction(Ts, Ps)  # TODO maybe save them in the datapoint?
+    m_zs = massBelowZ(zs)
+    F_cons = F_con(
+        convectiveAlpha=0,
+        temperature=Ts,
+        pressure=Ps,
+        meanMolecularWeight=StateEq.meanMolecularWeight(Ts, Ps),
+        adiabaticGrad=StateEq.adiabaticLogGradient(Ts, Ps),
+        radiativeGrad=StateEq.radiativeLogGradient(Ts, Ps, m_zs, opacities),
+        c_p=cps,
+        pressureScaleHeight=StateEq.pressureScaleHeight(Ts, Ps, g(zs)),
+        opacity=opacities,
+        gravitationalAcceleration=g(zs),
+    )
 
     bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], g(zs[-1]))
     bottomNablaAd = StateEq.adiabaticLogGradient(Ts[-1], Ps[-1])

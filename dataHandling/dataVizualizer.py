@@ -53,12 +53,12 @@ def plotSingleTimeDatapoint(
             try:
                 dataToPlot = datapoint.derivedQuantities[plot]
             except KeyError:
-                L.info(f"plotSingleTimeDatapoint: {plot} not found in datapoint")
+                L.info(f"plotSingleTimeDatapoint: {plot} not found in datapoint {label}")
                 continue
         if log:
-            ax.loglog(zs, dataToPlot, label=plot + " " + label, linestyle=linestyle)
+            ax.loglog(zs, dataToPlot, label=label, linestyle=linestyle)
         else:
-            ax.plot(zs, dataToPlot, label=plot + " " + label,   linestyle=linestyle)
+            ax.plot(zs, dataToPlot, label=label,   linestyle=linestyle)
         
         ax.set_xlabel(f"z [M{unitsDictionary['zs']}]")
         try:

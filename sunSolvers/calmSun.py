@@ -27,7 +27,6 @@ def getCalmSunDatapoint(
     surfaceTemperature: float,
     surfaceZ: float,
     maxDepth: float,
-    guessTheZRange: bool = False,
 ) -> SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to calm sun (i.e. one without the flux tube). This model (especially the pressure) is necessary for the calculation of B. It integrates hydrostatic equilibrium (which boils down to solving a set of two ODEs that are a function of logP)
@@ -44,7 +43,7 @@ def getCalmSunDatapoint(
     guessTheZRange : if True, will estimate what pressure is at maxDepth using model S, adds a bit of padding (20 %) to it just ot be sure and uses scipy in a bit faster.
     You don't get the exactly correct z range, but it is ~3 times faster
     """
-
+    L.info("integrating calm Sun")
     calmSun = integrateHydrostaticEquilibriumAndTemperatureGradient(
         StateEq=StateEq,
         opacityFunction=opacityFunction,
@@ -53,7 +52,6 @@ def getCalmSunDatapoint(
         boundaryTemperature=surfaceTemperature,
         initialZ=surfaceZ,
         finalZ=maxDepth,
-        guessTheZRange=guessTheZRange,
     )
 
     return calmSun

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
+from pyrsistent import b
 from dataHandling.dataStructure import SingleTimeDatapoint, Data, subsampleArray
 from stateEquationsPT import MESAEOS
 from opacity import mesaOpacity
@@ -10,7 +11,16 @@ from dataHandling.modelS import loadModelS
 import loggingConfig
 import logging
 L = loggingConfig.configureLogging(logging.INFO, __name__)
+from dataHandling.boundaryConditions import getTopB
 
+def initialBottomB(z:float) -> float:
+    """
+    returns the initial magnetic field strength at depth z inspired by schussler and rempel 2005
+    """
+    bAt12andhalfMm = 1e3*c.Gauss
+    bAt0Mm = getTopB()
+
+    return np.interp(z, [0, 12.5*c.Mm], [bAt0Mm, bAt12andhalfMm]).item()
 
 def getInitialConditions(
     numberOfZSteps: int,
@@ -27,15 +37,15 @@ def getInitialConditions(
 
     modelS = loadModelS()
 
+    raise NotImplementedError()
     initialPs = modelS.pressures(zs)
     initialTs = modelS.temperatures(zs)
     initialBs = 0
 
-    raise NotImplementedError()
 
 
 def getBartaInit(
-    p0_ratio: float, maxDepth: float, surfaceZ: float, dlnP: float = 1e-2
+    p0_ratio: float, maxDepth: float, surfaceZ: float, dlnP: float = 1e-2, bottomB: float | None = None, topB: float | None = None
 ) -> SingleTimeDatapoint:
     """
     Returns an adiabatic calm sun but with top pressure scaled relative to model S by p0_ratio and top temperature corresponding to bottom entropy (by which acting as if the whole tube is adiabatic)
@@ -61,11 +71,14 @@ def getBartaInit(
 
     sunSurfacePressure = np.interp(surfaceZ, modelS.zs, modelS.pressures).item()
     lnSurfacePressure = np.log(sunSurfacePressure * p0_ratio)
-    bottomS = modelS.derivedQuantities["entropies"][-1]
-    L.debug(f"bottomS: {bottomS}")
+    bottomS = np.interp(maxDepth, modelS.zs, modelS.derivedQuantities["entropies"])
     surfaceTemperature = surfaceTfromBottomS(
-        bottomS, np.exp(lnSurfacePressure)
+        bottomS = bottomS, surfaceP = np.exp(lnSurfacePressure)
     )
+    L.debug(f"bottomS: {bottomS}")
+    L.debug(f"surfaceT: {surfaceTemperature}")
+    L.debug(f"surfaceP: {sunSurfacePressure * p0_ratio}")
+
 
     initialSun = integrateAdiabaticHydrostaticEquilibrium(
         StateEq=MESAEOS,
@@ -74,7 +87,14 @@ def getBartaInit(
         lnBoundaryPressure=lnSurfacePressure,
         finalZ=maxDepth,
         boundaryTemperature=surfaceTemperature,
+        regularizeGrid=True,
     )
+    if bottomB is None:
+        bottomB = initialBottomB(maxDepth)
+    if topB is None:
+        topB = getTopB()
+    bs = np.linspace(bottomB, topB, num=initialSun.zs.size)
+    initialSun.bs = bs
 
     return initialSun
 

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-This file provides interface between MESA eos verson r.?? and python 
+This file provides interface between MESA eos verson r22.11.1 and python 
 """
 import numpy as np
 import constants as c
 import loggingConfig
 import logging
 L = loggingConfig.configureLogging(logging.INFO, __name__)
-
 try:
     mesaInit
 except NameError:

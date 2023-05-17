@@ -69,7 +69,7 @@ class SingleTimeDatapoint:
         temperatures: np.ndarray,
         pressures: np.ndarray,
         zs: np.ndarray,
-        Bs: np.ndarray | None = None,
+        bs: np.ndarray | None = None,
         **kwargs,
     ) -> None:
         self.zs = zs
@@ -80,9 +80,9 @@ class SingleTimeDatapoint:
 
         fundamentalVariables = dictionaryOfVariables(self)
         
-        if Bs is None:
-            Bs = np.zeros_like(zs)
-        self.Bs = Bs
+        if bs is None:
+            bs = np.zeros_like(zs)
+        self.bs = bs
         self.derivedQuantities = {}
 
         for key, value in kwargs.items():
