@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
+from hmac import new
+from typing import Type
 import numpy as np
 from dataHandling.dataStructure import SingleTimeDatapoint
-from stateEquationsPT import IdealGas as StateEq
+from stateEquationsPT import StateEquationInterface, MESAEOS
 import constants as c
 from scipy.integrate import simps
 from scipy.optimize import newton, brentq
 import loggingConfig
 import logging
+
+from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
+
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
@@ -28,14 +33,18 @@ def getTopB() -> float:
 
 def getAdjustedBottomPressure(
     currentState: SingleTimeDatapoint,
+    newTs: np.ndarray,
     bottomExternalPressure: float,
+    dlnP: float,
     dt: float,
     upflowVelocity: float,
     totalMagneticFlux: float,
+    StateEq: Type[StateEquationInterface] = MESAEOS,
 ) -> float:
     """
     boundary condition of pressure is only given on the bottom
     returns pressure at the bottom of the flux tube calculated from assumption that it should change based on the inflow of material trough the bottom boundary. Schüssler and Rempel 2018 eq 15
+    mass(p + dp) - mass(p) - deltaMass = 0
     """
 
     def massOfFluxTube(densities, Bs, zs, totalMagneticFlux):
@@ -44,90 +53,68 @@ def getAdjustedBottomPressure(
         """
         return totalMagneticFlux * simps(densities / Bs, zs)
 
-    def massAfterPressureAdjustment(
-        unadjustedMass, bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity
-    ):
+    def deltaMass(bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity):
         """
         equation 15 in Schüssler and Rempel 2018
 
         approimation of how the total mass should change if the values of p, B and rho change at the bottom
         """
-        return (
-            unadjustedMass
-            + totalMagneticFlux * upflowVelocity * dt * bottomDensity / bottomB
-        )
+        return totalMagneticFlux * upflowVelocity * dt * bottomDensity / bottomB
 
-    zs = currentState.zs
-    currentPs = currentState.pressures[:]
-    currentTs = currentState.temperatures[:]
-    currentRhos = StateEq.density(pressure=currentPs, temperature=currentTs)
+    # -------------------
+    # cache stuff for toFindRootOf(bottomPressure) that doesnt use the bottomPressure
 
-    currentBs = currentState.bs[:]
+    # first get old mass from current state
+    oldRhos = StateEq.density(currentState.temperatures, currentState.pressures)
+    oldPs = currentState.pressures
+    oldBs = currentState.bs
+    oldZs = currentState.zs
+    oldMass = massOfFluxTube(oldRhos, oldBs, oldZs, totalMagneticFlux)
 
-    # see for what adjustment of pressure at the bottom (dictated by inflow of material) will the mass of the whole tube change according to approximation via function massAfterPressureAdjustment
-
-    bottomRho = currentRhos[
-        -1
-    ]  # note that in "massAfterPressureAdjustment" we use the current density. Schüssler and Rempel 2018 explicitly argues that change of bottomP affects both bottomB and bottomRho, however the effect on magnetic field is much stronger than that on the density. Same reasoning applies to the first argument of the massOfFluxTube
-
-    arrayDelta = np.zeros(currentState.numberOfZSteps)
-    arrayDelta[
-        -1
-    ] = 1  # purpose of this variable is to have the change of a variable at the bottom of the flux tube; just multiply this by a scalar and you can add it to the whole array
-
-    currentBottomB = getBottomB(
-        externalPressure=bottomExternalPressure, bottomPressure=currentPs[-1]
+    # second get the mass adjustment
+    massAdjustment = deltaMass(
+        bottomDensity=oldRhos[-1], # FIXME should this be ρ(newT, bottomP) or ρ(newT, newP) or ρ(newT, oldP)?
+        bottomB=oldBs[-1], # FIXME and here?? B(Pe, oldPi) or B(Pe, newPi)
+        totalMagneticFlux=totalMagneticFlux, 
+        dt=dt,
+        upflowVelocity=upflowVelocity,
     )
 
-    DeltaP = 0
+    def toFindRootOf(bottomPressure):
+        """
+        returns the value of the function that should be zero
+        """
+
+        # third get new pressures from the bottom one (i.e. the variable we are solving for)
+        newDatapoint = integrateHydrostaticEquilibrium(
+            StateEq=StateEq,
+            referenceZs=currentState.zs,
+            referenceTs=newTs,
+            dlnP = dlnP,
+            lnBoundaryPressure=np.log(bottomPressure),
+            initialZ=currentState.zs[-1],
+            finalZ=currentState.zs[0],
+            regularizeGrid=True
+        )
+        newPs = newDatapoint.pressures
+        newZs = newDatapoint.zs
+        newRhos = StateEq.density(newTs, newPs)
+        
+        # and the new mass
+        newMass = massOfFluxTube(newRhos, oldBs, newZs, totalMagneticFlux)
+
+        # and return the zero
+        return newMass - oldMass - massAdjustment
+    
+    # and now just fund the root
+
+    # first try newton
     try:
-        initialGuess = currentPs[-1]
-        DeltaP, r = newton( # type: ignore ye idk what the deal is here
-            lambda DeltaP: massAfterPressureAdjustment(
-            massOfFluxTube(
-                currentRhos, currentBs, zs=zs, totalMagneticFlux=totalMagneticFlux
-            ),
-            currentBottomB,
-            bottomRho,
-            totalMagneticFlux,
-            dt,
-            upflowVelocity,
-        )
-        - massOfFluxTube(
-            currentRhos,
-            currentBs + arrayDelta * DeltaP,
-            zs=zs,
-            totalMagneticFlux=totalMagneticFlux,
-        ),
-        x0 = initialGuess,
-        full_output = True,
-        )
-        if not r.converged: raise RuntimeError("Newton method did not converge")
-
+        newPGuess = oldPs[-1]
+        newP = brentq(toFindRootOf, a=oldPs[-1], b=bottomExternalPressure) # FIXME get good bounds
+        newP = newton(toFindRootOf, x0=newPGuess)
     except RuntimeError:
-        L.warn("Newton method did not converge, trying Brent's method")
-        upperBoundary = currentPs[-1]*1.1 # FIXME get a better guess for these
-        lowerBoundary = bottomExternalPressure
-        DeltaP = brentq(
-            lambda DeltaP: massAfterPressureAdjustment(
-                massOfFluxTube(
-                    currentRhos, currentBs, zs=zs, totalMagneticFlux=totalMagneticFlux
-                ),
-                currentBottomB,
-                bottomRho,
-                totalMagneticFlux,
-                dt,
-                upflowVelocity,
-            )
-            - massOfFluxTube(
-                currentRhos,
-                currentBs + arrayDelta * DeltaP,
-                zs=zs,
-                totalMagneticFlux=totalMagneticFlux,
-            ),
-            a = lowerBoundary,
-            b = upperBoundary,
-        )
-
-    # returns the new bottom pressure
-    return currentPs[-1] + DeltaP
+        pass
+        # if that doesnt work, try brentq
+    
+    return newP

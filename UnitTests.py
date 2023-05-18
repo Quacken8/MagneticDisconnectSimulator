@@ -745,8 +745,40 @@ def testAdiabaticHydrostaticEquilibrium():
         initialModel, toPlot, pltshow=True, axs = axs, label="Adiabatic Hydrostatic Equilibrium", log=False, linestyle="--"
     )
 
+
+def testHydrostaticEquilibrium():
+    Ts = modelS.temperatures
+    zs = modelS.zs
+
+    zMax = 160*c.Mm
+    zMin = 0*c.Mm
+    dlnP = 1e-2
+    pBottom = np.interp(zMin, zs, modelS.pressures).item()
+
+    from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
+    from stateEquationsPT import MESAEOS
+
+    initialModel = integrateHydrostaticEquilibrium(
+        StateEq=MESAEOS,
+        dlnP=dlnP,
+        lnBoundaryPressure=np.log(pBottom),
+        referenceTs=Ts,
+        referenceZs = zs,
+        initialZ=zMin,
+        finalZ=zMax,
+    )
+
+    toPlot = ["pressures"]
+    axs = plotSingleTimeDatapoint(
+        modelS, toPlot, pltshow=False, label="Model S", log=False
+    )
+    plotSingleTimeDatapoint(
+        initialModel, toPlot, pltshow=True, axs = axs, label="Hydrostatic Equilibrium", log=True, linestyle="--"
+    )
+
 def main():
-    testBartaInitialConditions()
+    L.debug("Starting tests")
+    testHydrostaticEquilibrium()
     pass
     pass
 

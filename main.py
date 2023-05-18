@@ -110,21 +110,23 @@ def main(
         # with new temperatures now get new bottom pressure from inflow of material
         bottomPe = np.interp(currentState.zs[-1], externalzP[0], externalzP[1]).item()
 
-        boundaryPressure = getAdjustedBottomPressure(currentState=currentState, dt=dt, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux)
+        newBottomP = getAdjustedBottomPressure(currentState=currentState, dt=dt, dlnP = dlnP, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, newTs = newTs)
 
         # then integrate hydrostatic equilibrium from bottom to the top
         initialZ = currentState.zs[-1]
         finalZ = currentState.zs[0]
 
-        newZs, newPs = integrateHydrostaticEquilibrium( 
-            temperatures=newTs,
-            zs=currentState.zs,
+        currentState = integrateHydrostaticEquilibrium( 
+            referenceTs=newTs,
+            referenceZs=currentState.zs,
             StateEq=MESAEOS,
             dlnP=dlnP,
-            lnBoundaryPressure=np.log(boundaryPressure),
+            lnBoundaryPressure=np.log(newBottomP),
             initialZ=initialZ,
             finalZ=finalZ,
         )
+        newZs = currentState.zs
+        newPs = currentState.pressures
 
         # finally solve the magnetic equation
         externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
@@ -138,14 +140,9 @@ def main(
         )
         lastYs = newYs
         newBs = newYs * newYs
+        currentState.bs = newBs
 
         # and save the new datapoint
-        currentState = SingleTimeDatapoint(
-            zs=newZs,
-            temperatures=newTs,
-            pressures=newPs,
-            bs=newBs,
-        )
 
         data.appendDatapoint(currentState)
     L.info(f"Simulation finished, saving results to folder {outputFolderName}")

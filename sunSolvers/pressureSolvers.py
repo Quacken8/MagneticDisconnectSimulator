@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from math import sin
 from dataHandling.dataStructure import SingleTimeDatapoint
 from gravity import g, massBelowZ
 import numpy as np
@@ -90,11 +91,17 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     # get rid of these they might be big
     del modelS, modelPs, modelZs
 
-    bottomUp = initialZ > finalZ # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
-    finalLnPGuess = np.log(finalPGuess) * (1 + (- paddingFactor if bottomUp else paddingFactor))
+    bottomUp = (
+        initialZ > finalZ
+    )  # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
+    finalLnPGuess = np.log(finalPGuess) * (
+        1 + (-paddingFactor if bottomUp else paddingFactor)
+    )
 
     # set up the integration itself
-    sunLnPs = np.arange(lnBoundaryPressure, finalLnPGuess, dlnP)
+    sunLnPs = np.arange(
+        lnBoundaryPressure, finalLnPGuess, dlnP * (-1 if bottomUp else 1)
+    )
 
     sunZs, sunLnTs = odeint(
         func=setOfODEs,
@@ -114,6 +121,7 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     if regularizeGrid:
         sun.regularizeGrid()
     return sun
+
 
 def integrateAdiabaticHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],
@@ -184,11 +192,17 @@ def integrateAdiabaticHydrostaticEquilibrium(
     # get rid of these they might be big
     del modelS, modelPs, modelZs
 
-    bottomUp = initialZ > finalZ # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
-    finalLnPGuess = np.log(finalPGuess) * (1 + (- paddingFactor if bottomUp else paddingFactor))
+    bottomUp = (
+        initialZ > finalZ
+    )  # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
+    finalLnPGuess = np.log(finalPGuess) * (
+        1 + (-paddingFactor if bottomUp else paddingFactor)
+    )
 
     # set up the integration itself
-    sunLnPs = np.arange(lnBoundaryPressure, finalLnPGuess, dlnP)
+    sunLnPs = np.arange(
+        lnBoundaryPressure, finalLnPGuess, dlnP * (-1 if bottomUp else 1)
+    )
 
     sunZs, sunLnTs = odeint(
         func=setOfODEs,
@@ -209,16 +223,17 @@ def integrateAdiabaticHydrostaticEquilibrium(
         sun.regularizeGrid()
     return sun
 
+
 def integrateHydrostaticEquilibrium(
     StateEq: Type[StateEquationInterface],
-    temperatures: np.ndarray,
-    zs: np.ndarray,
+    referenceTs: np.ndarray,
+    referenceZs: np.ndarray,
     dlnP: float,
     lnBoundaryPressure: float,
     initialZ: float,
     finalZ: float,
     regularizeGrid: bool = False,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> SingleTimeDatapoint:
     """
     Integrates the hydrostatic equilibrium equation d z/dlnP = H if temperatures at zs are known
 
@@ -231,17 +246,18 @@ def integrateHydrostaticEquilibrium(
         regularizeGrid (bool, optional): if True will return results on regular grid in zs. Defaults to False.
 
     Returns:
-        np.ndarray: depths z
-        np.ndarray: pressures along the tube at depths z
+        SingleTimeDatapoint: datapoint with calculated zs, pressures but interpolated temperatures
     """
-    assert len(temperatures) == len(zs), "temperatures and zs must have the same length"
+    assert len(referenceTs) == len(
+        referenceZs
+    ), "temperatures and zs must have the same length"
 
     def rightHandSide(lnP: np.ndarray, z: np.ndarray) -> np.ndarray:
         """
         right hand side of the hydrostatic equilibrium equation dz/dlnP = H
         """
         pressure = np.exp(lnP)
-        temperature = np.interp(z, sunZs, temperatures)
+        temperature = np.interp(z, referenceZs, referenceTs)
         gravAcc = g(z)
         H = StateEq.pressureScaleHeight(
             temperature=temperature,
@@ -255,13 +271,20 @@ def integrateHydrostaticEquilibrium(
     modelS = loadModelS()
     modelPs = modelS.pressures
     modelZs = modelS.zs
-    minPGuess = np.interp(finalZ, modelZs, modelPs)
+    finalPGuess = np.interp(finalZ, modelZs, modelPs)
 
     # integrate it with scipy
-    sunLnPs = np.arange(
-        lnBoundaryPressure, np.log(minPGuess) * (1 - paddingFactor), dlnP
+    bottomUp = (
+        initialZ > finalZ
+    )  # if we are going from bottom up to have correct padding we need to go to (pressure - padding)
+    finalLnPGuess = np.log(finalPGuess) * (
+        1 + (-paddingFactor if bottomUp else paddingFactor)
     )
-    sunZs = odeint(func=rightHandSide, y0=initialZ, t=sunLnPs, tfirst=True).T
+    sunLnPs = np.arange(
+        lnBoundaryPressure, finalLnPGuess, dlnP * (-1 if bottomUp else 1)
+    )
+
+    sunZs = odeint(func=rightHandSide, y0=initialZ, t=sunLnPs, tfirst=True)
 
     if regularizeGrid:
         regularZs = np.linspace(sunZs[0], sunZs[-1], len(sunZs))
@@ -269,8 +292,12 @@ def integrateHydrostaticEquilibrium(
         sunZs = regularZs
 
     sunPs = np.exp(sunLnPs)
-
-    return sunZs, sunPs
+    newSun = SingleTimeDatapoint(
+        np.interp(sunZs, referenceZs, referenceTs), sunPs, zs=sunZs
+    )
+    if regularizeGrid:
+        newSun.regularizeGrid()
+    return newSun
 
 
 def main():

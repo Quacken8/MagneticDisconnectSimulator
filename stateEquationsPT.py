@@ -438,7 +438,7 @@ def F_con(
     uses the unitless parameter convectiveAlpha (see Schüssler Rempel 2018)
     """
 
-    realGradient = np.minimum(radiativeGrad, adiabaticGrad)
+    realGradient = np.minimum(radiativeGrad, adiabaticGrad) # FIXME REAL GRAD HERE
 
     # these are parameters of convection used in Schüssler & Rempel 2005
     a = 0.125
@@ -450,7 +450,7 @@ def F_con(
     mu = meanMolecularWeight
     Hp = pressureScaleHeight
     T3 = temperature * temperature * temperature
-    density = IdealGas.density(temperature, pressure)
+    density = MESAEOS.density(temperature, pressure)
 
     u = (
         1
