@@ -19,6 +19,6 @@
 
 // TODO - see if sympy might be better for integration or derivatives
 // TODO - implement the real gradient as actually minimum of radiative and CONVECTIVE not adiabatic (convective is prolly the ∇' from schussler rempel)
-
+// FIXME - register a function that saves data if the simulation is interrupted
 // TODO - test the root finding by once doing by hand or mathematica
 // TODO - discuss initial conditions

@@ -99,7 +99,7 @@ def secondCentralDifferencesMatrix(
     forward = forwardDifferencesMatrix(steps)
     backward = backwardDifferencesMatrix(steps)
 
-    secondCentral = forward.dot(backward)
+    secondCentral = forward.dot(backward).tolil()  # type: ignore dont worry, the outcome *is* a sparse matrix. lil_matrix is useful for the next step
     # becuase of the nature of the one sided differences
     # and their behaviour at the edges
     # and the order of the matrix multiplication above
@@ -117,6 +117,5 @@ def secondCentralDifferencesMatrix(
 
 if __name__ == "__main__":
     a = secondCentralDifferencesMatrix(np.arange(8), constantBoundaries=True)
-    b = a.toarray()
-    print(b)
+    print(a)
     pass

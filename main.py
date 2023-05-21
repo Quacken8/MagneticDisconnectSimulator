@@ -9,7 +9,7 @@ import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
 from sunSolvers.temperatureSolvers import oldTSolver
 from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
-from sunSolvers.magneticSolvers import oldYSolver
+from sunSolvers.magneticSolvers import oldYSolver, integrateMagneticEquation
 from stateEquationsPT import MESAEOS
 from opacity import mesaOpacity
 from dataHandling.boundaryConditions import getAdjustedBottomPressure
@@ -130,7 +130,7 @@ def main(
 
         # finally solve the magnetic equation
         externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
-        newYs = oldYSolver(
+        newYs = integrateMagneticEquation(
             newZs,
             newPs,
             externalPressures,

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from mesa2Py.eosFromMesa import getEosResult
 import loggingConfig
 import logging
+
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
@@ -279,7 +280,7 @@ class MESAEOS(StateEquationInterface):
         """
         rho = MESAEOS._cache[(temperature, pressure)].results.rho
         return rho
-    
+
     @np.vectorize
     @staticmethod
     def entropy(temperature: float, pressure: float) -> float:
@@ -413,12 +414,26 @@ class MESAEOS(StateEquationInterface):
         return pressure / (rho * gravitationalAcceleration)
 
 
-def F_rad(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+def F_rad(
+    temperature: np.ndarray,
+    pressure: np.ndarray,
+    opacity: np.ndarray,
+    Tgrad: np.ndarray,
+) -> np.ndarray:
     """
     returns radiative flux according to ideal gas law
     """
-    # TODO equation 9 from rempel schussler
-    raise NotImplementedError()
+    density = MESAEOS.density(temperature, pressure)
+    toReturn = (
+        -16
+        * c.SteffanBoltzmann
+        * temperature
+        * temperature
+        * temperature
+        / (3 * opacity * density)
+        * Tgrad
+    )
+    return toReturn
 
 
 def F_con(
@@ -438,7 +453,7 @@ def F_con(
     uses the unitless parameter convectiveAlpha (see Schüssler Rempel 2018)
     """
 
-    realGradient = np.minimum(radiativeGrad, adiabaticGrad) # FIXME REAL GRAD HERE
+    realGradient = np.minimum(radiativeGrad, adiabaticGrad)  # FIXME REAL GRAD HERE
 
     # these are parameters of convection used in Schüssler & Rempel 2005
     a = 0.125
@@ -466,7 +481,7 @@ def F_con(
         - 2 * u * u
         + 2 * u * np.sqrt(realGradient - adiabaticGrad + u * u)
     )
-    differenceOfGradients = realGradient - gradTick
+    differenceOfGradients = realGradient - adiabaticGrad
 
     toReturn = (
         -b
@@ -476,14 +491,5 @@ def F_con(
         * np.power(temperature * differenceOfGradients, 1.5)
     )
     # TODO equation 10 from rempel schussler
+    raise NotImplementedError()
     return toReturn
-
-
-zs, nablas = np.loadtxt("debuggingReferenceFromSvanda/actualNabla.dat", unpack=True)
-from scipy.interpolate import interp1d
-
-interpolatedNablas = interp1d(zs, nablas, kind="linear")
-
-
-def interpolatedNabla(z):
-    return interpolatedNablas(z)

@@ -23,7 +23,9 @@ def oldTSolver(
     convectiveAlpha: float,
 ) -> np.ndarray:
     """
-    solves the T equation the same way Bárta did
+    solves the T equation 
+    dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
+    the same way Bárta did
     by solving
     M·v = b (eq 4.17 in Bárta)
     where M is a tridiag matrix
@@ -104,8 +106,8 @@ def rightHandSideOfTEq(
     zs: np.ndarray,
     temperatures: np.ndarray,
     pressures: np.ndarray,
-    StateEq: StateEquationInterface,
-    opacity: Callable,
+    StateEq: Type[StateEquationInterface],
+    opacityFunction: Callable[[np.ndarray, np.ndarray], np.ndarray],
 ) -> np.ndarray:
     """
     right hand side of this equation from Schüssler & Rempel (2005) (eq. 8)
@@ -124,7 +126,7 @@ def rightHandSideOfTEq(
     rhos = StateEq.density(temperatures, pressures)
     mus = StateEq.meanMolecularWeight(temperatures, pressures)
     nablaAds = StateEq.adiabaticLogGradient(temperatures, pressures)
-    kappas = opacity(temperatures, pressures)
+    kappas = opacityFunction(temperatures, pressures)
     gs = g(zs)
     massBelowZs = massBelowZ(zs)
     nablaRad = StateEq.radiativeLogGradient(
@@ -133,8 +135,9 @@ def rightHandSideOfTEq(
     Hps = StateEq.pressureScaleHeight(
         temperatures, pressures, gravitationalAcceleration=gs
     )
+    Tgrad = np.gradient(temperatures, zs) 
 
-    FplusFs = F_rad(temperatures, pressures) + F_con(
+    FplusFs = F_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + F_con(
         convectiveAlpha=convectiveAlpha,
         temperature=temperatures,
         pressure=pressures,

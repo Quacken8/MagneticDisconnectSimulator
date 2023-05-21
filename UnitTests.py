@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from matplotlib.backend_bases import ToolContainerBase
+from matplotlib.scale import LogScale
 from sympy import li
 from dataHandling.dataStructure import (
     Data,
@@ -776,12 +778,145 @@ def testHydrostaticEquilibrium():
         initialModel, toPlot, pltshow=True, axs = axs, label="Hydrostatic Equilibrium", log=True, linestyle="--"
     )
 
+def testYSolver():
+    # we define some sensible function
+    # run it throuh the pressure solver
+    # and try to put the result back into the function
+    # probably using np derivatives
+
+    from sunSolvers.magneticSolvers import oldYSolver, rightHandSideOfYEq
+    from dataHandling.boundaryConditions import getBottomB, getTopB
+    # here we define function on which we work
+    nodes = 10
+    zs = np.linspace(0, 10, nodes)
+    innerPs = np.linspace(1e6, 1e10, nodes)
+    outerPs = np.logspace(6, 12, nodes)
+    totalMagneticFlux = 1e3
+    bottomB, topB = getBottomB(bottomPressure=innerPs[-1], externalPressure=outerPs[-1]), getTopB() 
+    yGuess =  np.linspace(np.sqrt(topB), np.sqrt(bottomB), nodes)
+    tolerance = 1e-3
+
+    lhs = np.gradient(np.gradient(yGuess, zs), zs)
+    rhs = rightHandSideOfYEq(
+        y = yGuess,
+        innerP=innerPs,
+        outerP=outerPs,
+        totalMagneticFlux=totalMagneticFlux,
+    )
+    print("original error: ", np.max(np.abs(lhs-rhs)))
+
+    solution = oldYSolver(
+        zs = zs,
+        innerPs = innerPs,
+        outerPs = outerPs,
+        totalMagneticFlux=totalMagneticFlux,
+        yGuess=yGuess,
+        tolerance=tolerance,
+    )
+
+    lhs = np.gradient(np.gradient(solution, zs), zs)
+
+    rhs = rightHandSideOfYEq(
+        y = solution,
+        innerP=innerPs,
+        outerP=outerPs,
+        totalMagneticFlux=totalMagneticFlux,
+    )
+
+    print("max error: ", np.max(np.abs(lhs-rhs)))
+    plt.plot(zs, solution, label="sol")
+    plt.legend()
+    plt.show()
+
+def testIntegrateMagneticField():
+    # we define some sensible function
+    # run it throuh the pressure solver
+    # and try to put the result back into the function
+    # probably using np derivatives
+
+    from sunSolvers.magneticSolvers import integrateMagneticEquation, rightHandSideOfYEq
+    from dataHandling.boundaryConditions import getBottomB, getTopB
+    # here we define function on which we work
+    nodes = 1000
+    zs = np.linspace(0, 10, nodes)
+    innerPs = np.linspace(1e6, 1e10, nodes)
+    outerPs = np.logspace(7, 12, nodes)
+    totalMagneticFlux = 1e5
+    bottomB, topB = getBottomB(bottomPressure=innerPs[-1], externalPressure=outerPs[-1]), getTopB() 
+    yGuess =  np.linspace(np.sqrt(topB), np.sqrt(bottomB), nodes)[::-1]
+    tolerance = 1e-3
+
+    solution = integrateMagneticEquation(
+        zs = zs,
+        innerPs = innerPs,
+        outerPs = outerPs,
+        totalMagneticFlux=totalMagneticFlux,
+        yGuess=yGuess,
+        tolerance = tolerance
+    )
+
+    rhs = rightHandSideOfYEq(
+        y = solution,
+        innerP=innerPs,
+        outerP=outerPs,
+        totalMagneticFlux=totalMagneticFlux,
+    )
+    lhs = np.gradient(np.gradient(solution, zs), zs)
+    print("max error: ", np.max(np.abs(lhs-rhs)))
+
+    plt.loglog(zs, lhs, label="lhs")
+    plt.loglog(zs, rhs, label="rhs", linestyle="--")
+    plt.legend()
+    plt.show()
+
+def testTemperatureSolver():
+    # we define some sensible function
+    # run it throuh the pressure solver
+    # and try to put the result back into the function
+    # probably using np derivatives
+
+    from sunSolvers.temperatureSolvers import oldTSolver, rightHandSideOfTEq
+    from stateEquationsPT import MESAEOS
+    from opacity import mesaOpacity
+    from gravity import g, massBelowZ
+    from scipy.interpolate import interp1d
+
+    initialState = modelS
+    oldTs = initialState.temperatures
+    dt = 1e-3
+    surfaceTemperature = initialState.temperatures[0]
+    convectiveAlpha = 1
+
+    
+    newTs = oldTSolver(
+        currentState = initialState,
+        dt = dt,
+        StateEq = MESAEOS,
+        opacityFunction = mesaOpacity,
+        surfaceTemperature = surfaceTemperature,
+        convectiveAlpha=convectiveAlpha
+    )
+
+    dTdt = (newTs - oldTs) / dt
+    rhs = rightHandSideOfTEq(convectiveAlpha=convectiveAlpha, zs = initialState.zs, temperatures = initialState.temperatures, pressures = initialState.pressures, opacityFunction = mesaOpacity, StateEq = MESAEOS)
+
+    plt.plot(initialState.zs, dTdt, label="dTdt")
+    plt.plot(initialState.zs, rhs, label="rhs")
+    plt.legend()
+    plt.show()
+
+
+    raise NotImplementedError()
+
+
+
 def main():
     L.debug("Starting tests")
-    testHydrostaticEquilibrium()
+    testIntegrateMagneticField()
     pass
     pass
 
 
 if __name__ == "__main__":
+
     main()
