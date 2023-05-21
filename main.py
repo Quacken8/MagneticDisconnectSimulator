@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from hmac import new
+import re
 import numpy as np
 from dataHandling.initialConditionsSetterUpper import getInitialConditions, getBartaInit
 from dataHandling.modelS import loadModelS
@@ -51,7 +52,6 @@ def main(
     Raises:
         NotImplementedError: _description_
     """
-
     # turn user input to SI
     finalT *= c.hour
     maxDepth *= c.Mm
@@ -84,70 +84,74 @@ def main(
 
     # create empty data structure with only initial conditions
     data = Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
-    dt = finalT / numberOfTSteps
-    currentState = initialConditions
-    data.addDatapointAtIndex(currentState, 0)
-    lastYs = np.sqrt(
-        currentState.bs
-    )  # these will be used as initial guess for the magnetic equation
-    surfaceTemperature = currentState.temperatures[
-        0
-    ]  # this will be held constant during the simulation
-    L.info("Starting simulation...")
-    time = 0
-    while time < finalT:
-        time += dt  # TODO maybe use non constant dt?
+    try: # this huge try block makes sure data gets saved in case of an error
+        dt = finalT / numberOfTSteps
+        currentState = initialConditions
+        data.addDatapointAtIndex(currentState, 0)
+        lastYs = np.sqrt(
+            currentState.bs
+        )  # these will be used as initial guess for the magnetic equation
+        surfaceTemperature = currentState.temperatures[
+            0
+        ]  # this will be held constant during the simulation
+        L.info("Starting simulation...")
+        time = 0
+        while time < finalT:
+            time += dt  # TODO maybe use non constant dt?
 
-        # first integrate the temperature equation
-        newTs = oldTSolver(
-            currentState=currentState,
-            StateEq=MESAEOS,
-            dt=dt,
-            opacityFunction=mesaOpacity,
-            surfaceTemperature=surfaceTemperature,
-            convectiveAlpha=convectiveAlpha,
-        )
-        # with new temperatures now get new bottom pressure from inflow of material
-        bottomPe = np.interp(currentState.zs[-1], externalzP[0], externalzP[1]).item()
+            # first integrate the temperature equation
+            newTs = oldTSolver(
+                currentState=currentState,
+                StateEq=MESAEOS,
+                dt=dt,
+                opacityFunction=mesaOpacity,
+                surfaceTemperature=surfaceTemperature,
+                convectiveAlpha=convectiveAlpha,
+            )
+            # with new temperatures now get new bottom pressure from inflow of material
+            bottomPe = np.interp(currentState.zs[-1], externalzP[0], externalzP[1]).item()
 
-        newBottomP = getAdjustedBottomPressure(currentState=currentState, dt=dt, dlnP = dlnP, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, newTs = newTs)
+            newBottomP = getAdjustedBottomPressure(currentState=currentState, dt=dt, dlnP = dlnP, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, newTs = newTs)
 
-        # then integrate hydrostatic equilibrium from bottom to the top
-        initialZ = currentState.zs[-1]
-        finalZ = currentState.zs[0]
+            # then integrate hydrostatic equilibrium from bottom to the top
+            initialZ = currentState.zs[-1]
+            finalZ = currentState.zs[0]
 
-        currentState = integrateHydrostaticEquilibrium( 
-            referenceTs=newTs,
-            referenceZs=currentState.zs,
-            StateEq=MESAEOS,
-            dlnP=dlnP,
-            lnBoundaryPressure=np.log(newBottomP),
-            initialZ=initialZ,
-            finalZ=finalZ,
-        )
-        newZs = currentState.zs
-        newPs = currentState.pressures
+            currentState = integrateHydrostaticEquilibrium( 
+                referenceTs=newTs,
+                referenceZs=currentState.zs,
+                StateEq=MESAEOS,
+                dlnP=dlnP,
+                lnBoundaryPressure=np.log(newBottomP),
+                initialZ=initialZ,
+                finalZ=finalZ,
+            )
+            newZs = currentState.zs
+            newPs = currentState.pressures
 
-        # finally solve the magnetic equation
-        externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
-        newYs = integrateMagneticEquation(
-            newZs,
-            newPs,
-            externalPressures,
-            totalMagneticFlux=1e20,
-            yGuess=lastYs,
-            tolerance=1e-6,
-        )
-        lastYs = newYs
-        newBs = newYs * newYs
-        currentState.bs = newBs
+            # finally solve the magnetic equation
+            externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
+            newYs = integrateMagneticEquation(
+                newZs,
+                newPs,
+                externalPressures,
+                totalMagneticFlux=1e20,
+                yGuess=lastYs,
+                tolerance=1e-6,
+            )
+            lastYs = newYs
+            newBs = newYs * newYs
+            currentState.bs = newBs
 
-        # and save the new datapoint
+            # and save the new datapoint
 
-        data.appendDatapoint(currentState)
-    L.info(f"Simulation finished, saving results to folder {outputFolderName}")
-    data.saveToFolder(outputFolderName)
-    raise NotImplementedError("this is not finished yet")
+            data.appendDatapoint(currentState)
+        L.info(f"Simulation finished, saving results to folder {outputFolderName}")
+        data.saveToFolder(outputFolderName)
+        raise NotImplementedError("this is not finished yet")
+    except Exception as e:
+        data.saveToFolder("interruptedRun", rewriteFolder=True)
+        raise e
     visualizeData(data)
 
 

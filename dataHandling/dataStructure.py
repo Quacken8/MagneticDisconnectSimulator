@@ -185,7 +185,9 @@ class Data:
         superDictionary.update({"times": self.times})
         firstDatapoint = self.datapoints[0]
         superDictionary.update(firstDatapoint.allVariables)
-        for datapoint in self.datapoints[1:]:
+        for datapoint in self.datapoints:
+            if datapoint is None:
+                continue
             for variableName, variableArray in datapoint.allVariables.items():
                 # to variableName key in superDictionary append variableArray
                 superDictionary[variableName] = np.vstack(
