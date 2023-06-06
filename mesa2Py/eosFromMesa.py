@@ -47,6 +47,7 @@ def getEosResult(
     pressure: float in Pa
     """
     assert temperature != np.nan; assert pressure != np.nan
+    assert temperature > 0
 
     if massFractions is None:
         massFractions = mesaInit.solarAbundancesDict
@@ -133,7 +134,7 @@ def getEosResult(
         eosResultsDict["lnE"] += np.log(c.erg / c.gram)
         eosResultsDict["lnS"] += np.log(c.erg / c.gram)
         eosResultsDict["Cv"] *= c.erg / c.gram
-        eosResultsDict["Cp"] *= c.erg / c.gram
+        eosResultsDict["Cp"] /= c.erg / c.gram  # NOTE ugh, why? It is necessary to get the correct values but why the hell is it /= and not *=???
         eosResultsDict["dE_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
         eosResultsDict["dS_dRho"] *= c.erg * c.cm * c.cm * c.cm / c.gram / c.gram
         eosResultsDict["dS_dT"] *= c.erg / c.gram

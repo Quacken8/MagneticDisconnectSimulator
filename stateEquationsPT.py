@@ -70,7 +70,7 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+    def Cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
         returns c_p
         """
@@ -173,7 +173,7 @@ class IdealGas(StateEquationInterface):
         return nablaRad
 
     @staticmethod
-    def cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+    def Cp(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
         """
         returns c_p according to denizer 1965
         """
@@ -309,7 +309,7 @@ class MESAEOS(StateEquationInterface):
             temperature, pressure, gravitationalAcceleration=gravitationalAcceleration
         )
         T3 = temperature * temperature * temperature
-        c_p = MESAEOS.cp(temperature, pressure)
+        c_p = MESAEOS.Cp(temperature, pressure)
         nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
         nablaRad = MESAEOS.radiativeLogGradient(
             temperature, pressure, massBelowZ, opacity
@@ -393,7 +393,7 @@ class MESAEOS(StateEquationInterface):
 
     @np.vectorize
     @staticmethod
-    def cp(temperature: float, pressure: float) -> float:
+    def Cp(temperature: float, pressure: float) -> float:
         """
         returns c_p
         """
@@ -441,47 +441,26 @@ def F_con(
     temperature: np.ndarray,
     pressure: np.ndarray,
     meanMolecularWeight: np.ndarray,
-    adiabaticGrad: np.ndarray,
     radiativeGrad: np.ndarray,
-    pressureScaleHeight: np.ndarray,
     c_p: np.ndarray,
-    gravitationalAcceleration: np.ndarray,
-    opacity: np.ndarray,
 ) -> np.ndarray:
     """
     returns convectiveGradient according to ideal gas law
     uses the unitless parameter convectiveAlpha (see Schüssler Rempel 2018)
     """
 
-    realGradient = np.minimum(radiativeGrad, adiabaticGrad)  # FIXME REAL GRAD HERE
-
     # these are parameters of convection used in Schüssler & Rempel 2005
     a = 0.125
     b = 0.5
-    f = 1.5
 
     # just some renaming for the sake of readibilty
-    g = gravitationalAcceleration
     mu = meanMolecularWeight
-    Hp = pressureScaleHeight
-    T3 = temperature * temperature * temperature
     density = MESAEOS.density(temperature, pressure)
 
-    u = (
-        1
-        / (f * np.sqrt(a) * convectiveAlpha * convectiveAlpha)
-        * 12
-        * c.SteffanBoltzmann
-        * T3
-        / (c_p * density * opacity * Hp * Hp)
-        * np.sqrt(Hp / g)
-    )
-    gradTick = (
-        adiabaticGrad
-        - 2 * u * u
-        + 2 * u * np.sqrt(realGradient - adiabaticGrad + u * u)
-    )
-    differenceOfGradients = realGradient - adiabaticGrad
+    totalGradient = np.gradient(np.log(temperature), np.log(pressure)) # FIXME kinda strange way of doing this, but Bárta did it (viz fconv.py)
+    # fixme probably slow, maybe use sparse matrices?
+
+    differenceOfGradients = np.maximum(totalGradient - radiativeGrad, 0)
 
     toReturn = (
         -b
@@ -490,6 +469,4 @@ def F_con(
         * c_p
         * np.power(temperature * differenceOfGradients, 1.5)
     )
-    # TODO equation 10 from rempel schussler
-    raise NotImplementedError()
     return toReturn

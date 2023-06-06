@@ -1,3 +1,5 @@
-matplotlib==3.6.2
-numpy==1.23.5
-scipy==1.9.3
+matplotlib==3.7.1
+numpy==1.24.3
+pyrsistent==0.18.1
+scipy==1.8.0
+sympy==1.12

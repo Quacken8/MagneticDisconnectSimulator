@@ -130,6 +130,19 @@ class SingleTimeDatapoint:
             self.derivedQuantities[key] = np.interp(newZs, self.zs, value)
         
         self.zs = newZs
+    
+    def saveToFolder(self, folderName):
+        """
+        saves all variables to a folder
+        """
+        os.mkdir(folderName)
+        for variableName, variableValue in self.allVariables.items():
+            np.savetxt(
+                f"{folderName}/{variableName}.csv",
+                variableValue,
+                header=f"{variableName} [{unitsDictionary[variableName.lower()]}]",
+                delimiter=",",
+            )
 
 class Data:
     """
@@ -185,7 +198,7 @@ class Data:
         superDictionary.update({"times": self.times})
         firstDatapoint = self.datapoints[0]
         superDictionary.update(firstDatapoint.allVariables)
-        for datapoint in self.datapoints:
+        for datapoint in self.datapoints[1:]:
             if datapoint is None:
                 continue
             for variableName, variableArray in datapoint.allVariables.items():
@@ -211,7 +224,7 @@ class Data:
             if np.ndim(variableArray) == 1:
                 header = f"{variableName} [{unitsDictionary[variableName.lower()]}]"
             elif np.ndim(variableArray) == 2:
-                header = f"{variableName} [{unitsDictionary[variableName.lower()]}], rows index depth, columns index time"
+                header = f"{variableName} [{unitsDictionary[variableName.lower()]}]; rows index depth, columns index time"
             else:
                 raise ValueError(
                     f"Weird dimension of {variableName} array ({np.ndim(variableArray)})"
@@ -252,9 +265,13 @@ def createDataFromFolder(foldername: str) -> Data:
         for key, value in loadedVariables.items():
             if np.ndim(value) == 0 or np.ndim(value) == 1:
                 continue
-            thisTimesVariables[key] = value[i, :]
-        newDatapoint = SingleTimeDatapoint(**thisTimesVariables)
-        toReturn.appendDatapoint(newDatapoint)
+            try:
+                thisTimesVariables[key] = value[i, :]
+            except IndexError: # TODO wow this is dumb, dont do it this way pls, use numpy
+                break
+        else:
+            newDatapoint = SingleTimeDatapoint(**thisTimesVariables)
+            toReturn.appendDatapoint(newDatapoint)
 
     return toReturn
 

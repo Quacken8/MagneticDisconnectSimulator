@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-from hmac import new
-import re
 import numpy as np
 from dataHandling.initialConditionsSetterUpper import getInitialConditions, getBartaInit
 from dataHandling.modelS import loadModelS
-from dataHandling.dataStructure import Data, SingleTimeDatapoint
+from dataHandling.dataStructure import Data, SingleTimeDatapoint, loadOneTimeDatapoint
 import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
 from sunSolvers.temperatureSolvers import oldTSolver
@@ -28,7 +26,8 @@ def main(
     backgroundReference: SingleTimeDatapoint = modelS,
     maxDepth: float = 100,
     upflowVelocity: float = 1e-3,
-    totalMagneticFlux: float = 1e20,
+    totalMagneticFlux: float = 1e13,
+    surfaceTemperature: float = 3500,
     finalT: float = 100,
     numberOfTSteps: int = 2**4,
     outputFolderName: str = "output",
@@ -44,6 +43,7 @@ def main(
         maxDepth (float, optional): Approximate maximum depth of the simulation in Mm. Defaults to 100. # TODO check that these dont get too weird, you havent rly made sure that the max pressure well corresponds to max Z
         upflowVelocity (float, optional): Velocity of the upflow in Mm/h. Defaults to 1e-3. # FIXME random ass values
         totalMagneticFlux (float, optional): Total magnetic flux in Gauss. Defaults to 1e20. # FIXME random ass values
+        surfaceTemperature (float, optional): Fixed surface temperature in K. Defaults to 3500 K # FIXME random ass values
         finalT (float, optional): Total length of the simulation in hours. Defaults to 100.
         numberOfTSteps (int, optional): How many time steps to take from 0 to finalT. Defaults to 2**4.
         outputFolderName (str, optional): Name of the folder in which to save the output of the simulation. Defaults to "output".
@@ -60,21 +60,26 @@ def main(
     calmMaxDepth = maxDepth * 1.3  # just a bit of padding to be sure
     calmMinDepth = -1e5  # TODO these may need adjusting
 
-    calmSun = getCalmSunDatapoint(
-        StateEq=MESAEOS,
-        opacityFunction=mesaOpacity,
-        dlnP=dlnP,
-        lnSurfacePressure=np.log(
-            np.interp(
-                calmMinDepth, backgroundReference.zs, backgroundReference.pressures
-            ).item()
-        ),
-        surfaceTemperature=np.interp(
-            calmMinDepth, backgroundReference.zs, backgroundReference.temperatures
-        ).item(),
-        surfaceZ=calmMinDepth,
-        maxDepth=calmMaxDepth,
-    )
+    try: 
+        calmSun = loadOneTimeDatapoint("calmSun")
+        L.info("Loaded calm Sun from a folder")
+    except FileNotFoundError:
+        L.info("Couldn't find calm Sun in a folder")
+        calmSun = getCalmSunDatapoint(
+            StateEq=MESAEOS,
+            opacityFunction=mesaOpacity,
+            dlnP=dlnP,
+            lnSurfacePressure=np.log(
+                np.interp(
+                    calmMinDepth, backgroundReference.zs, backgroundReference.pressures
+                ).item()
+            ),
+            surfaceTemperature=np.interp(
+                calmMinDepth, backgroundReference.zs, backgroundReference.temperatures
+            ).item(),
+            surfaceZ=calmMinDepth,
+            maxDepth=calmMaxDepth,
+        )
 
     externalzP = (calmSun.zs[:], calmSun.pressures[:])
     # only P_e is important from the background model
@@ -91,9 +96,6 @@ def main(
         lastYs = np.sqrt(
             currentState.bs
         )  # these will be used as initial guess for the magnetic equation
-        surfaceTemperature = currentState.temperatures[
-            0
-        ]  # this will be held constant during the simulation
         L.info("Starting simulation...")
         time = 0
         while time < finalT:
@@ -125,9 +127,11 @@ def main(
                 lnBoundaryPressure=np.log(newBottomP),
                 initialZ=initialZ,
                 finalZ=finalZ,
+                interpolableYs = lastYs,
             )
             newZs = currentState.zs
             newPs = currentState.pressures
+            lastYs = np.sqrt(currentState.bs) # FIXME this may be a bottlenect
 
             # finally solve the magnetic equation
             externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
@@ -135,7 +139,7 @@ def main(
                 newZs,
                 newPs,
                 externalPressures,
-                totalMagneticFlux=1e20,
+                totalMagneticFlux=totalMagneticFlux,
                 yGuess=lastYs,
                 tolerance=1e-6,
             )
@@ -159,7 +163,7 @@ if __name__ == "__main__":
     maxDepth = 100  # depth in Mm
     minDepth = 1  # depth in Mm
     p0_ratio = 1  # ratio of initial pressure to the pressure at the top of the model S
-    surfaceTemperature = 3500  # temperature in K
+    surfaceTemperature = 3500  # temperature in K FIXME ur not even using thiiiiiiiiis
     numberOfZSteps = 100
     dlnP = 1e-2
 

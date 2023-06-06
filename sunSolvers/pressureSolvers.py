@@ -99,9 +99,13 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     )
 
     # set up the integration itself
-    sunLnPs = np.arange(
-        lnBoundaryPressure, finalLnPGuess, dlnP * (-1 if bottomUp else 1)
+    sunLnPs = np.linspace(
+        lnBoundaryPressure,
+        finalLnPGuess,
+        int(np.abs((finalLnPGuess - lnBoundaryPressure)) / dlnP),
     )
+    if bottomUp:
+        sunLnPs = sunLnPs[::-1]
 
     sunZs, sunLnTs = odeint(
         func=setOfODEs,
@@ -200,9 +204,13 @@ def integrateAdiabaticHydrostaticEquilibrium(
     )
 
     # set up the integration itself
-    sunLnPs = np.arange(
-        lnBoundaryPressure, finalLnPGuess, dlnP * (-1 if bottomUp else 1)
+    sunLnPs = np.linspace(
+        lnBoundaryPressure,
+        finalLnPGuess,
+        int(np.abs((finalLnPGuess - lnBoundaryPressure)) / dlnP),
     )
+    if bottomUp:
+        sunLnPs = sunLnPs[::-1]
 
     sunZs, sunLnTs = odeint(
         func=setOfODEs,
@@ -232,6 +240,7 @@ def integrateHydrostaticEquilibrium(
     lnBoundaryPressure: float,
     initialZ: float,
     finalZ: float,
+    interpolableYs: np.ndarray | None = None,
     regularizeGrid: bool = False,
 ) -> SingleTimeDatapoint:
     """
@@ -244,6 +253,7 @@ def integrateHydrostaticEquilibrium(
         initialZ (float): depth at which to start the integration and also at which the boundary condition is set
         finalZ (float): final depth to which to integrate
         regularizeGrid (bool, optional): if True will return results on regular grid in zs. Defaults to False.
+        interpolableYs (np.ndarray, optional): if not None, will interpolate these values to get Bs on the new z grid. Defaults to None.
 
     Returns:
         SingleTimeDatapoint: datapoint with calculated zs, pressures but interpolated temperatures
@@ -280,20 +290,35 @@ def integrateHydrostaticEquilibrium(
     finalLnPGuess = np.log(finalPGuess) * (
         1 + (-paddingFactor if bottomUp else paddingFactor)
     )
-    sunLnPs = np.arange(
-        lnBoundaryPressure, finalLnPGuess, dlnP * (-1 if bottomUp else 1)
+    sunLnPs = np.linspace(
+        lnBoundaryPressure,
+        finalLnPGuess,
+        int(np.abs((finalLnPGuess - lnBoundaryPressure)) / dlnP),
     )
+    if bottomUp:
+        sunLnPs = sunLnPs[::-1]
 
-    sunZs = odeint(func=rightHandSide, y0=initialZ, t=sunLnPs, tfirst=True)
+    # sunZs = odeint(func=rightHandSide, y0=initialZ, t=sunLnPs, tfirst=True)[:,0]
+    # TODO odeint is faster than solve_ivp, however it seems to be running into some problems. The full output shows some weird values for debugging values... I'm not sure if it's a good idea to use it with the linear interpolation of Ts
+    sunZs = solve_ivp(
+        fun=rightHandSide,
+        y0=np.array([initialZ]),
+        t_span=(sunLnPs[0], sunLnPs[-1]),
+        t_eval=sunLnPs,
+    ).y[0]
 
     if regularizeGrid:
         regularZs = np.linspace(sunZs[0], sunZs[-1], len(sunZs))
         sunLnPs = np.interp(regularZs, sunZs, sunLnPs)
         sunZs = regularZs
 
+    if interpolableYs is not None:
+        sunBs = np.interp(sunZs, referenceZs, interpolableYs * interpolableYs)
+    else:
+        sunBs = None
     sunPs = np.exp(sunLnPs)
     newSun = SingleTimeDatapoint(
-        np.interp(sunZs, referenceZs, referenceTs), sunPs, zs=sunZs
+        np.interp(sunZs, referenceZs, referenceTs), sunPs, zs=sunZs, Bs=sunBs
     )
     if regularizeGrid:
         newSun.regularizeGrid()

@@ -58,7 +58,35 @@ def getCalmSunDatapoint(
 
 
 def main():
-    pass
+    """
+    This function generates the calm sun model and saves it into a file
+    """
+    from stateEquationsPT import MESAEOS
+    from opacity import mesaOpacity
+
+    StateEq = MESAEOS
+    opacityFunction = mesaOpacity
+    dlnP = 1e-3
+    surfaceZ = -2*c.Mm
+    maxDepth = 20*c.Mm
+    
+    # initial values interpolated from model S
+    from dataHandling.modelS import loadModelS
+    modelS = loadModelS()
+    lnSurfacePressure =  np.log(np.interp(surfaceZ, modelS.zs, modelS.pressures)).item()
+    surfaceTemperature = np.interp(surfaceZ, modelS.zs, modelS.temperatures).item()
+
+    
+    calmSun = getCalmSunDatapoint(
+        StateEq=StateEq,
+        opacityFunction=opacityFunction,
+        dlnP=dlnP,
+        lnSurfacePressure=lnSurfacePressure,
+        surfaceTemperature=surfaceTemperature,
+        surfaceZ=surfaceZ,
+        maxDepth=maxDepth,
+    )
+    calmSun.saveToFolder("calmSun")
 
 
 if __name__ == "__main__":

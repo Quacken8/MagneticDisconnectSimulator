@@ -12,6 +12,7 @@
 // TODO - get entropies from model S
 // FIXME - check the simulation isnt overshooting the calm sun model. You added padding in main but it might not be enough
 // TODO - get some smart upflow velocity and total magentic flux numbers in main
+// FIXME - ask about the tempsovlers line 72
 
 // TODO - rethink Data and how it stores new datapoints
 // TODO - benchmark root finding algos

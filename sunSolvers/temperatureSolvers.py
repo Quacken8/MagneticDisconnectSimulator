@@ -37,6 +37,7 @@ def oldTSolver(
     returns the new temperatures
     """
     zs = currentState.zs
+
     # make sure the zs are equidistant, otherwise the matrix equation will be wrong
     if not np.allclose(np.diff(zs), np.diff(zs)[0]):
         currentState.regularizeGrid()
@@ -47,19 +48,15 @@ def oldTSolver(
 
     opacities = opacityFunction(Ts, Ps)
     rhos = StateEq.density(Ts, Ps)
-    cps = StateEq.cp(Ts, Ps)
+    cps = StateEq.Cp(Ts, Ps)
     m_zs = massBelowZ(zs)
     F_cons = F_con(
         convectiveAlpha=convectiveAlpha,
         temperature=Ts,
         pressure=Ps,
         meanMolecularWeight=StateEq.meanMolecularWeight(Ts, Ps),
-        adiabaticGrad=StateEq.adiabaticLogGradient(Ts, Ps),
         radiativeGrad=StateEq.radiativeLogGradient(Ts, Ps, m_zs, opacities),
         c_p=cps,
-        pressureScaleHeight=StateEq.pressureScaleHeight(Ts, Ps, g(zs)),
-        opacity=opacities,
-        gravitationalAcceleration=g(zs),
     )
 
     bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], g(zs[-1]))
@@ -74,20 +71,19 @@ def oldTSolver(
         16 * c.SteffanBoltzmann * Ts * Ts * Ts / (3 * opacities * rhos)
     )  # -coefficient in front of dT/dz in F_rad, i.e. F_rad = -A dT/dz
 
+    # now that teverything is ready prepare the matrix equation M·v = b
+
+    lambdas = - 2 * A / (dz * dz)-rhos * cps / dt # FIXME this makes no sense in relation to the equation in Bárta, but Bártas code uses it
     gradA = centeredDifferencesM.dot(
         A
     )  # this is an array of centered differences used to approximate first derivatives
-
-    # now that teverything is ready prepare the matrix equation M·v = b
-
-    lambdas = 2 * A / (dz * dz)
-    mus = gradA - 0.5 * lambdas
-    nus = -gradA - 0.5 * lambdas
-    M = diags([mus, lambdas, nus], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
+    mus = gradA -A / (dz * dz)
+    nus = -gradA -A / (dz * dz)
+    M = diags([mus[1:], lambdas, nus[:-1]], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
 
     fs = (
-        centeredDifferencesM.dot(F_cons) + 2 * rhos * cps * Ts / dt
-    )  # TODO rederive the equation just to be sure that 2 is supposed to be there
+        centeredDifferencesM.dot(F_cons) + rhos * cps * Ts / dt
+    )  # TODO rederive the equation
     bs = fs[:]
     bs[0] -= (
         mus[0] * surfaceTemperature
@@ -122,19 +118,15 @@ def rightHandSideOfTEq(
     # NOTE this might be confusing since the zs change from one time to another
     # TODO check if you'll even need this, maybe bárta's way is better
 
-    cps = StateEq.cp(temperatures, pressures)
+    cps = StateEq.Cp(temperatures, pressures)
     rhos = StateEq.density(temperatures, pressures)
     mus = StateEq.meanMolecularWeight(temperatures, pressures)
-    nablaAds = StateEq.adiabaticLogGradient(temperatures, pressures)
     kappas = opacityFunction(temperatures, pressures)
-    gs = g(zs)
     massBelowZs = massBelowZ(zs)
     nablaRad = StateEq.radiativeLogGradient(
         temperatures, pressures, opacity=kappas, massBelowZ=massBelowZs
     )
-    Hps = StateEq.pressureScaleHeight(
-        temperatures, pressures, gravitationalAcceleration=gs
-    )
+
     Tgrad = np.gradient(temperatures, zs) 
 
     FplusFs = F_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + F_con(
@@ -142,12 +134,8 @@ def rightHandSideOfTEq(
         temperature=temperatures,
         pressure=pressures,
         meanMolecularWeight=mus,
-        adiabaticGrad=nablaAds,
         radiativeGrad=nablaRad,
         c_p=cps,
-        pressureScaleHeight=Hps,
-        opacity=kappas,
-        gravitationalAcceleration=gs,
     )  # FIXME this is a nightmare, remake
     dFplusFdz = np.gradient(FplusFs, zs)
 

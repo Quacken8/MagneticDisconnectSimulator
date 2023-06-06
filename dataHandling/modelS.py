@@ -55,10 +55,6 @@ if __name__ == "__main__":
         np.savetxt(output_file, updated_data, delimiter='   ', fmt='%.9e', header=header, comments='')
 
 
-    from stateEquationsPT import MESAEOS
-    modelS = loadModelS()
-    Ts = modelS.temperatures
-    Ps = modelS.pressures
-    entropies = MESAEOS.entropy(Ts, Ps)
+    cps = np.loadtxt('dataHandling/cps', skiprows=1, usecols = 1)
 
-    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", entropies)
+    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", cps)

@@ -909,14 +909,37 @@ def testTemperatureSolver():
     raise NotImplementedError()
 
 
+def lookAtInterruptedData():
+    data = createDataFromFolder("interruptedRun")
+    toPlot = ["bs"]
+    plotSingleTimeDatapoint(data.datapoints[0], toPlot, pltshow=True, log=False)
+
+def plotPressureAndTempModelS():
+    toPlot = ["temperatures", "pressures"]
+    axs = plotSingleTimeDatapoint(
+        modelS, toPlot, pltshow=False, label="Model S", log=False
+    )
+    plt.show()
+
+
+def plotModelSCpsVsMESA():
+    from stateEquationsPT import MESAEOS
+
+    mesaCps = MESAEOS.Cp(modelS.temperatures, modelS.pressures)
+    modelSCps = modelS.derivedQuantities["cps"]
+    plt.loglog(modelS.zs, modelSCps, label="model S")
+    plt.loglog(modelS.zs, mesaCps, label="mesa")
+    plt.legend()
+    plt.show()
+
 
 def main():
-    L.debug("Starting tests")
-    testIntegrateMagneticField()
+    plotModelSCpsVsMESA()
     pass
     pass
 
 
 if __name__ == "__main__":
 
+    L.debug("Starting tests")
     main()
