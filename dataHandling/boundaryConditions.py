@@ -59,8 +59,6 @@ def getAdjustedBottomPressure(
     mass(p + dp) - ( mass(p) + deltaMass ) = 0
     """
 
-
-
     # -------------------
     # cache stuff for toFindRootOf(bottomPressure) that doesnt use the bottomPressure
 

@@ -131,12 +131,17 @@ class SingleTimeDatapoint:
         
         self.zs = newZs
     
-    def saveToFolder(self, folderName):
+    def saveToFolder(self, folderName, rewrite:bool = False):
         """
         saves all variables to a folder
         """
+        L.info(f"Saving to {folderName}")
+        if rewrite:
+            os.system(f"rm -r {folderName}")
         os.mkdir(folderName)
         for variableName, variableValue in self.allVariables.items():
+            if np.ndim(variableValue) == 0:
+                variableValue = np.array([variableValue])
             np.savetxt(
                 f"{folderName}/{variableName}.csv",
                 variableValue,
@@ -155,8 +160,6 @@ class Data:
     """
 
     def __init__(self, finalT: float, numberOfTSteps: int, startT: float = 0):
-        if startT == finalT:
-            raise ValueError("your start T equals end T")
         self.finalT = finalT
         self.times = np.linspace(start=startT, stop=self.finalT, num=numberOfTSteps)
         L.info("Assuming uniform timestep when creating data")
@@ -211,13 +214,6 @@ class Data:
         for variableName, variableArray in superDictionary.items():
             filename = f"{outputFolderName}/{variableName}.csv"
 
-            # unit conversion
-            unitConversionFactor = 1
-            if "times" in variableName:
-                unitConversionFactor = 1 / c.hour
-            if "zs" in variableName:
-                unitConversionFactor = 1 / c.Mm
-
             # headers
             if np.ndim(variableArray) == 0:
                 continue
@@ -233,7 +229,7 @@ class Data:
             # and save
             np.savetxt(
                 filename,
-                variableArray.T * unitConversionFactor,
+                variableArray.T,
                 header=header,
                 delimiter=",",
             )
@@ -244,31 +240,36 @@ def createDataFromFolder(foldername: str) -> Data:
     creates a data cube from a folder
     """
 
-    times = np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",") * c.hour
+    try:
+        times = np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",") * c.hour
+    except FileNotFoundError:
+        L.info("No times.csv file found, assuming only one time datapoint")
+        times = np.array([0.0])
     toReturn = Data(finalT=times[-1], numberOfTSteps=len(times), startT=times[0])
 
     loadedVariables = {}
     folder = os.listdir(foldername)
-    folder.remove("times.csv")
+    try:
+        folder.remove("times.csv")
+    except ValueError:
+        # times.csv is not in the folder, so we don't care
+        pass
     for file in folder:
         variableName = file[:-4]
-        unitConversionFactor = 1
-        if "zs" in variableName:
-            unitConversionFactor = c.Mm
         loadedVariables[variableName] = (
             np.loadtxt(f"{foldername}/{variableName}.csv", skiprows=1, delimiter=",")
-            * unitConversionFactor
         ).T
 
     for i, _ in enumerate(times):
         thisTimesVariables = {}
         for key, value in loadedVariables.items():
             if np.ndim(value) == 0 or np.ndim(value) == 1:
-                continue
-            try:
-                thisTimesVariables[key] = value[i, :]
-            except IndexError: # TODO wow this is dumb, dont do it this way pls, use numpy
-                break
+                thisTimesVariables[key] = value
+            else:
+                try:
+                    thisTimesVariables[key] = value[i, :]
+                except IndexError: # TODO wow this is dumb, dont do it this way pls, use numpy
+                    break
         else:
             newDatapoint = SingleTimeDatapoint(**thisTimesVariables)
             toReturn.appendDatapoint(newDatapoint)

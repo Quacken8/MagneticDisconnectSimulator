@@ -49,7 +49,6 @@ def testCalmSunVsModelS():
 
     dlnp = 1e-2
     maxDepth = 160 * c.Mm
-    convectiveAlpha = 0.3  # schussler rempel
 
     from stateEquationsPT import MESAEOS
     from opacity import mesaOpacity, modelSNearestOpacity
@@ -932,9 +931,22 @@ def plotModelSCpsVsMESA():
     plt.legend()
     plt.show()
 
+def compareCalmSunFromFileWithModelS():
+    from dataHandling.dataStructure import loadOneTimeDatapoint
+    calmSun = loadOneTimeDatapoint("calmSun")
+
+    toPlot = ["temperatures", "pressures"]
+    axs = plotSingleTimeDatapoint(
+        calmSun, toPlot, pltshow=False, label="Calm Sun", log=True
+    )
+    axs = plotSingleTimeDatapoint(
+        modelS, toPlot, axs=axs, pltshow=False, label="Model S", log=True
+    )
+    plt.show()
+
 
 def main():
-    plotModelSCpsVsMESA()
+    compareCalmSunFromFileWithModelS()
     pass
     pass
 

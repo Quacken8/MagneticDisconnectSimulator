@@ -318,7 +318,7 @@ def integrateHydrostaticEquilibrium(
         sunBs = None
     sunPs = np.exp(sunLnPs)
     newSun = SingleTimeDatapoint(
-        np.interp(sunZs, referenceZs, referenceTs), sunPs, zs=sunZs, Bs=sunBs
+        np.interp(sunZs, referenceZs, referenceTs), sunPs, zs=sunZs, bs=sunBs
     )
     if regularizeGrid:
         newSun.regularizeGrid()

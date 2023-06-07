@@ -7,6 +7,7 @@ This script models stellar interior with absent flux tube
 import numpy as np
 
 from dataHandling.dataStructure import SingleTimeDatapoint
+from dataHandling.modelS import loadModelS
 from stateEquationsPT import StateEquationInterface
 
 import constants as c
@@ -61,32 +62,47 @@ def main():
     """
     This function generates the calm sun model and saves it into a file
     """
+    dlnp = 1e-2
+    maxDepth = 20 * c.Mm
+    surfaceZ = 0 * c.Mm
+
+    modelS = loadModelS()
+    surfaceT = np.interp(surfaceZ, modelS.zs, modelS.temperatures).item()
+    surfaceP = np.interp(surfaceZ, modelS.zs, modelS.pressures).item()
+
     from stateEquationsPT import MESAEOS
     from opacity import mesaOpacity
 
-    StateEq = MESAEOS
-    opacityFunction = mesaOpacity
-    dlnP = 1e-3
-    surfaceZ = -2*c.Mm
-    maxDepth = 20*c.Mm
-    
-    # initial values interpolated from model S
-    from dataHandling.modelS import loadModelS
-    modelS = loadModelS()
-    lnSurfacePressure =  np.log(np.interp(surfaceZ, modelS.zs, modelS.pressures)).item()
-    surfaceTemperature = np.interp(surfaceZ, modelS.zs, modelS.temperatures).item()
-
-    
     calmSun = getCalmSunDatapoint(
-        StateEq=StateEq,
-        opacityFunction=opacityFunction,
-        dlnP=dlnP,
-        lnSurfacePressure=lnSurfacePressure,
-        surfaceTemperature=surfaceTemperature,
+        StateEq=MESAEOS,
+        dlnP=dlnp,
+        lnSurfacePressure=np.log(surfaceP),
+        surfaceTemperature=surfaceT,
         surfaceZ=surfaceZ,
         maxDepth=maxDepth,
+        opacityFunction=mesaOpacity,
     )
-    calmSun.saveToFolder("calmSun")
+
+    from dataHandling.dataStructure import loadOneTimeDatapoint
+    from dataHandling.dataVizualizer import plotSingleTimeDatapoint
+    import matplotlib.pyplot as plt
+
+    toPlot = ["temperatures", "pressures"]
+    axs = plotSingleTimeDatapoint(
+        calmSun, toPlot, pltshow=False, label="Calm Sun pre load", log=True
+    )
+    axs = plotSingleTimeDatapoint(
+        modelS, toPlot, axs=axs, pltshow=False, label="Model S", log=True
+    )
+
+    calmSun.saveToFolder("calmSun", rewrite=True)
+    del calmSun
+    calmSun = loadOneTimeDatapoint("calmSun")
+
+    axs = plotSingleTimeDatapoint(
+        calmSun, toPlot, axs=axs, pltshow=False, label="Calm Sun post load", log=True, linestyle="--"
+    )
+    plt.show()
 
 
 if __name__ == "__main__":
