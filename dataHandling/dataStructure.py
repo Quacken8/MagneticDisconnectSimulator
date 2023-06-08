@@ -4,8 +4,25 @@ import constants as c
 import os
 import loggingConfig
 import logging
+
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 
+def padTillNotJagged(array, padValue=np.nan) -> np.ndarray:
+    """
+    pads a jagged array with padValue until it is not jagged anymore
+    """
+    maxLength = max([len(subarray) for subarray in array])
+    for i, subarray in enumerate(array):
+        if len(subarray) < maxLength:
+            missingLength = maxLength - len(subarray)
+            newarray = np.pad(
+                subarray,
+                (0, missingLength),
+                mode="constant",
+                constant_values=padValue,
+            )
+            array[i] = newarray
+    return np.array(array)
 
 def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarray:
     """
@@ -16,7 +33,9 @@ def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarra
     if len(array) < desiredNumberOfElements:
         return array
     else:
-        indices = np.linspace(0, len(array) - 1, desiredNumberOfElements, endpoint=True, dtype=int)
+        indices = np.linspace(
+            0, len(array) - 1, desiredNumberOfElements, endpoint=True, dtype=int
+        )
         return array[indices]
 
 
@@ -39,7 +58,7 @@ unitsDictionary = {
     "zs": "m",
     "hs": "m",
     "numberofzsteps": "1",
-    "maxdepth": "Mm",
+    "maxdepth": "m",
     "temperatures": "K",
     "pressures": "Pa",
     "rhos": "kg/m^3",
@@ -79,7 +98,7 @@ class SingleTimeDatapoint:
         self.pressures = pressures
 
         fundamentalVariables = dictionaryOfVariables(self)
-        
+
         if bs is None:
             bs = np.zeros_like(zs)
         self.bs = bs
@@ -111,8 +130,8 @@ class SingleTimeDatapoint:
                 unitsDictionary[variableName.lower()]
             except KeyError:
                 L.warning(f"We don't have units for {variableName} defined!")
-    
-    def regularizeGrid(self, nSteps:int | None = None) -> None:
+
+    def regularizeGrid(self, nSteps: int | None = None) -> None:
         """turns current z grid into an equidistant one by linearly interpolating all variables onto it. If nSteps is given, the grid will have nSteps elements, otherwise it will use the current grid size
 
         Args:
@@ -121,17 +140,17 @@ class SingleTimeDatapoint:
 
         if nSteps is None:
             nSteps = self.numberOfZSteps
-        
+
         newZs = np.linspace(self.zs[0], self.zs[-1], nSteps)
         self.temperatures = np.interp(newZs, self.zs, self.temperatures)
         self.pressures = np.interp(newZs, self.zs, self.pressures)
 
         for key, value in self.derivedQuantities.items():
             self.derivedQuantities[key] = np.interp(newZs, self.zs, value)
-        
+
         self.zs = newZs
-    
-    def saveToFolder(self, folderName, rewrite:bool = False):
+
+    def saveToFolder(self, folderName, rewrite: bool = False):
         """
         saves all variables to a folder
         """
@@ -148,6 +167,7 @@ class SingleTimeDatapoint:
                 header=f"{variableName} [{unitsDictionary[variableName.lower()]}]",
                 delimiter=",",
             )
+
 
 class Data:
     """
@@ -198,25 +218,45 @@ class Data:
         superDictionary = (
             {}
         )  # this dictionary is just like the "allVariables" dictionary of the single time datapoint but these contain cubes of data
-        superDictionary.update({"times": self.times})
+        
+        # since times are separate from the datapoints, they get saved separately
+        np.savetxt(
+            f"{outputFolderName}/times.csv",
+            self.times,
+            header=f"t [{unitsDictionary['times']}]",
+            delimiter=",",
+        )
+
         firstDatapoint = self.datapoints[0]
         superDictionary.update(firstDatapoint.allVariables)
+        # since each time step has different zs the super dictionary will be jagged
+        # therefore we can't use np arrays and have to convert to lists
+        for key, value in superDictionary.items():
+            superDictionary[key] = [value]
         for datapoint in self.datapoints[1:]:
             if datapoint is None:
                 continue
             for variableName, variableArray in datapoint.allVariables.items():
                 # to variableName key in superDictionary append variableArray
-                superDictionary[variableName] = np.vstack(
-                    (superDictionary[variableName], variableArray)
-                )
+                superDictionary[variableName].append(variableArray)
 
         # now that all the data is in the one dict, save it
         for variableName, variableArray in superDictionary.items():
             filename = f"{outputFolderName}/{variableName}.csv"
 
+            # now make the jagged array into a rectangular one by padding with nans
+            try:
+                if np.ndim(variableArray) == 0:
+                    # if it's just a scalar we don't need it saved
+                    continue
+                if len(variableArray) == 1:
+                    # there is literally only one element in the array, so it can't be jagged
+                    variableArray = variableArray[0]
+            except ValueError:
+                # this error happens when the array is jagged
+                variableArray = padTillNotJagged(variableArray)
+
             # headers
-            if np.ndim(variableArray) == 0:
-                continue
             if np.ndim(variableArray) == 1:
                 header = f"{variableName} [{unitsDictionary[variableName.lower()]}]"
             elif np.ndim(variableArray) == 2:
@@ -226,10 +266,9 @@ class Data:
                     f"Weird dimension of {variableName} array ({np.ndim(variableArray)})"
                 )
 
-            # and save
             np.savetxt(
                 filename,
-                variableArray.T,
+                np.array(variableArray).T,
                 header=header,
                 delimiter=",",
             )
@@ -241,7 +280,9 @@ def createDataFromFolder(foldername: str) -> Data:
     """
 
     try:
-        times = np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",") * c.hour
+        times = (
+            np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",") * c.hour
+        )
     except FileNotFoundError:
         L.info("No times.csv file found, assuming only one time datapoint")
         times = np.array([0.0])
@@ -268,7 +309,9 @@ def createDataFromFolder(foldername: str) -> Data:
             else:
                 try:
                     thisTimesVariables[key] = value[i, :]
-                except IndexError: # TODO wow this is dumb, dont do it this way pls, use numpy
+                except (
+                    IndexError
+                ):  # TODO wow this is dumb, dont do it this way pls, use numpy
                     break
         else:
             newDatapoint = SingleTimeDatapoint(**thisTimesVariables)

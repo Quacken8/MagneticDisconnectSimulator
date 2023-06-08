@@ -61,7 +61,7 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux, yGuess = 
         return np.array([yYgradBottom[0] - bottomY, yGradTop[0] - topY])
 
     # initial guess
-    # here we assume that linear function
+    # here we assume linear function
     if yGuess is None:
         yGuess = np.linspace(bottomY, topY, zs.size)
         yGradGuess = np.ones_like(zs) * (topY - bottomY) / (zs[-1] - zs[0])

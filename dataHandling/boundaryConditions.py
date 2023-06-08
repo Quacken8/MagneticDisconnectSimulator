@@ -29,11 +29,13 @@ def getTopB() -> float:
     """
     return 2e3 * c.Gauss
 
+
 def massOfFluxTube(densities, Bs, zs, totalMagneticFlux):
     """
     equation 13 in Schüssler and Rempel 2018
     """
     return totalMagneticFlux * simpson(densities / Bs, zs)
+
 
 def deltaMass(bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity):
     """
@@ -42,6 +44,7 @@ def deltaMass(bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity):
     approimation of how the total mass should change if the values of p, B and rho change at the bottom
     """
     return totalMagneticFlux * upflowVelocity * dt * bottomDensity / bottomB
+
 
 def getAdjustedBottomPressure(
     currentState: SingleTimeDatapoint,
@@ -63,7 +66,9 @@ def getAdjustedBottomPressure(
     # cache stuff for toFindRootOf(bottomPressure) that doesnt use the bottomPressure
 
     # first get old mass from current state
-    oldRhos = np.array(StateEq.density(currentState.temperatures, currentState.pressures))
+    oldRhos = np.array(
+        StateEq.density(currentState.temperatures, currentState.pressures)
+    )
     oldPs = currentState.pressures
     oldBs = currentState.bs
     oldZs = currentState.zs
@@ -73,7 +78,7 @@ def getAdjustedBottomPressure(
     massAdjustment = deltaMass(
         bottomDensity=oldRhos[-1],
         bottomB=oldBs[-1],
-        totalMagneticFlux=totalMagneticFlux, 
+        totalMagneticFlux=totalMagneticFlux,
         dt=dt,
         upflowVelocity=upflowVelocity,
     )
@@ -89,34 +94,36 @@ def getAdjustedBottomPressure(
             StateEq=StateEq,
             referenceZs=currentState.zs,
             referenceTs=newTs,
-            dlnP = dlnP,
+            dlnP=dlnP,
             lnBoundaryPressure=np.log(bottomPressure),
             initialZ=currentState.zs[-1],
             finalZ=currentState.zs[0],
-            regularizeGrid=True
+            regularizeGrid=True,
         )
         newZs = newDatapoint.zs
         newRhos = StateEq.density(newDatapoint.temperatures, newDatapoint.pressures)
 
         # and the new mass
-        newMass = massOfFluxTube(newRhos, np.interp(newZs, oldZs, oldBs), newZs, totalMagneticFlux)
+        newMass = massOfFluxTube(
+            newRhos, np.interp(newZs, oldZs, oldBs), newZs, totalMagneticFlux
+        )
 
         # and return the zero
         return newMass - oldMass - massAdjustment
-    
 
     # and now just fund the root
 
     # first try newton
     try:
-        newP = brentq(toFindRootOf, a=oldPs[-1], b=bottomExternalPressure) # FIXME get good bounds
-    except RuntimeError:
         newPGuess = oldPs[-1]
         newP = newton(toFindRootOf, x0=newPGuess)
         # if that doesnt work, try brentq
-    
-    return newP
+    except RuntimeError:
+        newP = brentq(
+            toFindRootOf, a=oldPs[-1] * 0.7, b=oldPs[-1] * 1.3
+        )  # FIXME get good bounds
 
+    return newP
 
 
 if __name__ == "__main__":
