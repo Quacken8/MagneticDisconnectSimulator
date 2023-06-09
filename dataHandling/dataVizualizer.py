@@ -7,6 +7,7 @@ from dataHandling.dataStructure import (
     Data,
     SingleTimeDatapoint,
     dictionaryOfVariables,
+    subsampleArray,
     unitsDictionary,
 )
 import constants as c
@@ -69,6 +70,63 @@ def plotSingleTimeDatapoint(
         ax.set_title(f"{title}{plot} vs depth")
         ax.legend()
 
+    if pltshow:
+        plt.show()
+    return axs
+
+def plotData(
+    data: Data,
+    toPlot: Iterable[str],
+    ntimes: int | None = None,
+    axs: Dict[str, plt.Axes] | None = None,
+    pltshow: bool = True,
+    log: bool=True,
+    title: str = "",
+    linestyle:str = "-",
+) -> Dict[str, plt.Axes]:
+    """
+    Plots a Data object into provided axes (if they are provided) and returns the axes.
+
+    Parameters
+    ----------
+    data : Data
+        Data object to plot.
+    toPlot : Iterable[str]
+        Iterable of strings of variables to plot.
+    ntimes : int | None, optional
+        Number of times to plot. If None, plots all times. The default is None.
+    axs : Dict[str, plt.Axes] | None, optional
+        Dictionary of axes to plot into. If None, creates new axes. The default is None.
+    pltshow : bool, optional
+        Whether to show the plot. The default is True.
+    log : bool, optional
+        Whether to plot in log scale. The default is True.
+    title : str, optional
+        Title of the plot. The default is "".
+    linestyle : str, optional
+        Linestyle of the plot. The default is "-".
+    """
+    times = data.times
+    datapoints = data.datapoints
+    times = times[datapoints != None].flatten() # NOTE unsure why is not None doesnt work
+    datapoints = datapoints[datapoints != None].flatten()
+    if ntimes is None:
+        ntimes = len(datapoints)
+    datapoints = subsampleArray(datapoints, ntimes)
+    times = subsampleArray(times, ntimes)
+    if axs is None:
+        axs = {}
+    for time, datapoint in zip(times, datapoints):
+        axs = plotSingleTimeDatapoint(
+            datapoint,
+            toPlot,
+            axs=axs,
+            pltshow=False,
+            log=log,
+            title=title,
+            label=f"t = {time/c.hour:.2f} h",
+            linestyle=linestyle,
+        )
     if pltshow:
         plt.show()
     return axs

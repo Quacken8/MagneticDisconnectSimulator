@@ -145,7 +145,7 @@ def main(
             )
             lastYs = newYs
             newBs = newYs * newYs
-            currentState.bs = newBs
+            currentState.bs = currentState.allVariables["bs"] = newBs
 
             # and save the new datapoint
 

@@ -62,7 +62,7 @@ unitsDictionary = {
     "temperatures": "K",
     "pressures": "Pa",
     "rhos": "kg/m^3",
-    "b_0s": "T",
+    "bs": "T",
     "f_rads": "W/m^2",
     "f_cons": "W/m^2",
     "entropies": "J/K",
@@ -96,12 +96,12 @@ class SingleTimeDatapoint:
         self.temperatures = temperatures
 
         self.pressures = pressures
-
-        fundamentalVariables = dictionaryOfVariables(self)
-
         if bs is None:
             bs = np.zeros_like(zs)
         self.bs = bs
+
+        fundamentalVariables = dictionaryOfVariables(self)
+
         self.derivedQuantities = {}
 
         for key, value in kwargs.items():
@@ -281,7 +281,7 @@ def createDataFromFolder(foldername: str) -> Data:
 
     try:
         times = (
-            np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",") * c.hour
+            np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",")
         )
     except FileNotFoundError:
         L.info("No times.csv file found, assuming only one time datapoint")
@@ -297,6 +297,8 @@ def createDataFromFolder(foldername: str) -> Data:
         pass
     for file in folder:
         variableName = file[:-4]
+        if variableName == "numberOfZSteps":
+            continue
         loadedVariables[variableName] = (
             np.loadtxt(f"{foldername}/{variableName}.csv", skiprows=1, delimiter=",")
         ).T
@@ -309,6 +311,8 @@ def createDataFromFolder(foldername: str) -> Data:
             else:
                 try:
                     thisTimesVariables[key] = value[i, :]
+                    thisTimesVariables[key] = thisTimesVariables[key][~np.isnan(thisTimesVariables[key])]
+                    pass
                 except (
                     IndexError
                 ):  # TODO wow this is dumb, dont do it this way pls, use numpy

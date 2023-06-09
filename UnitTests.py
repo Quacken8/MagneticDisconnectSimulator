@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from turtle import title
 from matplotlib.backend_bases import ToolContainerBase
 from matplotlib.scale import LogScale
 from sympy import li
@@ -13,7 +14,7 @@ from dataHandling.initialConditionsSetterUpper import mockupDataSetterUpper
 from dataHandling.modelS import loadModelS
 from stateEquationsPT import IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
-from dataHandling.dataVizualizer import plotSingleTimeDatapoint
+from dataHandling.dataVizualizer import plotSingleTimeDatapoint, plotData
 from sunSolvers.pressureSolvers import (
     integrateAdiabaticHydrostaticEquilibrium,
     integrateHydrostaticEquilibriumAndTemperatureGradient,
@@ -944,9 +945,16 @@ def compareCalmSunFromFileWithModelS():
     )
     plt.show()
 
+def plotInterruptedRun():
+    data = createDataFromFolder("interruptedRun")
+    toPlot = ["temperatures", "pressures", "bs"]
+    
+    axs = plotData(data, toPlot, pltshow=False, title="interrupted run", log=True)
+    plt.show()
+    
 
 def main():
-    compareCalmSunFromFileWithModelS()
+    plotInterruptedRun()
     pass
     pass
 
