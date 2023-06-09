@@ -95,6 +95,7 @@ def getBartaInit(
         topB = getTopB()
     bs = np.linspace(bottomB, topB, num=initialSun.zs.size)
     initialSun.bs = bs
+    initialSun.allVariables["bs"] = bs
 
     return initialSun
 

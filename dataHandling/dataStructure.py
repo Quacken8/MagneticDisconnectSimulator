@@ -272,6 +272,7 @@ class Data:
                 header=header,
                 delimiter=",",
             )
+            L.info(f"Saved data into {filename}")
 
 
 def createDataFromFolder(foldername: str) -> Data:
