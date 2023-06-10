@@ -7,6 +7,7 @@ import constants as c
 from typing import Type
 import loggingConfig
 import logging
+
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 from dataHandling.dataStructure import SingleTimeDatapoint
 from typing import Callable
@@ -23,7 +24,7 @@ def oldTSolver(
     convectiveAlpha: float,
 ) -> np.ndarray:
     """
-    solves the T equation 
+    solves the T equation
     dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
     the same way Bárta did
     by solving
@@ -35,6 +36,25 @@ def oldTSolver(
     requires that the grid is equidistant. If it's not, it will be made that way
 
     returns the new temperatures
+
+    here's the derivation of the matrix equation:
+    dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
+    rho cp dT/dt = -(d/dz (F_rad) + d/dz (F_conv))
+    rho cp dT/dt = -(d/dz (A dT/dz) + d/dz (F_conv))
+    rho cp dT/dt = -(dA/dz dT/dz + A d^2T/dz^2 + d/dz (F_conv))
+
+    now if we discretize the equation, making it implicit, denoting the temperatures
+    at time t with T and at time t+dt with T', we get
+
+    rho cp (T' - T)/dt = -((dA/dz dT'/dz + A d^2T'/dz^2 + d/dz (F_conv))
+
+    now we can discretize the spacial derivatives using centered differences
+    and putting together the terms with Ts at the same depth we get
+
+    mu_i T'_{i-1} + lambda_i T'_i + nu_i T'_{i+1} = d/dz (F_conv) + rho cp T/dt
+    M·T' = b
+    M·v = b
+
     """
     zs = currentState.zs
 
@@ -73,12 +93,10 @@ def oldTSolver(
 
     # now that teverything is ready prepare the matrix equation M·v = b
 
-    lambdas = - 2 * A / (dz * dz)-rhos * cps / dt # FIXME this makes no sense in relation to the equation in Bárta, but Bártas code uses it
-    gradA = centeredDifferencesM.dot(
-        A
-    )  # this is an array of centered differences used to approximate first derivatives
-    mus = gradA -A / (dz * dz)
-    nus = -gradA -A / (dz * dz)
+    lambdas = -2 * A / (dz * dz) - rhos * cps / dt
+    gradA = centeredDifferencesM.dot(A)
+    mus = gradA - A / (dz * dz)
+    nus = -gradA - A / (dz * dz)
     M = diags([mus[1:], lambdas, nus[:-1]], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
 
     fs = (
@@ -127,7 +145,7 @@ def rightHandSideOfTEq(
         temperatures, pressures, opacity=kappas, massBelowZ=massBelowZs
     )
 
-    Tgrad = np.gradient(temperatures, zs) 
+    Tgrad = np.gradient(temperatures, zs)
 
     FplusFs = F_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + F_con(
         convectiveAlpha=convectiveAlpha,
