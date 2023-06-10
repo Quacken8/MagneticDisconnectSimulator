@@ -295,8 +295,6 @@ def integrateHydrostaticEquilibrium(
         finalLnPGuess,
         int(np.abs((finalLnPGuess - lnBoundaryPressure)) / dlnP),
     )
-    if bottomUp:
-        sunLnPs = sunLnPs[::-1]
 
     # sunZs = odeint(func=rightHandSide, y0=initialZ, t=sunLnPs, tfirst=True)[:,0]
     # TODO odeint is faster than solve_ivp, however it seems to be running into some problems. The full output shows some weird values for debugging values... I'm not sure if it's a good idea to use it with the linear interpolation of Ts
@@ -306,6 +304,10 @@ def integrateHydrostaticEquilibrium(
         t_span=(sunLnPs[0], sunLnPs[-1]),
         t_eval=sunLnPs,
     ).y[0]
+
+    if bottomUp:
+        sunZs = sunZs[::-1]
+        sunLnPs = sunLnPs[::-1]
 
     if regularizeGrid:
         regularZs = np.linspace(sunZs[0], sunZs[-1], len(sunZs))
