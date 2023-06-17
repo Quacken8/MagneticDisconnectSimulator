@@ -42,7 +42,27 @@ def getInitialConditions(
     initialTs = modelS.temperatures(zs)
     initialBs = 0
 
+def getAdiabaticInitialConditions(
+    numberOfZSteps: int,
+    maxDepth: float,
+    minDepth: float,
+    surfaceTemperature: float = 3500,  # value used by Schüssler and Rempel 2005
+) -> SingleTimeDatapoint:
+    """
+    Creates adiabatic calm sun with given surface temperature and linearly interpolated magnetic field
+    """
 
+    initialSun = integrateAdiabaticHydrostaticEquilibrium(
+        StateEq=MESAEOS,
+        dlnP=1e-2,
+        initialZ=minDepth,
+        lnBoundaryPressure=np.log(1e5), # 
+        finalZ=maxDepth,
+        boundaryTemperature=surfaceTemperature,
+        regularizeGrid=True,
+    )
+
+    return initialSun
 
 def getBartaInit(
     p0_ratio: float, maxDepth: float, surfaceZ: float, dlnP: float = 1e-2, bottomB: float | None = None, topB: float | None = None
