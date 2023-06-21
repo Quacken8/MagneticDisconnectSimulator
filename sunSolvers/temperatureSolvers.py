@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-from stateEquationsPT import StateEquationInterface, F_con, F_rad
+from stateEquationsPT import StateEquationInterface
 from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 import constants as c
@@ -70,13 +70,11 @@ def oldTSolver(
     rhos = StateEq.density(Ts, Ps)
     cps = StateEq.Cp(Ts, Ps)
     m_zs = massBelowZ(zs)
-    F_cons = F_con(
+    f_cons = StateEq.f_con(
         convectiveAlpha=convectiveAlpha,
         temperature=Ts,
         pressure=Ps,
-        meanMolecularWeight=StateEq.meanMolecularWeight(Ts, Ps),
-        radiativeGrad=StateEq.radiativeLogGradient(Ts, Ps, m_zs, opacities),
-        c_p=cps,
+        
     )
 
     bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], g(zs[-1]))
@@ -100,7 +98,7 @@ def oldTSolver(
     M = diags([mus[1:], lambdas, nus[:-1]], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
 
     fs = (
-        centeredDifferencesM.dot(F_cons) + rhos * cps * Ts / dt
+        centeredDifferencesM.dot(f_cons) + rhos * cps * Ts / dt
     )  # TODO rederive the equation
     bs = fs[:]
     bs[0] -= (
@@ -147,14 +145,11 @@ def rightHandSideOfTEq(
 
     Tgrad = np.gradient(temperatures, zs)
 
-    FplusFs = F_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + F_con(
+    FplusFs = StateEq.f_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + StateEq.f_con(
         convectiveAlpha=convectiveAlpha,
         temperature=temperatures,
         pressure=pressures,
-        meanMolecularWeight=mus,
-        radiativeGrad=nablaRad,
-        c_p=cps,
-    )  # FIXME this is a nightmare, remake
+    )
     dFplusFdz = np.gradient(FplusFs, zs)
 
     return -dFplusFdz / (rhos * cps)
