@@ -3,10 +3,10 @@ from functools import partial
 from matplotlib import pyplot as plt
 import numpy as np
 import constants as c
-from scipy.integrate import solve_bvp
-from scipy.sparse.linalg import spsolve, inv
-from dataHandling.boundaryConditions import getBottomB, getTopB
-from sunSolvers.handySolverStuff import secondCentralDifferencesMatrix
+from scipy import integrate
+from scipy.sparse import linalg
+from dataHandling import boundaryConditions as boundary
+from sunSolvers import handySolverStuff
 import loggingConfig
 import logging
 L = loggingConfig.configureLogging(logging.INFO, __name__)
@@ -54,8 +54,8 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux, yGuess = 
         outerPs[-1],
         innerPs[-1],
     )  # TODO check if ur taking the correct thingy
-    bottomY = np.sqrt(getBottomB(bottomPe, bottomPi))
-    topY = np.sqrt(getTopB())
+    bottomY = np.sqrt(boundary.getBottomB(bottomPe, bottomPi))
+    topY = np.sqrt(boundary.getTopB())
 
     def boundaryConditions(yYgradBottom, yGradTop):
         return np.array([yYgradBottom[0] - bottomY, yGradTop[0] - topY])
@@ -72,7 +72,7 @@ def integrateMagneticEquation(zs, innerPs, outerPs, totalMagneticFlux, yGuess = 
     simplerODEs = partial(setOfODEs, innerPZ=(zs, innerPs), outerPZ=(zs, outerPs), totalMagneticFlux=totalMagneticFlux)
 
     # integration
-    integrationResult = solve_bvp(
+    integrationResult = integrate.solve_bvp(
         simplerODEs,
         boundaryConditions,
         zs,
@@ -133,10 +133,10 @@ def oldYSolver(
     .    └────────────┘                    \n
     """
 
-    matrixOfSecondDifferences = secondCentralDifferencesMatrix(
+    matrixOfSecondDifferences = handySolverStuff.secondCentralDifferencesMatrix(
         zs, constantBoundaries=True
     )
-    inverseSecondDiff = inv(matrixOfSecondDifferences.tocsc())
+    inverseSecondDiff = linalg.inv(matrixOfSecondDifferences.tocsc())
 
     rightSide = rightHandSideOfYEq(yGuess, innerPs, outerPs, totalMagneticFlux)
     leftSide = matrixOfSecondDifferences.dot(yGuess)

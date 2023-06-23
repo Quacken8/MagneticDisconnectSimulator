@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-from math import sin
-from dataHandling.dataStructure import SingleTimeDatapoint
-from gravity import g, massBelowZ
+from dataHandling import dataStructure
+import gravity
 import numpy as np
 from typing import Callable, Type
-from scipy.integrate import ode, odeint, solve_ivp
-from scipy.interpolate import interp1d
+from scipy import integrate
+from scipy import interpolate
 import constants as c
-from dataHandling.modelS import loadModelS
+from dataHandling import modelS
 from stateEquationsPT import StateEquationInterface
 import loggingConfig
 import logging
@@ -24,7 +23,7 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     initialZ: float,
     finalZ: float,
     regularizeGrid: bool = False,
-) -> SingleTimeDatapoint:
+) -> dataStructure.SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to integrated pressure according to hydrostatic equilibrium in the Sun where both magnetic fields and inflow of material play a role FIXME is this even true
     solves the set of ODEs
@@ -62,8 +61,8 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
         z = zlnTArray[0]
         T = np.exp(zlnTArray[1])
         P = np.exp(lnP)
-        gravAcc = np.array(g(z))
-        m_z = massBelowZ(z)
+        gravAcc = np.array(gravity.g(z))
+        m_z = gravity.massBelowZ(z)
 
         H = StateEq.pressureScaleHeight(
             temperature=T, pressure=P, gravitationalAcceleration=gravAcc
@@ -83,13 +82,13 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     # get the guess of the integration domain
 
     paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 102 % of the ln(pressure) expected at maxDepth
-    modelS = loadModelS()
-    modelPs = modelS.pressures
-    modelZs = modelS.zs
+    model = modelS.loadModelS()
+    modelPs = model.pressures
+    modelZs = model.zs
     finalPGuess = np.interp(finalZ, modelZs, modelPs)
 
     # get rid of these they might be big
-    del modelS, modelPs, modelZs
+    del model, modelPs, modelZs
 
     bottomUp = (
         initialZ > finalZ
@@ -107,7 +106,7 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     if bottomUp:
         sunLnPs = sunLnPs[::-1]
 
-    sunZs, sunLnTs = odeint(
+    sunZs, sunLnTs = integrate.odeint(
         func=setOfODEs,
         y0=currentZlnTValues,
         t=sunLnPs,
@@ -135,7 +134,7 @@ def integrateAdiabaticHydrostaticEquilibrium(
     initialZ: float,
     finalZ: float,
     regularizeGrid: bool = False,
-) -> SingleTimeDatapoint:
+) -> dataStructure.SingleTimeDatapoint:
     """
     returns a datapoint that corresponds to integrated pressure according to hydrostatic equilibrium in the Sun where both magnetic fields and inflow of material play a role FIXME is this even true
     solves the set of ODEs
@@ -173,7 +172,7 @@ def integrateAdiabaticHydrostaticEquilibrium(
         z = zlnTArray[0]
         T = np.exp(zlnTArray[1])
         P = np.exp(lnP)
-        gravAcc = np.array(g(z))
+        gravAcc = np.array(gravity.g(z))
 
         H = StateEq.pressureScaleHeight(
             temperature=T, pressure=P, gravitationalAcceleration=gravAcc
@@ -188,13 +187,13 @@ def integrateAdiabaticHydrostaticEquilibrium(
     # get the guess of the integration domain
 
     paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth
-    modelS = loadModelS()
-    modelPs = modelS.pressures
-    modelZs = modelS.zs
+    model = modelS.loadModelS()
+    modelPs = model.pressures
+    modelZs = model.zs
     finalPGuess = np.interp(finalZ, modelZs, modelPs)
 
     # get rid of these they might be big
-    del modelS, modelPs, modelZs
+    del model, modelPs, modelZs
 
     bottomUp = (
         initialZ > finalZ
@@ -212,7 +211,7 @@ def integrateAdiabaticHydrostaticEquilibrium(
     if bottomUp:
         sunLnPs = sunLnPs[::-1]
 
-    sunZs, sunLnTs = odeint(
+    sunZs, sunLnTs = integrate.odeint(
         func=setOfODEs,
         y0=currentZlnTValues,
         t=sunLnPs,
@@ -222,7 +221,7 @@ def integrateAdiabaticHydrostaticEquilibrium(
     sunPs = np.exp(sunLnPs)
     sunTs = np.exp(sunLnTs)
 
-    sun = SingleTimeDatapoint(
+    sun = dataStructure.SingleTimeDatapoint(
         zs=np.array(sunZs),
         temperatures=np.array(sunTs),
         pressures=np.array(sunPs),
@@ -242,7 +241,7 @@ def integrateHydrostaticEquilibrium(
     finalZ: float,
     interpolableYs: np.ndarray | None = None,
     regularizeGrid: bool = False,
-) -> SingleTimeDatapoint:
+) -> dataStructure.SingleTimeDatapoint:
     """
     Integrates the hydrostatic equilibrium equation d z/dlnP = H if temperatures at zs are known
 
@@ -268,7 +267,7 @@ def integrateHydrostaticEquilibrium(
         """
         pressure = np.exp(lnP)
         temperature = np.interp(z, referenceZs, referenceTs)
-        gravAcc = g(z)
+        gravAcc = gravity.g(z)
         H = StateEq.pressureScaleHeight(
             temperature=temperature,
             pressure=pressure,
@@ -278,9 +277,9 @@ def integrateHydrostaticEquilibrium(
 
     # guess the z range
     paddingFactor = 0.05  # i.e. will, just to be sure, integrate to 120 % of the ln(pressure) expected at maxDepth
-    modelS = loadModelS()
-    modelPs = modelS.pressures
-    modelZs = modelS.zs
+    model = modelS.loadModelS()
+    modelPs = model.pressures
+    modelZs = model.zs
     finalPGuess = np.interp(finalZ, modelZs, modelPs)
 
     # integrate it with scipy
@@ -298,7 +297,7 @@ def integrateHydrostaticEquilibrium(
 
     # sunZs = odeint(func=rightHandSide, y0=initialZ, t=sunLnPs, tfirst=True)[:,0]
     # TODO odeint is faster than solve_ivp, however it seems to be running into some problems. The full output shows some weird values for debugging values... I'm not sure if it's a good idea to use it with the linear interpolation of Ts
-    sunZs = solve_ivp(
+    sunZs = integrate.solve_ivp(
         fun=rightHandSide,
         y0=np.array([initialZ]),
         t_span=(sunLnPs[0], sunLnPs[-1]),
@@ -319,7 +318,7 @@ def integrateHydrostaticEquilibrium(
     else:
         sunBs = None
     sunPs = np.exp(sunLnPs)
-    newSun = SingleTimeDatapoint(
+    newSun = dataStructure.SingleTimeDatapoint(
         np.interp(sunZs, referenceZs, referenceTs), sunPs, zs=sunZs, bs=sunBs
     )
     if regularizeGrid:

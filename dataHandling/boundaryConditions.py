@@ -2,10 +2,10 @@
 from typing import Type
 import numpy as np
 from dataHandling.dataStructure import SingleTimeDatapoint
-from stateEquationsPT import StateEquationInterface, MESAEOS
+import stateEquationsPT
 import constants as c
-from scipy.integrate import simpson
-from scipy.optimize import newton, brentq
+from scipy import integrate
+from scipy import optimize
 import loggingConfig
 import logging
 
@@ -34,7 +34,7 @@ def massOfFluxTube(densities, Bs, zs, totalMagneticFlux):
     """
     equation 13 in Schüssler and Rempel 2018
     """
-    return totalMagneticFlux * simpson(densities / Bs, zs)
+    return totalMagneticFlux * integrate.simpson(densities / Bs, zs)
 
 
 def deltaMass(bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity):
@@ -54,7 +54,7 @@ def getAdjustedBottomPressure(
     dt: float,
     upflowVelocity: float,
     totalMagneticFlux: float,
-    StateEq: Type[StateEquationInterface] = MESAEOS,
+    StateEq: Type[stateEquationsPT.StateEquationInterface] = stateEquationsPT.MESAEOS,
 ) -> float:
     """
     boundary condition of pressure is only given on the bottom
@@ -116,10 +116,10 @@ def getAdjustedBottomPressure(
     # first try newton
     try:
         newPGuess = oldPs[-1]
-        newP = newton(toFindRootOf, x0=newPGuess)
+        newP = optimize.newton(toFindRootOf, x0=newPGuess)
         # if that doesnt work, try brentq
     except RuntimeError:
-        newP = brentq(
+        newP = optimize.brentq(
             toFindRootOf, a=oldPs[-1] * 0.7, b=oldPs[-1] * 1.3
         )  # FIXME get good bounds
 

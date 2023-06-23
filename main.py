@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from dataHandling.initialConditionsSetterUpper import getBartaInit
-from dataHandling.modelS import loadModelS
-from dataHandling.dataStructure import Data, SingleTimeDatapoint, loadOneTimeDatapoint
+from dataHandling import initialConditionsSetterUpper as init
+from dataHandling import modelS
+from dataHandling import dataStructure 
 import constants as c
-from sunSolvers.calmSun import getCalmSunDatapoint
-from sunSolvers.temperatureSolvers import oldTSolver, simpleTSolver
-from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
-from sunSolvers.magneticSolvers import integrateMagneticEquation
+from sunSolvers import calmSun
+from sunSolvers import temperatureSolvers
+from sunSolvers import pressureSolvers
+from sunSolvers import magneticSolvers
 from stateEquationsPT import MESAEOS
-from opacity import mesaOpacity
-from dataHandling.boundaryConditions import getAdjustedBottomPressure
-from loggingConfig import configureLogging
+import opacity
+from dataHandling import boundaryConditions
+import loggingConfig
 import logging
 
-L = configureLogging(logging.INFO, __name__)
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 
-modelS = loadModelS()
+modelS = modelS.loadModelS()
 
 
 def main(
-    initialConditions: SingleTimeDatapoint,
-    backgroundReference: SingleTimeDatapoint = modelS,
+    initialConditions:   dataStructure.SingleTimeDatapoint,
+    backgroundReference: dataStructure.SingleTimeDatapoint = modelS,
     maxDepth: float = 100,
     upflowVelocity: float = 1e-3,
     totalMagneticFlux: float = 1e13,
@@ -61,13 +61,13 @@ def main(
     calmMinDepth = -1e5  # TODO these may need adjusting
 
     try: 
-        calmSun = loadOneTimeDatapoint("calmSun")
+        calmModel = dataStructure.loadOneTimeDatapoint("calmSun")
         L.info("Loaded calm Sun from a folder")
     except FileNotFoundError:
         L.info("Couldn't find calm Sun in a folder")
-        calmSun = getCalmSunDatapoint(
+        calmModel = calmSun.getCalmSunDatapoint(
             StateEq=MESAEOS,
-            opacityFunction=mesaOpacity,
+            opacityFunction=opacity.mesaOpacity,
             dlnP=dlnP,
             lnSurfacePressure=np.log(
                 np.interp(
@@ -81,14 +81,14 @@ def main(
             maxDepth=calmMaxDepth,
         )
 
-    externalzP = (calmSun.zs[:], calmSun.pressures[:])
+    externalzP = (calmModel.zs[:], calmModel.pressures[:])
     # only P_e is important from the background model
     # these *can* be be quite big, get rid of them
-    del calmSun
+    del calmModel
     del backgroundReference
 
     # create empty data structure with only initial conditions
-    data = Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
+    data = dataStructure.Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
     try: # this huge try block makes sure data gets saved in case of an error
         dt = finalT / numberOfTSteps
         currentState = initialConditions
@@ -102,24 +102,24 @@ def main(
             time += dt  # TODO maybe use non constant dt?
 
             # first integrate the temperature equation
-            newTs = simpleTSolver(
+            newTs = temperatureSolvers.simpleTSolver(
                 currentState=currentState,
                 dt=dt,
                 StateEq=MESAEOS,
-                opacityFunction=mesaOpacity,
+                opacityFunction=opacity.mesaOpacity,
                 surfaceTemperature=surfaceTemperature,
                 convectiveAlpha=convectiveAlpha,
             )
             # with new temperatures now get new bottom pressure from inflow of material
             bottomPe = np.interp(currentState.zs[-1], externalzP[0], externalzP[1]).item()
 
-            newBottomP = getAdjustedBottomPressure(currentState=currentState, dt=dt, dlnP = dlnP, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, newTs = newTs)
+            newBottomP = boundaryConditions.getAdjustedBottomPressure(currentState=currentState, dt=dt, dlnP = dlnP, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, newTs = newTs)
 
             # then integrate hydrostatic equilibrium from bottom to the top
             initialZ = currentState.zs[-1]
             finalZ = currentState.zs[0]
 
-            currentState = integrateHydrostaticEquilibrium( 
+            currentState = pressureSolvers.integrateHydrostaticEquilibrium( 
                 referenceTs=newTs,
                 referenceZs=currentState.zs,
                 StateEq=MESAEOS,
@@ -135,7 +135,7 @@ def main(
 
             # finally solve the magnetic equation
             externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
-            newYs = integrateMagneticEquation(
+            newYs = magneticSolvers.integrateMagneticEquation(
                 newZs,
                 newPs,
                 externalPressures,
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     numberOfZSteps = 100
     dlnP = 1e-2
 
-    initialConditions = getBartaInit(p0_ratio, maxDepth, minDepth, dlnP=dlnP)
+    initialConditions = init.getBartaInit(p0_ratio, maxDepth, minDepth, dlnP=dlnP)
 
     finalT = 100  # final time in hours
     numberOfTSteps = 32  # number of time steps

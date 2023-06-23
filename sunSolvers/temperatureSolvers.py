@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 import numpy as np
 from stateEquationsPT import StateEquationInterface
-from scipy.sparse import diags
-from scipy.sparse.linalg import spsolve
+from scipy import sparse
+from scipy.sparse import linalg
 import constants as c
 from typing import Type
 import loggingConfig
 import logging
+
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 from dataHandling.dataStructure import SingleTimeDatapoint
 from typing import Callable
-from gravity import g, massBelowZ
+import gravity
 from sunSolvers.handySolverStuff import centralDifferencesMatrix
 
 
@@ -68,15 +69,18 @@ def oldTSolver(
     opacities = opacityFunction(Ts, Ps)
     rhos = StateEq.density(Ts, Ps)
     cps = StateEq.Cp(Ts, Ps)
-    m_zs = massBelowZ(zs)
+    m_zs = gravity.massBelowZ(zs)
+    gs = gravity.g(zs)
     f_cons = StateEq.f_con(
         convectiveAlpha=convectiveAlpha,
         temperature=Ts,
         pressure=Ps,
-        
+        opacity=opacities,
+        massBelowZ=m_zs,
+        gravitationalAcceleration=gs,
     )
 
-    bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], g(zs[-1]))
+    bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], gravity.g(zs[-1]))
     bottomNablaAd = StateEq.adiabaticLogGradient(Ts[-1], Ps[-1])
     bottomAdiabaticT = Ts[-1] * (
         1 + bottomNablaAd / bottomH * dz
@@ -94,7 +98,7 @@ def oldTSolver(
     gradA = centeredDifferencesM.dot(A)
     mus = gradA - A / (dz * dz)
     nus = -gradA - A / (dz * dz)
-    M = diags([mus[1:], lambdas, nus[:-1]], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
+    M = sparse.diags([mus[1:], lambdas, nus[:-1]], [-1, 0, 1], shape=(len(zs), len(zs))).tocsr()  # type: ignore
 
     fs = (
         centeredDifferencesM.dot(f_cons) + rhos * cps * Ts / dt
@@ -107,16 +111,7 @@ def oldTSolver(
 
     # solve the matrix equation
 
-    Ts = spsolve(M, bs)
-
-    rhs = rightHandSideOfTEq(
-        convectiveAlpha=convectiveAlpha,
-        zs=zs,
-        temperatures=Ts,
-        pressures=Ps,
-        StateEq=StateEq,
-        opacityFunction=opacityFunction,
-    )
+    Ts = linalg.spsolve(M, bs)
 
     return Ts
 
@@ -171,18 +166,22 @@ def rightHandSideOfTEq(
 
     cps = StateEq.Cp(temperatures, pressures)
     rhos = StateEq.density(temperatures, pressures)
-    kappas = opacityFunction(temperatures, pressures)
-
-
+    opacity = opacityFunction(temperatures, pressures)
     Tgrad = np.gradient(temperatures, zs)
-
+    massBelowZ = gravity.massBelowZ(zs)
+    gravitationalAcceleration = gravity.g(zs)
 
     # FplusFs = 4*a*c*c.G/2 * m * T4/(kappas* Ps * r*r) *nablaRads
 
-    FplusFs = StateEq.f_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + StateEq.f_con(
+    FplusFs = StateEq.f_rad(
+        temperatures, pressures, opacity=opacity, Tgrad=Tgrad
+    ) + StateEq.f_con(
         convectiveAlpha=convectiveAlpha,
         temperature=temperatures,
         pressure=pressures,
+        opacity=opacity,
+        massBelowZ=massBelowZ,
+        gravitationalAcceleration=gravitationalAcceleration,
     )
     dFplusFdz = np.gradient(FplusFs, zs)
 

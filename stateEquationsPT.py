@@ -2,8 +2,8 @@
 import numpy as np
 import constants as c
 import abc
-from dataclasses import dataclass
-from mesa2Py.eosFromMesa import getEosResult
+import dataclasses
+from mesa2Py import eosFromMesa
 import loggingConfig
 import logging
 
@@ -287,7 +287,7 @@ class IdealGas(StateEquationInterface):
         return np.minimum(nablaRad, nablaAd)
 
 
-@dataclass
+@dataclasses.dataclass
 class MESACache:
     _cache = {}
 
@@ -302,7 +302,7 @@ class MESACache:
     def __getitem__(self, key):  # when you call MESACache[(temperature, pressure)]
         if key not in self._cache.keys():  # not found in cache, call Fortran
             temperature, pressure = key
-            self._cache[(temperature, pressure)] = getEosResult(
+            self._cache[(temperature, pressure)] = eosFromMesa.getEosResult(
                 temperature, pressure, massFractions=c.solarAbundances, cgsOutput=False
             )
         return self._cache[key]
@@ -557,10 +557,10 @@ def _f_con(
     gradTick = (
         adiabaticGradient
         - 2 * u * u
-        + 2 * u * np.sqrt(actualGradient - adiabaticGradient + u * u)
+        + 2 * u * np.sqrt(np.maximum(actualGradient - adiabaticGradient + u * u, 0))
     )
-
-    differenceOfGradients = actualGradient - gradTick
+    # TODO these np.maximums probably shouldnt be there..? but we need them, getting negative values happens
+    differenceOfGradients = np.maximum(actualGradient - gradTick, 0)
     toReturn = (
         -b
         * np.sqrt(a * c.gasConstant * convectiveAlpha / meanMolecularWeight)
