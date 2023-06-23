@@ -106,7 +106,10 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
     def f_con(
         temperature: np.ndarray,
         pressure: np.ndarray,
-        convectiveAlpha: float | np.ndarray,
+        convectiveAlpha: float,
+        opacity: np.ndarray,
+        massBelowZ: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
     ) -> np.ndarray:
         """
         returns convective flux
@@ -347,58 +350,6 @@ class MESAEOS(StateEquationInterface):
 
     @np.vectorize
     @staticmethod
-    def convectiveLogGradient(
-        temperature: float,
-        pressure: float,
-        convectiveAlpha: float,
-        opacity: float,
-        gravitationalAcceleration: float,
-        massBelowZ: float,
-    ) -> float:
-        """
-        returns convectiveGradient
-        """
-
-        density = MESAEOS.density(temperature, pressure)
-        Hp = MESAEOS.pressureScaleHeight(
-            temperature, pressure, gravitationalAcceleration=gravitationalAcceleration
-        )
-        T3 = temperature * temperature * temperature
-        c_p = MESAEOS.Cp(temperature, pressure)
-        nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
-        nablaRad = MESAEOS.radiativeLogGradient(
-            temperature, pressure, massBelowZ, opacity
-        )
-
-        # these are parameters of convection used in Schüssler & Rempel 2005
-        a = 0.125
-        b = 0.5
-        f = 1.5
-
-        u = (
-            1
-            / (f * np.sqrt(a) * convectiveAlpha * convectiveAlpha)
-            * 12
-            * c.SteffanBoltzmann
-            * T3
-            / (c_p * density * opacity * Hp * Hp)
-            * np.sqrt(Hp / gravitationalAcceleration)
-        )
-
-        nablaConv = (
-            (nablaRad - nablaAd + 2 * u * u)
-            * (nablaRad - nablaAd + 2 * u * u)
-            / 4
-            / u
-            / u
-            + nablaAd
-            - u * u
-        )
-
-        return nablaConv
-
-    @np.vectorize
-    @staticmethod
     def adiabaticLogGradient(temperature: float, pressure: float) -> float:
         """
         returns convectiveGradient
@@ -445,7 +396,7 @@ class MESAEOS(StateEquationInterface):
             )
         )
         return nablaRad
-    
+
     @staticmethod
     def actualGradient(
         temperature: np.ndarray,
@@ -487,26 +438,42 @@ class MESAEOS(StateEquationInterface):
 
     @staticmethod
     def f_con(
-        temperature: np.ndarray, pressure: np.ndarray, convectiveAlpha: float, opacity: np.ndarray, massBelowZ: np.ndarray
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        convectiveAlpha: float,
+        opacity: np.ndarray,
+        massBelowZ: np.ndarray,
+        gravitationalAcceleration: np.ndarray,
     ) -> np.ndarray:
-        nabla = MESAEOS.actualGradient(
+        actalGradient = MESAEOS.actualGradient(
             temperature=temperature,
             pressure=pressure,
             massBelowZ=massBelowZ,
             opacity=opacity,
         )
+        adiabaticGradient = MESAEOS.adiabaticLogGradient(
+            temperature=temperature, pressure=pressure
+        )
         c_p = MESAEOS.Cp(temperature, pressure)
         rho = MESAEOS.density(temperature, pressure)
         mu = MESAEOS.meanMolecularWeight(temperature, pressure)
+        Hp = MESAEOS.pressureScaleHeight(
+            temperature=temperature,
+            pressure=pressure,
+            gravitationalAcceleration=gravitationalAcceleration,
+        )
 
         toReturn = _f_con(
             convectiveAlpha=convectiveAlpha,
             temperature=temperature,
-            pressure=pressure,
             density=rho,
             meanMolecularWeight=mu,
             c_p=c_p,
-            realGradient=nabla,
+            actualGradient=actalGradient,
+            adiabaticGradient=adiabaticGradient,
+            Hp=Hp,
+            gravitationalAcceleration=gravitationalAcceleration,
+            opacity=opacity,
         )
         return toReturn
 
@@ -554,28 +521,49 @@ def _f_rad(
 def _f_con(
     convectiveAlpha: float,
     temperature: np.ndarray,
-    pressure: np.ndarray,
     density: np.ndarray,
     meanMolecularWeight: np.ndarray,
     c_p: np.ndarray,
-    realGradient: np.ndarray,
+    actualGradient: np.ndarray,
+    adiabaticGradient: np.ndarray,
+    Hp: np.ndarray,
+    gravitationalAcceleration: np.ndarray,
+    opacity: np.ndarray,
 ) -> np.ndarray:
     """
     returns convectiveGradient based on state variables; used as a template for f_con in other state equations
     """
 
-    # these are parameters of convection used in Schüssler & Rempel 2005
+    # these are geometric parameters of convection used in Schüssler & Rempel 2005
     a = 0.125
     b = 0.5
+    f = 1.5
 
-    # just some renaming for the sake of readibilty
-    mu = meanMolecularWeight
+    u = (
+        1
+        / (f * np.sqrt(a))
+        * convectiveAlpha
+        * convectiveAlpha
+        * 12
+        * c.SteffanBoltzmann
+        * temperature
+        * temperature
+        * temperature
+        / (c_p * density * opacity * Hp * Hp)
+        * np.sqrt(Hp / gravitationalAcceleration)
+    )
+    # this is sometimes called ∇' (schussler & rempel 2005) or ∇_e (Lattanzio in thier class M4111 of 2009) where e stands for element of stellar matter
+    # it, according to Schüssler & Rempel 2005, "reflects radiative energy exchange of the convective parcels"
+    gradTick = (
+        adiabaticGradient
+        - 2 * u * u
+        + 2 * u * np.sqrt(actualGradient - adiabaticGradient + u * u)
+    )
 
-    differenceOfGradients = totalGradient - gradTick
-    #differenceOfGradients = adiabaticGradient
+    differenceOfGradients = actualGradient - gradTick
     toReturn = (
         -b
-        * np.sqrt(a * c.gasConstant * convectiveAlpha / mu)
+        * np.sqrt(a * c.gasConstant * convectiveAlpha / meanMolecularWeight)
         * density
         * c_p
         * np.power(temperature * differenceOfGradients, 1.5)

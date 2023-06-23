@@ -13,6 +13,7 @@
 // FIXME - check the simulation isnt overshooting the calm sun model. You added padding in main but it might not be enough
 // TODO - get some smart upflow velocity and total magentic flux numbers in main
 // FIXME - ask about the tempsovlers line 72
+// FIXME - try adding radiation pressure automatically in MESA EOS (easiest would be when callig mesa cache); maybe it solves some discrepancies?
 
 // TODO - rethink Data and how it stores new datapoints
 // TODO - benchmark root finding algos
