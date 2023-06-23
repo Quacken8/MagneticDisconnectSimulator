@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import numpy as np
-from dataHandling.initialConditionsSetterUpper import getInitialConditions, getBartaInit
+from dataHandling.initialConditionsSetterUpper import getBartaInit
 from dataHandling.modelS import loadModelS
 from dataHandling.dataStructure import Data, SingleTimeDatapoint, loadOneTimeDatapoint
 import constants as c
 from sunSolvers.calmSun import getCalmSunDatapoint
-from sunSolvers.temperatureSolvers import oldTSolver
+from sunSolvers.temperatureSolvers import oldTSolver, simpleTSolver
 from sunSolvers.pressureSolvers import integrateHydrostaticEquilibrium
-from sunSolvers.magneticSolvers import oldYSolver, integrateMagneticEquation
+from sunSolvers.magneticSolvers import integrateMagneticEquation
 from stateEquationsPT import MESAEOS
 from opacity import mesaOpacity
 from dataHandling.boundaryConditions import getAdjustedBottomPressure
@@ -102,10 +102,10 @@ def main(
             time += dt  # TODO maybe use non constant dt?
 
             # first integrate the temperature equation
-            newTs = oldTSolver(
+            newTs = simpleTSolver(
                 currentState=currentState,
-                StateEq=MESAEOS,
                 dt=dt,
+                StateEq=MESAEOS,
                 opacityFunction=mesaOpacity,
                 surfaceTemperature=surfaceTemperature,
                 convectiveAlpha=convectiveAlpha,

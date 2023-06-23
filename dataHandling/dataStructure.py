@@ -257,6 +257,9 @@ class Data:
                 variableArray = padTillNotJagged(variableArray)
 
             # headers
+            if np.ndim(variableArray) == 0:
+                # if it's just a scalar we don't need it saved
+                continue
             if np.ndim(variableArray) == 1:
                 header = f"{variableName} [{unitsDictionary[variableName.lower()]}]"
             elif np.ndim(variableArray) == 2:

@@ -7,7 +7,6 @@ import constants as c
 from typing import Type
 import loggingConfig
 import logging
-
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 from dataHandling.dataStructure import SingleTimeDatapoint
 from typing import Callable
@@ -110,7 +109,43 @@ def oldTSolver(
 
     Ts = spsolve(M, bs)
 
+    rhs = rightHandSideOfTEq(
+        convectiveAlpha=convectiveAlpha,
+        zs=zs,
+        temperatures=Ts,
+        pressures=Ps,
+        StateEq=StateEq,
+        opacityFunction=opacityFunction,
+    )
+
     return Ts
+
+
+def simpleTSolver(
+    currentState: SingleTimeDatapoint,
+    dt: float,
+    StateEq: Type[StateEquationInterface],
+    opacityFunction: Callable[[np.ndarray, np.ndarray], np.ndarray],
+    surfaceTemperature: float,
+    convectiveAlpha: float,
+) -> np.ndarray:
+    """
+    First order forward Euler solver for the temperature equation
+    """
+
+    dTdt = rightHandSideOfTEq(
+        convectiveAlpha=convectiveAlpha,
+        zs=currentState.zs,
+        temperatures=currentState.temperatures,
+        pressures=currentState.pressures,
+        StateEq=StateEq,
+        opacityFunction=opacityFunction,
+    )
+    newTs = currentState.temperatures + dt * dTdt
+
+    newTs[0] = surfaceTemperature
+
+    return newTs
 
 
 def rightHandSideOfTEq(
@@ -136,14 +171,13 @@ def rightHandSideOfTEq(
 
     cps = StateEq.Cp(temperatures, pressures)
     rhos = StateEq.density(temperatures, pressures)
-    mus = StateEq.meanMolecularWeight(temperatures, pressures)
     kappas = opacityFunction(temperatures, pressures)
-    massBelowZs = massBelowZ(zs)
-    nablaRad = StateEq.radiativeLogGradient(
-        temperatures, pressures, opacity=kappas, massBelowZ=massBelowZs
-    )
+
 
     Tgrad = np.gradient(temperatures, zs)
+
+
+    # FplusFs = 4*a*c*c.G/2 * m * T4/(kappas* Ps * r*r) *nablaRads
 
     FplusFs = StateEq.f_rad(temperatures, pressures, opacity=kappas, Tgrad=Tgrad) + StateEq.f_con(
         convectiveAlpha=convectiveAlpha,

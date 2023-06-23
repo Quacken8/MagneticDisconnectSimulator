@@ -63,6 +63,19 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
+    def actualGradient(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        massBelowZ: np.ndarray,
+        opacity: np.ndarray,
+    ) -> np.ndarray:
+        """
+        returns actual gradient
+        """
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
     def meanMolecularWeight(
         temperature: np.ndarray, pressure: np.ndarray
     ) -> np.ndarray:
@@ -90,7 +103,11 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def f_con(temperature: np.ndarray, pressure: np.ndarray, convectiveAlpha: float | np.ndarray) -> np.ndarray:
+    def f_con(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        convectiveAlpha: float | np.ndarray,
+    ) -> np.ndarray:
         """
         returns convective flux
         """
@@ -248,6 +265,23 @@ class IdealGas(StateEquationInterface):
         """
         rho = IdealGas.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
+
+    @staticmethod
+    def actualGradient(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        massBelowZ: np.ndarray,
+        opacity: np.ndarray,
+    ) -> np.ndarray:
+        """
+        returns actual gradient
+        """
+        nablaRad = IdealGas.radiativeLogGradient(
+            temperature, pressure, massBelowZ, opacity
+        )
+        nablaAd = IdealGas.adiabaticLogGradient(temperature, pressure)
+
+        return np.minimum(nablaRad, nablaAd)
 
 
 @dataclass
@@ -411,6 +445,23 @@ class MESAEOS(StateEquationInterface):
             )
         )
         return nablaRad
+    
+    @staticmethod
+    def actualGradient(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        massBelowZ: np.ndarray,
+        opacity: np.ndarray,
+    ) -> np.ndarray:
+        """
+        returns actual gradient
+        """
+        nablaRad = MESAEOS.radiativeLogGradient(
+            temperature, pressure, massBelowZ, opacity
+        )
+        nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
+
+        return np.minimum(nablaRad, nablaAd)
 
     @np.vectorize
     @staticmethod
@@ -433,11 +484,17 @@ class MESAEOS(StateEquationInterface):
         """
         rho = MESAEOS.density(temperature, pressure)
         return pressure / (rho * gravitationalAcceleration)
-    
-    @staticmethod
-    def f_con(temperature: np.ndarray, pressure: np.ndarray, convectiveAlpha: float) -> np.ndarray:
 
-        nablaAd = MESAEOS.adiabaticLogGradient(temperature, pressure)
+    @staticmethod
+    def f_con(
+        temperature: np.ndarray, pressure: np.ndarray, convectiveAlpha: float, opacity: np.ndarray, massBelowZ: np.ndarray
+    ) -> np.ndarray:
+        nabla = MESAEOS.actualGradient(
+            temperature=temperature,
+            pressure=pressure,
+            massBelowZ=massBelowZ,
+            opacity=opacity,
+        )
         c_p = MESAEOS.Cp(temperature, pressure)
         rho = MESAEOS.density(temperature, pressure)
         mu = MESAEOS.meanMolecularWeight(temperature, pressure)
@@ -449,7 +506,26 @@ class MESAEOS(StateEquationInterface):
             density=rho,
             meanMolecularWeight=mu,
             c_p=c_p,
-            adiabaticGradient=nablaAd
+            realGradient=nabla,
+        )
+        return toReturn
+
+    @staticmethod
+    def f_rad(
+        temperature: np.ndarray,
+        pressure: np.ndarray,
+        opacity: np.ndarray,
+        Tgrad: np.ndarray,
+    ) -> np.ndarray:
+        """
+        returns radiative flux
+        """
+        rho = MESAEOS.density(temperature, pressure)
+        toReturn = _f_rad(
+            temperature=temperature,
+            opacity=opacity,
+            Tgrad=Tgrad,
+            density=rho,
         )
         return toReturn
 
@@ -461,7 +537,7 @@ def _f_rad(
     density: np.ndarray,
 ) -> np.ndarray:
     """
-    returns radiative flux
+    returns radiative flux based on state variables; used as a template for f_rad in other state equations
     """
     toReturn = (
         -16
@@ -482,10 +558,10 @@ def _f_con(
     density: np.ndarray,
     meanMolecularWeight: np.ndarray,
     c_p: np.ndarray,
-    adiabaticGradient: np.ndarray
+    realGradient: np.ndarray,
 ) -> np.ndarray:
     """
-    returns convectiveGradient based on state variables; used as a template for f_conv in other state equations
+    returns convectiveGradient based on state variables; used as a template for f_con in other state equations
     """
 
     # these are parameters of convection used in Schüssler & Rempel 2005
@@ -495,11 +571,8 @@ def _f_con(
     # just some renaming for the sake of readibilty
     mu = meanMolecularWeight
 
-    totalGradient = np.gradient(np.log(temperature), np.log(pressure)) # FIXME kinda strange way of doing this, but Bárta did it (viz fconv.py)
-    # fixme probably slow, maybe use sparse matrices?
-
-    #differenceOfGradients = np.maximum(totalGradient - radiativeGrad, 0)
-    differenceOfGradients = adiabaticGradient
+    differenceOfGradients = totalGradient - gradTick
+    #differenceOfGradients = adiabaticGradient
     toReturn = (
         -b
         * np.sqrt(a * c.gasConstant * convectiveAlpha / mu)
