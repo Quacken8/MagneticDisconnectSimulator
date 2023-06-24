@@ -116,7 +116,7 @@ def integrateHydrostaticEquilibriumAndTemperatureGradient(
     sunPs = np.exp(sunLnPs)
     sunTs = np.exp(sunLnTs)
 
-    sun = SingleTimeDatapoint(
+    sun = dataStructure.SingleTimeDatapoint(
         zs=np.array(sunZs),
         temperatures=np.array(sunTs),
         pressures=np.array(sunPs),

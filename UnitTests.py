@@ -954,7 +954,7 @@ def plotInterruptedRun():
     
 
 def main():
-    plotInterruptedRun()
+    testCalmSunVsModelS()
     pass
     pass
 

@@ -172,10 +172,10 @@ def rightHandSideOfTEq(
     gravitationalAcceleration = gravity.g(zs)
 
     # FplusFs = 4*a*c*c.G/2 * m * T4/(kappas* Ps * r*r) *nablaRads
-
-    FplusFs = StateEq.f_rad(
+    frads = StateEq.f_rad(
         temperatures, pressures, opacity=opacity, Tgrad=Tgrad
-    ) + StateEq.f_con(
+    )
+    fcons = StateEq.f_con(
         convectiveAlpha=convectiveAlpha,
         temperature=temperatures,
         pressure=pressures,
@@ -183,6 +183,7 @@ def rightHandSideOfTEq(
         massBelowZ=massBelowZ,
         gravitationalAcceleration=gravitationalAcceleration,
     )
+    FplusFs = frads + fcons
     dFplusFdz = np.gradient(FplusFs, zs)
 
     return -dFplusFdz / (rhos * cps)
