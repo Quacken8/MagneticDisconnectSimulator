@@ -127,7 +127,7 @@ def simpleTSolver(
     """
     First order forward Euler solver for the temperature equation
     """
-
+    L.warn("Using simple temperature solver")
     dTdt = rightHandSideOfTEq(
         convectiveAlpha=convectiveAlpha,
         zs=currentState.zs,
