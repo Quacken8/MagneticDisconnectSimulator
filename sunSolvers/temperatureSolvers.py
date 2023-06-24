@@ -171,7 +171,7 @@ def rightHandSideOfTEq(
     massBelowZ = gravity.massBelowZ(zs)
     gravitationalAcceleration = gravity.g(zs)
 
-    # FplusFs = 4*a*c*c.G/2 * m * T4/(kappas* Ps * r*r) *nablaRads
+    # FplusFs = 4*c.aRad*c.speedOfLight*c.G/3 * m * T4/(kappas* Ps * r*r) * nablaRads
     frads = StateEq.f_rad(
         temperatures, pressures, opacity=opacity, Tgrad=Tgrad
     )
