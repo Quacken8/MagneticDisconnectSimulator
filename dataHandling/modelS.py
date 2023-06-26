@@ -55,6 +55,6 @@ if __name__ == "__main__":
         np.savetxt(output_file, updated_data, delimiter='   ', fmt='%.9e', header=header, comments='')
 
 
-    cps = np.loadtxt('dataHandling/cps', skiprows=1, usecols = 1)
+    fcons = np.loadtxt('dataHandling/fcons', skiprows=1, usecols = 4)
 
-    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", cps)
+    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", fcons)

@@ -161,16 +161,15 @@ def main(
 
 
 if __name__ == "__main__":
-    maxDepth = 100  # depth in Mm
+    maxDepth = 10  # depth in Mm
     minDepth = 1  # depth in Mm
     p0_ratio = 1  # ratio of initial pressure to the pressure at the top of the model S
     surfaceTemperature = 3500  # temperature in K FIXME ur not even using thiiiiiiiiis
-    numberOfZSteps = 100
     dlnP = 1e-2
 
     initialConditions = init.getBartaInit(p0_ratio, maxDepth, minDepth, dlnP=dlnP)
 
-    finalT = 1e-2  # final time in hours
+    finalT = 1  # final time in hours
     numberOfTSteps = 32  # number of time steps
 
     main(
