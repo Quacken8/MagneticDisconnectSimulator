@@ -3,7 +3,7 @@
 import numpy as np
 from dataHandling import initialConditionsSetterUpper as init
 from dataHandling import modelS
-from dataHandling import dataStructure 
+from dataHandling import dataStructure
 import constants as c
 from sunSolvers import calmSun
 from sunSolvers import temperatureSolvers
@@ -22,7 +22,7 @@ modelS = modelS.loadModelS()
 
 
 def main(
-    initialConditions:   dataStructure.SingleTimeDatapoint,
+    initialConditions: dataStructure.SingleTimeDatapoint,
     backgroundReference: dataStructure.SingleTimeDatapoint = modelS,
     maxDepth: float = 100,
     upflowVelocity: float = 1e-3,
@@ -60,7 +60,7 @@ def main(
     calmMaxDepth = maxDepth * 1.3  # just a bit of padding to be sure
     calmMinDepth = -1e5  # TODO these may need adjusting
 
-    try: 
+    try:
         calmModel = dataStructure.loadOneTimeDatapoint("calmSun")
         L.info("Loaded calm Sun from a folder")
     except FileNotFoundError:
@@ -89,7 +89,7 @@ def main(
 
     # create empty data structure with only initial conditions
     data = dataStructure.Data(finalT=finalT, numberOfTSteps=numberOfTSteps)
-    try: # this huge try block makes sure data gets saved in case of an error
+    try:  # this huge try block makes sure data gets saved in case of an error
         dt = finalT / numberOfTSteps
         currentState = initialConditions
         data.addDatapointAtIndex(currentState, 0)
@@ -111,15 +111,25 @@ def main(
                 convectiveAlpha=convectiveAlpha,
             )
             # with new temperatures now get new bottom pressure from inflow of material
-            bottomPe = np.interp(currentState.zs[-1], externalzP[0], externalzP[1]).item()
+            bottomPe = np.interp(
+                currentState.zs[-1], externalzP[0], externalzP[1]
+            ).item()
 
-            newBottomP = boundaryConditions.getAdjustedBottomPressure(currentState=currentState, dt=dt, dlnP = dlnP, bottomExternalPressure=bottomPe, upflowVelocity=upflowVelocity, totalMagneticFlux=totalMagneticFlux, newTs = newTs)
+            newBottomP = boundaryConditions.getAdjustedBottomPressure(
+                currentState=currentState,
+                dt=dt,
+                dlnP=dlnP,
+                bottomExternalPressure=bottomPe,
+                upflowVelocity=upflowVelocity,
+                totalMagneticFlux=totalMagneticFlux,
+                newTs=newTs,
+            )
 
             # then integrate hydrostatic equilibrium from bottom to the top
             initialZ = currentState.zs[-1]
             finalZ = currentState.zs[0]
 
-            currentState = pressureSolvers.integrateHydrostaticEquilibrium( 
+            currentState = pressureSolvers.integrateHydrostaticEquilibrium(
                 referenceTs=newTs,
                 referenceZs=currentState.zs,
                 StateEq=MESAEOS,
@@ -127,11 +137,11 @@ def main(
                 lnBoundaryPressure=np.log(newBottomP),
                 initialZ=initialZ,
                 finalZ=finalZ,
-                interpolableYs = lastYs,
+                interpolableYs=lastYs,
             )
             newZs = currentState.zs
             newPs = currentState.pressures
-            lastYs = np.sqrt(currentState.bs) # FIXME this may be a bottlenect
+            lastYs = np.sqrt(currentState.bs)  # FIXME this may be a bottlenect
 
             # finally solve the magnetic equation
             externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
@@ -145,7 +155,7 @@ def main(
             )
             lastYs = newYs
             newBs = newYs * newYs
-            currentState.bs =  newBs
+            currentState.bs = newBs
             currentState.allVariables["bs"] = newBs
 
             # and save the new datapoint
