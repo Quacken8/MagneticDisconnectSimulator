@@ -1014,7 +1014,7 @@ def modelSFconsVSMESAFcons():
     from gravity import g, massBelowZ
     from sunSolvers.handySolverStuff import centralDifferencesMatrix
     toPlot = ["f_con_mlts", "f_rads"]
-    convectiveAlpha = 1.9904568
+    convectiveAlpha = 1
 
     myDatapoint = SingleTimeDatapoint(
         modelS.temperatures[:-3],
@@ -1048,6 +1048,62 @@ def modelSFconsVSMESAFcons():
     )
     plt.show()
 
+def nablaTick(temperature, convectiveAlpha, c_p, density, opacity, Hp, gravitationalAcceleration, adiabaticGradient, actualGradient):
+        # these are geometric parameters of convection used in Schüssler & Rempel 2005
+    a = 0.125
+    b = 0.5
+    f = 1.5
+
+    u = (
+        1
+        / (f * np.sqrt(a))
+        * convectiveAlpha
+        * convectiveAlpha
+        * 12
+        * c.SteffanBoltzmann
+        * temperature
+        * temperature
+        * temperature
+        / (c_p * density * opacity * Hp * Hp)
+        * np.sqrt(Hp / gravitationalAcceleration)
+    )
+    # this is sometimes called ∇' (schussler & rempel 2005) or ∇_e (Lattanzio in thier class M4111 of 2009) where e stands for element of stellar matter
+    # it, according to Schüssler & Rempel 2005, "reflects radiative energy exchange of the convective parcels"
+    gradTick = (
+        adiabaticGradient
+        - 2 * u * u
+        + 2 * u * np.sqrt(np.maximum(actualGradient - adiabaticGradient + u * u, 0))
+    )
+    return gradTick
+
+def compareGradTicks():
+    import gravity
+    modelSGradTicks = modelS.derivedQuantities["nablaPrimes"]
+
+    nablaRad = MESAEOS.radiativeLogGradient(
+        temperature=modelS.temperatures[:-1],
+        pressure=modelS.pressures[:-1],
+        massBelowZ=gravity.massBelowZ(modelS.zs[:-1]),
+        opacity=modelS.derivedQuantities["kappas"][:-1],
+    )
+    nablaRad = np.append(nablaRad, nablaRad[-1])
+
+    mesaGradTicks = nablaTick(
+        temperature=modelS.temperatures,
+        convectiveAlpha=1.9904568,
+        c_p=modelS.derivedQuantities["cps"],
+        density=modelS.derivedQuantities["rhos"],
+        opacity=modelS.derivedQuantities["kappas"],
+        Hp=MESAEOS.pressureScaleHeight(modelS.temperatures, modelS.pressures, gravity.g(modelS.zs)),
+        gravitationalAcceleration=gravity.g(modelS.zs),
+        adiabaticGradient=modelS.derivedQuantities["nablaads"],
+        actualGradient=np.minimum(modelS.derivedQuantities["nablaads"], nablaRad),
+    )
+
+    plt.plot(modelS.zs, modelSGradTicks, label="model S")
+    plt.plot(modelS.zs, mesaGradTicks, label="mesa", linestyle="--")
+    plt.legend()
+    plt.show()
 
 def main():
     modelSFconsVSMESAFcons()
