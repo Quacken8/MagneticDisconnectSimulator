@@ -35,10 +35,10 @@ if __name__ == "__main__":
     """
 
     import numpy as np
-
+    
     def add_column(input_file, output_file, column_data):
         # Load the data from the input file using NumPy
-        data = np.genfromtxt(input_file, dtype=float, delimiter='   ', skip_header=1)
+        data = np.genfromtxt(input_file, dtype=float, skip_header=2)
 
         # Extract the header row
         with open(input_file, 'r') as f:
@@ -55,6 +55,6 @@ if __name__ == "__main__":
         np.savetxt(output_file, updated_data, delimiter='   ', fmt='%.9e', header=header, comments='')
 
 
-    fcons = np.loadtxt('dataHandling/fcons', skiprows=1, usecols = 4)
+    mus = np.loadtxt('dataHandling/mus')
 
-    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", fcons)
+    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", mus)

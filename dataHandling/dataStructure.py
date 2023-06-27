@@ -76,6 +76,7 @@ unitsDictionary = {
     "kappas": "m^2/kg",
     "gamma1s": "1",
     "nablaprimes": "1",
+    "mu_unis": "1", # unitless mu, mu^-1 = sum_i(X_i/mu_i)
 }
 
 

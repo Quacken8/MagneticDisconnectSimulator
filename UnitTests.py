@@ -1013,7 +1013,8 @@ def plotInterruptedRun():
 def modelSFconsVSMESAFcons():
     from gravity import g, massBelowZ
     from sunSolvers.handySolverStuff import centralDifferencesMatrix
-    toPlot = ["f_con_mlts", "f_rads"]
+    modelS.derivedQuantities["f_cons"] *= -1 
+    toPlot = ["f_cons", "f_rads"]
     convectiveAlpha = 1
 
     myDatapoint = SingleTimeDatapoint(
@@ -1025,7 +1026,7 @@ def modelSFconsVSMESAFcons():
     myMasses = massBelowZ(myDatapoint.zs)
     myTgrad = centralDifferencesMatrix(myDatapoint.zs).dot(myDatapoint.temperatures)
     myOpacity = mesaOpacity(myDatapoint.pressures, myDatapoint.temperatures)
-    myDatapoint.derivedQuantities["f_con_mlts"] = MESAEOS.f_con(
+    myDatapoint.derivedQuantities["f_cons"] = -MESAEOS.f_con(
         temperature=myDatapoint.temperatures,
         pressure=myDatapoint.pressures,
         convectiveAlpha=convectiveAlpha,
@@ -1102,6 +1103,14 @@ def compareGradTicks():
 
     plt.plot(modelS.zs, modelSGradTicks, label="model S")
     plt.plot(modelS.zs, mesaGradTicks, label="mesa", linestyle="--")
+    plt.legend()
+    plt.show()
+
+def testModelSMuvsMesaMu():
+    modelSMus = modelS.derivedQuantities["mus"]
+    mesaMus = MESAEOS.meanMolecularWeight(modelS.temperatures, modelS.pressures)/(c.NA*c.m_u)
+    plt.plot(modelS.zs, modelSMus, label="model S")
+    plt.plot(modelS.zs, mesaMus, label="mesa", linestyle="--")
     plt.legend()
     plt.show()
 

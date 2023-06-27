@@ -567,7 +567,9 @@ def _f_con(
     differenceOfGradients = np.maximum(radiativeGradient - gradTick, 0)
     toReturn = (
         -b
-        * np.sqrt(a * c.gasConstant * convectiveAlpha / meanMolecularWeight)
+        * np.sqrt(
+            a * c.gasConstant * convectiveAlpha / meanMolecularWeight * c.NA * c.m_u
+        )
         * density
         * c_p
         * np.power(temperature * differenceOfGradients, 1.5)
