@@ -49,10 +49,10 @@ def plotSingleTimeDatapoint(
         else:
             ax = axs[plot]
         try:
-            dataToPlot = variables[plot]
+            dataToPlot = variables[plot.lower()]
         except KeyError:
             try:
-                dataToPlot = datapoint.derivedQuantities[plot]
+                dataToPlot = datapoint.derivedQuantities[plot.lower()]
             except KeyError:
                 L.info(f"plotSingleTimeDatapoint: {plot} not found in datapoint {label}")
                 continue

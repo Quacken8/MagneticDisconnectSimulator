@@ -483,25 +483,28 @@ class MESAEOS(StateEquationInterface):
         temperature: np.ndarray,
         pressure: np.ndarray,
         opacity: np.ndarray,
-        Tgrad: np.ndarray,
+        dTdz: np.ndarray,
     ) -> np.ndarray:
         """
         returns radiative flux
+
+
         """
         rho = MESAEOS.density(temperature, pressure)
         toReturn = _f_rad(
             temperature=temperature,
             opacity=opacity,
-            Tgrad=Tgrad,
+            dTdr=-dTdz,
             density=rho,
         )
+
         return toReturn
 
 
 def _f_rad(
     temperature: np.ndarray,
     opacity: np.ndarray,
-    Tgrad: np.ndarray,
+    dTdr: np.ndarray,
     density: np.ndarray,
 ) -> np.ndarray:
     """
@@ -514,7 +517,7 @@ def _f_rad(
         * temperature
         * temperature
         / (3 * opacity * density)
-        * Tgrad
+        * dTdr
     )
     return toReturn
 

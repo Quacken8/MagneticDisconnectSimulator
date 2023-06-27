@@ -12,7 +12,8 @@ from dataHandling.dataStructure import (
 import numpy as np
 from dataHandling.initialConditionsSetterUpper import mockupDataSetterUpper
 from dataHandling.modelS import loadModelS
-from stateEquationsPT import IdealGas
+from opacity import mesaOpacity
+from stateEquationsPT import MESAEOS, IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
 from dataHandling.dataVizualizer import plotSingleTimeDatapoint, plotData
 from sunSolvers.pressureSolvers import (
@@ -30,6 +31,7 @@ import os
 from matplotlib import pyplot as plt
 import loggingConfig
 import logging
+
 L = loggingConfig.configureLogging(logging.DEBUG, __name__)
 
 
@@ -91,6 +93,7 @@ def testCalmSunVsModelS():
     plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log=True)
     plt.legend()
     plt.show()
+
 
 def testIDLOutput():
     modelSPressures = modelS.pressures
@@ -159,6 +162,7 @@ def testIDLOutput():
 
     plt.show()
 
+
 def testNewIDLOutput():
     zsS, pressureS, temperatureS, kappaS = (
         modelS.zs,
@@ -198,6 +202,7 @@ def testNewIDLOutput():
     axs[2].legend()
 
     plt.show()
+
 
 def testCalmSunVsIDLS():
     idlZs, idlPs, idlTs = np.loadtxt(
@@ -673,19 +678,24 @@ def getModelSEntropyFromMesa():
     Ts = modelS.temperatures
     Ps = modelS.pressures
     from stateEquationsPT import MESAEOS
+
     entropies = MESAEOS.entropy(Ts, Ps)
     print(entropies)
 
 
 def testBartaInitialConditions():
     from dataHandling.initialConditionsSetterUpper import getBartaInit
+
     p0ratio = 1
-    maxDepth = 16*c.Mm
-    surfaceDepth = 0*c.Mm
+    maxDepth = 16 * c.Mm
+    surfaceDepth = 0 * c.Mm
     dlnP = 1e-3
     initialModel = getBartaInit(p0ratio, maxDepth, surfaceDepth, dlnP)
     from stateEquationsPT import MESAEOS
-    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(initialModel.temperatures, initialModel.pressures)
+
+    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(
+        initialModel.temperatures, initialModel.pressures
+    )
     toPlot = ["temperatures", "pressures", "entropies", "bs"]
     axs = plotSingleTimeDatapoint(
         initialModel, toPlot, pltshow=False, label="Barta initial model", log=False
@@ -695,8 +705,11 @@ def testBartaInitialConditions():
 
 def testAdiabaticHydrostaticEquilibrium():
     from stateEquationsPT import MESAEOS
-    from sunSolvers.pressureSolvers import integrateHydrostaticEquilibriumAndTemperatureGradient
+    from sunSolvers.pressureSolvers import (
+        integrateHydrostaticEquilibriumAndTemperatureGradient,
+    )
     from opacity import mesaOpacity
+
     surfaceZ = 0 * c.Mm
     maxDepth = 160 * c.Mm
     surfaceT = np.interp(surfaceZ, modelS.zs, modelS.temperatures).item()
@@ -710,7 +723,9 @@ def testAdiabaticHydrostaticEquilibrium():
         initialZ=surfaceZ,
         finalZ=maxDepth,
     )
-    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(initialModel.temperatures, initialModel.pressures)
+    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(
+        initialModel.temperatures, initialModel.pressures
+    )
 
     nonAdiabaticiInitialModel = integrateHydrostaticEquilibriumAndTemperatureGradient(
         StateEq=MESAEOS,
@@ -721,7 +736,9 @@ def testAdiabaticHydrostaticEquilibrium():
         finalZ=maxDepth,
         opacityFunction=mesaOpacity,
     )
-    nonAdiabaticiInitialModel.derivedQuantities["entropies"] = MESAEOS.entropy(nonAdiabaticiInitialModel.temperatures, nonAdiabaticiInitialModel.pressures)
+    nonAdiabaticiInitialModel.derivedQuantities["entropies"] = MESAEOS.entropy(
+        nonAdiabaticiInitialModel.temperatures, nonAdiabaticiInitialModel.pressures
+    )
     calmSun = getCalmSunDatapoint(
         StateEq=MESAEOS,
         dlnP=dlnP,
@@ -731,7 +748,9 @@ def testAdiabaticHydrostaticEquilibrium():
         maxDepth=maxDepth,
         opacityFunction=mesaOpacity,
     )
-    calmSun.derivedQuantities["entropies"] = MESAEOS.entropy(calmSun.temperatures, calmSun.pressures)
+    calmSun.derivedQuantities["entropies"] = MESAEOS.entropy(
+        calmSun.temperatures, calmSun.pressures
+    )
 
     toPlot = ["entropies", "temperatures", "pressures"]
     axs = plotSingleTimeDatapoint(
@@ -741,10 +760,22 @@ def testAdiabaticHydrostaticEquilibrium():
         calmSun, toPlot, axs=axs, label="Calm Sun", log=False, pltshow=False
     )
     axs = plotSingleTimeDatapoint(
-        nonAdiabaticiInitialModel, toPlot, axs=axs, label="Non adiabatic Hydrostatic Equilibrium", log=False, pltshow=False, linestyle=":"
+        nonAdiabaticiInitialModel,
+        toPlot,
+        axs=axs,
+        label="Non adiabatic Hydrostatic Equilibrium",
+        log=False,
+        pltshow=False,
+        linestyle=":",
     )
     plotSingleTimeDatapoint(
-        initialModel, toPlot, pltshow=True, axs = axs, label="Adiabatic Hydrostatic Equilibrium", log=False, linestyle="--"
+        initialModel,
+        toPlot,
+        pltshow=True,
+        axs=axs,
+        label="Adiabatic Hydrostatic Equilibrium",
+        log=False,
+        linestyle="--",
     )
 
 
@@ -752,8 +783,8 @@ def testHydrostaticEquilibrium():
     Ts = modelS.temperatures
     zs = modelS.zs
 
-    zMax = 160*c.Mm
-    zMin = 0*c.Mm
+    zMax = 160 * c.Mm
+    zMin = 0 * c.Mm
     dlnP = 1e-2
     pBottom = np.interp(zMin, zs, modelS.pressures).item()
 
@@ -765,7 +796,7 @@ def testHydrostaticEquilibrium():
         dlnP=dlnP,
         lnBoundaryPressure=np.log(pBottom),
         referenceTs=Ts,
-        referenceZs = zs,
+        referenceZs=zs,
         initialZ=zMin,
         finalZ=zMax,
     )
@@ -775,8 +806,15 @@ def testHydrostaticEquilibrium():
         modelS, toPlot, pltshow=False, label="Model S", log=False
     )
     plotSingleTimeDatapoint(
-        initialModel, toPlot, pltshow=True, axs = axs, label="Hydrostatic Equilibrium", log=True, linestyle="--"
+        initialModel,
+        toPlot,
+        pltshow=True,
+        axs=axs,
+        label="Hydrostatic Equilibrium",
+        log=True,
+        linestyle="--",
     )
+
 
 def testYSolver():
     # we define some sensible function
@@ -786,29 +824,33 @@ def testYSolver():
 
     from sunSolvers.magneticSolvers import oldYSolver, rightHandSideOfYEq
     from dataHandling.boundaryConditions import getBottomB, getTopB
+
     # here we define function on which we work
     nodes = 10
     zs = np.linspace(0, 10, nodes)
     innerPs = np.linspace(1e6, 1e10, nodes)
     outerPs = np.logspace(6, 12, nodes)
     totalMagneticFlux = 1e3
-    bottomB, topB = getBottomB(bottomPressure=innerPs[-1], externalPressure=outerPs[-1]), getTopB() 
-    yGuess =  np.linspace(np.sqrt(topB), np.sqrt(bottomB), nodes)
+    bottomB, topB = (
+        getBottomB(bottomPressure=innerPs[-1], externalPressure=outerPs[-1]),
+        getTopB(),
+    )
+    yGuess = np.linspace(np.sqrt(topB), np.sqrt(bottomB), nodes)
     tolerance = 1e-3
 
     lhs = np.gradient(np.gradient(yGuess, zs), zs)
     rhs = rightHandSideOfYEq(
-        y = yGuess,
+        y=yGuess,
         innerP=innerPs,
         outerP=outerPs,
         totalMagneticFlux=totalMagneticFlux,
     )
-    print("original error: ", np.max(np.abs(lhs-rhs)))
+    print("original error: ", np.max(np.abs(lhs - rhs)))
 
     solution = oldYSolver(
-        zs = zs,
-        innerPs = innerPs,
-        outerPs = outerPs,
+        zs=zs,
+        innerPs=innerPs,
+        outerPs=outerPs,
         totalMagneticFlux=totalMagneticFlux,
         yGuess=yGuess,
         tolerance=tolerance,
@@ -817,16 +859,17 @@ def testYSolver():
     lhs = np.gradient(np.gradient(solution, zs), zs)
 
     rhs = rightHandSideOfYEq(
-        y = solution,
+        y=solution,
         innerP=innerPs,
         outerP=outerPs,
         totalMagneticFlux=totalMagneticFlux,
     )
 
-    print("max error: ", np.max(np.abs(lhs-rhs)))
+    print("max error: ", np.max(np.abs(lhs - rhs)))
     plt.plot(zs, solution, label="sol")
     plt.legend()
     plt.show()
+
 
 def testIntegrateMagneticField():
     # we define some sensible function
@@ -836,38 +879,43 @@ def testIntegrateMagneticField():
 
     from sunSolvers.magneticSolvers import integrateMagneticEquation, rightHandSideOfYEq
     from dataHandling.boundaryConditions import getBottomB, getTopB
+
     # here we define function on which we work
     nodes = 1000
     zs = np.linspace(0, 10, nodes)
     innerPs = np.linspace(1e6, 1e10, nodes)
     outerPs = np.logspace(7, 12, nodes)
     totalMagneticFlux = 1e5
-    bottomB, topB = getBottomB(bottomPressure=innerPs[-1], externalPressure=outerPs[-1]), getTopB() 
-    yGuess =  np.linspace(np.sqrt(topB), np.sqrt(bottomB), nodes)[::-1]
+    bottomB, topB = (
+        getBottomB(bottomPressure=innerPs[-1], externalPressure=outerPs[-1]),
+        getTopB(),
+    )
+    yGuess = np.linspace(np.sqrt(topB), np.sqrt(bottomB), nodes)[::-1]
     tolerance = 1e-3
 
     solution = integrateMagneticEquation(
-        zs = zs,
-        innerPs = innerPs,
-        outerPs = outerPs,
+        zs=zs,
+        innerPs=innerPs,
+        outerPs=outerPs,
         totalMagneticFlux=totalMagneticFlux,
         yGuess=yGuess,
-        tolerance = tolerance
+        tolerance=tolerance,
     )
 
     rhs = rightHandSideOfYEq(
-        y = solution,
+        y=solution,
         innerP=innerPs,
         outerP=outerPs,
         totalMagneticFlux=totalMagneticFlux,
     )
     lhs = np.gradient(np.gradient(solution, zs), zs)
-    print("max error: ", np.max(np.abs(lhs-rhs)))
+    print("max error: ", np.max(np.abs(lhs - rhs)))
 
     plt.loglog(zs, lhs, label="lhs")
     plt.loglog(zs, rhs, label="rhs", linestyle="--")
     plt.legend()
     plt.show()
+
 
 def testTemperatureSolver():
     # we define some sensible function
@@ -887,24 +935,29 @@ def testTemperatureSolver():
     surfaceTemperature = initialState.temperatures[0]
     convectiveAlpha = 1
 
-    
     newTs = oldTSolver(
-        currentState = initialState,
-        dt = dt,
-        StateEq = MESAEOS,
-        opacityFunction = mesaOpacity,
-        surfaceTemperature = surfaceTemperature,
-        convectiveAlpha=convectiveAlpha
+        currentState=initialState,
+        dt=dt,
+        StateEq=MESAEOS,
+        opacityFunction=mesaOpacity,
+        surfaceTemperature=surfaceTemperature,
+        convectiveAlpha=convectiveAlpha,
     )
 
     dTdt = (newTs - oldTs) / dt
-    rhs = rightHandSideOfTEq(convectiveAlpha=convectiveAlpha, zs = initialState.zs, temperatures = initialState.temperatures, pressures = initialState.pressures, opacityFunction = mesaOpacity, StateEq = MESAEOS)
+    rhs = rightHandSideOfTEq(
+        convectiveAlpha=convectiveAlpha,
+        zs=initialState.zs,
+        temperatures=initialState.temperatures,
+        pressures=initialState.pressures,
+        opacityFunction=mesaOpacity,
+        StateEq=MESAEOS,
+    )
 
     plt.plot(initialState.zs, dTdt, label="dTdt")
     plt.plot(initialState.zs, rhs, label="rhs")
     plt.legend()
     plt.show()
-
 
     raise NotImplementedError()
 
@@ -913,6 +966,7 @@ def lookAtInterruptedData():
     data = createDataFromFolder("interruptedRun")
     toPlot = ["bs"]
     plotSingleTimeDatapoint(data.datapoints[0], toPlot, pltshow=True, log=False)
+
 
 def plotPressureAndTempModelS():
     toPlot = ["temperatures", "pressures"]
@@ -932,8 +986,10 @@ def plotModelSCpsVsMESA():
     plt.legend()
     plt.show()
 
+
 def compareCalmSunFromFileWithModelS():
     from dataHandling.dataStructure import loadOneTimeDatapoint
+
     calmSun = loadOneTimeDatapoint("calmSun")
 
     toPlot = ["temperatures", "pressures"]
@@ -945,21 +1001,60 @@ def compareCalmSunFromFileWithModelS():
     )
     plt.show()
 
+
 def plotInterruptedRun():
     data = createDataFromFolder("interruptedRun")
     toPlot = ["temperatures", "pressures", "bs"]
-    
+
     axs = plotData(data, toPlot, pltshow=False, title="interrupted run", log=True)
     plt.show()
-    
+
+
+def modelSFconsVSMESAFcons():
+    from gravity import g, massBelowZ
+    from sunSolvers.handySolverStuff import centralDifferencesMatrix
+    toPlot = ["f_con_mlts", "f_rads"]
+    convectiveAlpha = 1.9904568
+
+    myDatapoint = SingleTimeDatapoint(
+        modelS.temperatures[:-3],
+        modelS.pressures[:-3],
+        modelS.zs[:-3],
+    )
+    mygs = g(myDatapoint.zs)
+    myMasses = massBelowZ(myDatapoint.zs)
+    myTgrad = centralDifferencesMatrix(myDatapoint.zs).dot(myDatapoint.temperatures)
+    myOpacity = mesaOpacity(myDatapoint.pressures, myDatapoint.temperatures)
+    myDatapoint.derivedQuantities["f_con_mlts"] = MESAEOS.f_con(
+        temperature=myDatapoint.temperatures,
+        pressure=myDatapoint.pressures,
+        convectiveAlpha=convectiveAlpha,
+        gravitationalAcceleration=mygs,
+        massBelowZ=myMasses,
+        opacity=myOpacity,
+    )
+    myDatapoint.derivedQuantities["f_rads"] = MESAEOS.f_rad(
+        temperature=myDatapoint.temperatures,
+        pressure=myDatapoint.pressures,
+        opacity=myOpacity,
+        dTdz=myTgrad,
+    )
+
+    axs = plotSingleTimeDatapoint(
+        modelS, toPlot, pltshow=False, label="Model S", log=True, linestyle="--"
+    )
+    axs = plotSingleTimeDatapoint(
+        myDatapoint, toPlot, axs=axs, pltshow=False, label="MESA", log=True
+    )
+    plt.show()
+
 
 def main():
-    testCalmSunVsModelS()
+    modelSFconsVSMESAFcons()
     pass
     pass
 
 
 if __name__ == "__main__":
-
     L.debug("Starting tests")
     main()

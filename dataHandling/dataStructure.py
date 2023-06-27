@@ -51,7 +51,7 @@ def dictionaryOfVariables(A: object) -> dict:
 
 
 """
-this dictionary is used to put units next to values that come up in the simulatuin. It is expected that the units went through UX parse, i.e. units as hours and megameters are used for readibility
+this dictionary is used to put units next to values that come up in the simulatuin. It is expected that the units went through UX parse, i.e. units as hours and megameters are used for readibility. All keys are to be in lower case
 """
 unitsDictionary = {
     "times": "h",
@@ -65,6 +65,7 @@ unitsDictionary = {
     "bs": "T",
     "f_rads": "W/m^2",
     "f_cons": "W/m^2",
+    "f_con_mlts": "W/m^2",
     "entropies": "J/K",
     "nablaads": "1",
     "nablarads": "1",
@@ -74,6 +75,7 @@ unitsDictionary = {
     "deltas": "1",
     "kappas": "m^2/kg",
     "gamma1s": "1",
+    "nablaprimes": "1",
 }
 
 
