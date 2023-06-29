@@ -122,7 +122,7 @@ class StateEquationInterface(metaclass=abc.ABCMeta):
         temperature: np.ndarray,
         pressure: np.ndarray,
         opacity: np.ndarray,
-        Tgrad: np.ndarray,
+        dTdz: np.ndarray,
     ) -> np.ndarray:
         """
         returns radiative flux
@@ -568,7 +568,7 @@ def _f_con(
     toReturn = (
         -b
         * np.sqrt(
-            a * c.gasConstant * convectiveAlpha / meanMolecularWeight * c.NA * c.m_u
+            a * c.gasConstant * convectiveAlpha / meanMolecularWeight * c.N_A * c.m_u
         )
         * density
         * c_p

@@ -2,6 +2,7 @@
 from turtle import title
 from matplotlib.backend_bases import ToolContainerBase
 from matplotlib.scale import LogScale
+from py import log
 from sympy import li
 from dataHandling.dataStructure import (
     Data,
@@ -1107,15 +1108,42 @@ def compareGradTicks():
     plt.show()
 
 def testModelSMuvsMesaMu():
-    modelSMus = modelS.derivedQuantities["mus"]
-    mesaMus = MESAEOS.meanMolecularWeight(modelS.temperatures, modelS.pressures)/(c.NA*c.m_u)
-    plt.plot(modelS.zs, modelSMus, label="model S")
-    plt.plot(modelS.zs, mesaMus, label="mesa", linestyle="--")
+    modelSMus = modelS.derivedQuantities["mu_unis"]
+    mesaMus = MESAEOS.meanMolecularWeight(modelS.temperatures, modelS.pressures)/(c.m_u*c.N_A)
+    plt.loglog(modelS.zs/c.Mm, modelSMus, label="model S")
+    plt.loglog(modelS.zs/c.Mm, mesaMus, label="mesa", linestyle="--")
+    plt.ylabel(r"$\mu$")
+    plt.xlabel("z [Mm]")
+    plt.legend()
+    plt.show()
+
+def testMesaKappaVsModelSKappa():
+    modelSKappas = modelS.derivedQuantities["kappas"]
+    mesaKappas = mesaOpacity(modelS.pressures, modelS.temperatures)
+    plt.loglog(modelS.zs/c.Mm, modelSKappas, label="model S")
+    plt.loglog(modelS.zs/c.Mm, mesaKappas, label="mesa", linestyle="--")
+    plt.ylabel(r"$\kappa$ [cm$^2$ g$^{-1}$]")
+    plt.xlabel("z [Mm]")
+    plt.legend()
+    plt.show()
+
+def testMesaNablaRadvsModelSNablaRad():
+    import gravity
+    modelSNablaRads = modelS.derivedQuantities["nablarads"]
+    mesaNablaRads = MESAEOS.radiativeLogGradient(
+        temperature=modelS.temperatures[:-1],
+        pressure=modelS.pressures[:-1],
+        massBelowZ=gravity.massBelowZ(modelS.zs[:-1]),
+        opacity=modelS.derivedQuantities["kappas"][:-1],
+    )
+    mesaNablaRads = np.append(mesaNablaRads, mesaNablaRads[-1])
+    plt.plot(modelS.zs, modelSNablaRads, label="model S")
+    plt.plot(modelS.zs, mesaNablaRads, label="mesa", linestyle="--")
     plt.legend()
     plt.show()
 
 def main():
-    modelSFconsVSMESAFcons()
+    testModelSMuvsMesaMu()
     pass
     pass
 

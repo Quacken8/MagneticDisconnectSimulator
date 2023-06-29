@@ -102,7 +102,7 @@ def main(
             time += dt  # TODO maybe use non constant dt?
 
             # first integrate the temperature equation
-            newTs = temperatureSolvers.simpleTSolver(
+            newTs = temperatureSolvers.oldTSolver(
                 currentState=currentState,
                 dt=dt,
                 StateEq=MESAEOS,

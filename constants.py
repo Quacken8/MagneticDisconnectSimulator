@@ -28,7 +28,7 @@ aRad = 4*SteffanBoltzmann/speedOfLight # W/(m^2 K^4)
 ionizationEnergyOfHydrogen = 13.605_693_122_994 * eV # J -1 Ry [CODATA 2018]
 L_sun = 3.845e26  # W [IAU 2015]
 M_sun = 1.3271244e20 / G  # kg [IAU 2015]
-NA = 6.02214076e23   # mol^-1 Avogadro constant [CODATA 2018]
+N_A = 6.02214076e23   # mol^-1 Avogadro constant [CODATA 2018]
 m_u = 1.66053906660e-27  #  kg [CODATA 2018]
 
 solarAbundances = { # according to Anders, Grevesse (1989)

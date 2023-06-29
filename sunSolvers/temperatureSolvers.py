@@ -173,7 +173,7 @@ def rightHandSideOfTEq(
 
     # FplusFs = 4*c.aRad*c.speedOfLight*c.G/3 * m * T4/(kappas* Ps * r*r) * nablaRads
     frads = StateEq.f_rad(
-        temperatures, pressures, opacity=opacity, Tgrad=Tgrad
+        temperatures, pressures, opacity=opacity, dTdz=Tgrad
     )
     fcons = StateEq.f_con(
         convectiveAlpha=convectiveAlpha,
