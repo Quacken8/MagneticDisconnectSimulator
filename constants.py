@@ -14,8 +14,8 @@ BoltzmannConstant = 1.380649e-23  # J/K [CODATA 2018]
 gasConstant = 8.314462618  # J/K/mol [CODATA 2018]
 AH = 1.0078250322  # atomic weight of hydrogen atom [CIAAW 2000]
 AHe = 4.002_603_2545  # atomic weight of helium atom [CIAAW 2000]
-massFractionOfHydrogen = 0.73725196 # hydrogen abundance
-massFractionOfHelium= 0.24468639 # of solar matter
+massFractionOfHydrogen = 0.73725196  # hydrogen abundance
+massFractionOfHelium = 0.24468639  # of solar matter
 meanMolecularWeight = gram / (
     massFractionOfHydrogen / AH + massFractionOfHelium / AHe
 )  # kg/mol of solar matter
@@ -24,14 +24,14 @@ G = 6.67430e-11  # m^3/(kg s^2) gravitational constant [CODATA 2018]
 solarLuminosity = 3.828e26  # W [IAU 2015]
 speedOfLight = 299792458  # m/s [CODATA 2018]
 SteffanBoltzmann = 5.670374419e-8  # W/(m^2 K^4) [CODATA 2018]
-aRad = 4*SteffanBoltzmann/speedOfLight # W/(m^2 K^4)
-ionizationEnergyOfHydrogen = 13.605_693_122_994 * eV # J -1 Ry [CODATA 2018]
+aRad = 4 * SteffanBoltzmann / speedOfLight  # W/(m^2 K^4)
+ionizationEnergyOfHydrogen = 13.605_693_122_994 * eV  # J -1 Ry [CODATA 2018]
 L_sun = 3.845e26  # W [IAU 2015]
 M_sun = 1.3271244e20 / G  # kg [IAU 2015]
-N_A = 6.02214076e23   # mol^-1 Avogadro constant [CODATA 2018]
+N_A = 6.02214076e23  # mol^-1 Avogadro constant [CODATA 2018]
 m_u = 1.66053906660e-27  #  kg [CODATA 2018]
 
-solarAbundances = { # according to Anders, Grevesse (1989)
+solarAbundances = {  # according to Anders, Grevesse (1989)
     "h1": 0.70573,
     "h2": 4.801e-05,
     "he3": 2.9291e-05,

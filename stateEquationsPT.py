@@ -446,7 +446,7 @@ class MESAEOS(StateEquationInterface):
         massBelowZ: np.ndarray,
         gravitationalAcceleration: np.ndarray,
     ) -> np.ndarray:
-        radiativeGradient = MESAEOS.radiativeLogGradient(
+        totalGradient = MESAEOS.actualGradient(
             temperature=temperature,
             pressure=pressure,
             massBelowZ=massBelowZ,
@@ -470,7 +470,7 @@ class MESAEOS(StateEquationInterface):
             density=rho,
             meanMolecularWeight=mu,
             c_p=c_p,
-            radiativeGradient=radiativeGradient,
+            totalGradient=totalGradient,
             adiabaticGradient=adiabaticGradient,
             Hp=Hp,
             gravitationalAcceleration=gravitationalAcceleration,
@@ -528,7 +528,7 @@ def _f_con(
     density: np.ndarray,
     meanMolecularWeight: np.ndarray,
     c_p: np.ndarray,
-    radiativeGradient: np.ndarray,
+    totalGradient: np.ndarray,
     adiabaticGradient: np.ndarray,
     Hp: np.ndarray,
     gravitationalAcceleration: np.ndarray,
@@ -561,10 +561,10 @@ def _f_con(
     gradTick = (
         adiabaticGradient
         - 2 * u * u
-        + 2 * u * np.sqrt(np.maximum(radiativeGradient - adiabaticGradient + u * u, 0))
+        + 2 * u * np.sqrt(np.maximum(totalGradient - adiabaticGradient + u * u, 0))
     )
     # TODO these np.maximums probably shouldnt be there..? but we need them, getting negative values happens
-    differenceOfGradients = np.maximum(radiativeGradient - gradTick, 0)
+    differenceOfGradients = np.maximum(totalGradient - gradTick, 0)
     toReturn = (
         -b
         * np.sqrt(

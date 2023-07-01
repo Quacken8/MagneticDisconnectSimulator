@@ -1142,8 +1142,27 @@ def testMesaNablaRadvsModelSNablaRad():
     plt.legend()
     plt.show()
 
+
+def testMesaNablaRadsVsModelSNablaRads():
+    import gravity
+    modelSNablaRads = modelS.derivedQuantities["nabla_rads"]
+    mesaNablaRads = MESAEOS.radiativeLogGradient(
+        temperature=modelS.temperatures[:-1],
+        pressure=modelS.pressures[:-1],
+        massBelowZ=gravity.massBelowZ(modelS.zs[:-1]),
+        opacity=modelS.derivedQuantities["kappas"][:-1],
+    )
+    mesaNablaRads = np.append(mesaNablaRads, mesaNablaRads[-1])
+    modelSNablaAds = modelS.derivedQuantities["nablaads"]
+    plt.loglog(modelS.zs, modelSNablaRads, label="model S")
+    plt.loglog(modelS.zs, mesaNablaRads, label="mesa", linestyle="--")
+    plt.loglog(modelS.zs, modelSNablaAds, label="model S adiabatic")
+    plt.legend()
+    plt.show()
+
+
 def main():
-    testModelSMuvsMesaMu()
+    modelSFconsVSMESAFcons()
     pass
     pass
 

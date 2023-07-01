@@ -55,6 +55,6 @@ if __name__ == "__main__":
         np.savetxt(output_file, updated_data, delimiter='   ', fmt='%.9e', header=header, comments='')
 
 
-    mus = np.loadtxt('dataHandling/mus')
+    nablas = np.loadtxt('dataHandling/tmp', usecols=1)
 
-    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", mus)
+    add_column("dataHandling/model_S_new.dat", "dataHandling/model_S_new.dat", nablas)

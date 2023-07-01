@@ -77,6 +77,7 @@ unitsDictionary = {
     "gamma1s": "1",
     "nablaprimes": "1",
     "mu_unis": "1", # unitless mu, mu^-1 = sum_i(X_i/mu_i)
+    "nablas?": "1", # I'm unsure what these nablas are, they have a vibe of nabla_tot, but my supervisor calls it nabla_rad???
 }
 
 
