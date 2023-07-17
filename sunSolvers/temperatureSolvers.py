@@ -14,6 +14,9 @@ from typing import Callable
 import gravity
 from sunSolvers.handySolverStuff import centralDifferencesMatrix
 
+# FIXME delet dis
+oldStuff = {}
+newStuff = {}
 
 def oldTSolver(
     currentState: SingleTimeDatapoint,
@@ -80,6 +83,7 @@ def oldTSolver(
         gravitationalAcceleration=gs,
     )
 
+
     bottomH = StateEq.pressureScaleHeight(Ts[-1], Ps[-1], gravity.g(zs[-1]))
     bottomNablaAd = StateEq.adiabaticLogGradient(Ts[-1], Ps[-1])
     bottomAdiabaticT = Ts[-1] * (
@@ -112,6 +116,55 @@ def oldTSolver(
     # solve the matrix equation
 
     Ts = linalg.spsolve(M, bs)
+    # FIXME delete dis, is for debugging
+    newStuff["Ts"] = Ts
+    newStuff["Ps"] = Ps
+    newStuff["opacities"] = opacities
+    newStuff["rhos"] = rhos
+    newStuff["cps"] = cps
+    newStuff["m_zs"] = m_zs
+    newStuff["gs"] = gs
+    newStuff["f_cons"] = f_cons
+    newStuff["bs"] = bs
+    newStuff["Ts"] = Ts
+    newStuff["zs"] = zs
+    newStuff["mus"] = mus
+    newStuff["lambdas"] = lambdas
+    newStuff["nus"] = nus
+    newStuff["A"] = A
+    newStuff["gradA"] = gradA
+    def plotAll():
+        import matplotlib.pyplot as plt
+        for key in oldStuff.keys():
+            plt.figure()
+            minusOne = -1 if (oldStuff[key][0]<1) else 1
+            plt.loglog(oldStuff["zs"], minusOne*oldStuff[key], label="old")
+            plt.loglog(newStuff["zs"], minusOne*newStuff[key], label="new")
+            if (minusOne == -1):
+                plt.ylabel("×(-1)")
+    
+            plt.title(key)
+            plt.legend()
+        plt.show()
+    import pdb
+    #pdb.set_trace()
+    oldStuff["Ts"] = Ts
+    oldStuff["Ps"] = Ps
+    oldStuff["opacities"] = opacities
+    oldStuff["rhos"] = rhos
+    oldStuff["cps"] = cps
+    oldStuff["m_zs"] = m_zs
+    oldStuff["gs"] = gs
+    oldStuff["f_cons"] = f_cons    
+    oldStuff["bs"] = bs
+    oldStuff["Ts"] = Ts
+    oldStuff["zs"] = zs
+    oldStuff["mus"] = mus
+    oldStuff["lambdas"] = lambdas
+    oldStuff["nus"] = nus
+    oldStuff["A"] = A
+    oldStuff["gradA"] = gradA
+
 
     return Ts
 
@@ -175,18 +228,21 @@ def rightHandSideOfTEq(
     frads = StateEq.f_rad(
         temperatures, pressures, opacity=opacity, dTdz=Tgrad
     )
-    fcons = StateEq.f_con(
-        convectiveAlpha=convectiveAlpha,
-        temperature=temperatures,
-        pressure=pressures,
-        opacity=opacity,
-        massBelowZ=massBelowZ,
-        gravitationalAcceleration=gravitationalAcceleration,
-    )
+    #fcons = StateEq.f_con(
+    #    convectiveAlpha=convectiveAlpha,
+    #    temperature=temperatures,
+    #    pressure=pressures,
+    #    opacity=opacity,
+    #    massBelowZ=massBelowZ,
+    #    gravitationalAcceleration=gravitationalAcceleration,
+    #)
+    from dataHandling.modelS import interpolatedF_con
+    fcons = interpolatedF_con(temperatures, pressures)
+
     FplusFs = frads + fcons
     dFplusFdz = np.gradient(FplusFs, zs)
-
-    return -dFplusFdz / (rhos * cps)
+    toReturn = -dFplusFdz / (rhos * cps)
+    return toReturn
 
 
 def main():

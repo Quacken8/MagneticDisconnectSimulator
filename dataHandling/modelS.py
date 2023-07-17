@@ -1,6 +1,9 @@
 #! usr/bin/env python3
 import numpy as np
 from dataHandling.dataStructure import SingleTimeDatapoint, subsampleArray
+import loggingConfig
+import logging
+L = loggingConfig.configureLogging(logging.INFO, __name__)
 
 def loadModelS(length: int | None = None) -> SingleTimeDatapoint:
     """
@@ -28,6 +31,27 @@ def loadModelS(length: int | None = None) -> SingleTimeDatapoint:
     datapoint = SingleTimeDatapoint(**variablesDictionary)
 
     return datapoint
+
+modelS = loadModelS()
+modelSPressures = modelS.pressures
+modelSTemperatures = modelS.temperatures
+modelSFcons = modelS.derivedQuantities["f_cons"]
+
+from scipy.interpolate import NearestNDInterpolator
+
+inteprloatedFcons = NearestNDInterpolator(
+    list(zip(modelSTemperatures, modelSPressures)), modelSFcons
+)
+
+del modelS, modelSPressures, modelSTemperatures, modelSFcons
+
+def interpolatedF_con(temperature, pressure):
+    """
+    returns F_con interpolated from model S data
+    """
+    L.warn("Ur using interpolated Fcons")
+    return np.nan_to_num(inteprloatedFcons(temperature, pressure))
+
 
 if __name__ == "__main__":
     """ 

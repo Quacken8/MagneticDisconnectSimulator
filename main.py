@@ -128,7 +128,7 @@ def main(
             # then integrate hydrostatic equilibrium from bottom to the top
             initialZ = currentState.zs[-1]
             finalZ = currentState.zs[0]
-
+            oldPs = currentState.pressures
             currentState = pressureSolvers.integrateHydrostaticEquilibrium(
                 referenceTs=newTs,
                 referenceZs=currentState.zs,

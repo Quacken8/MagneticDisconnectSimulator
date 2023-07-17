@@ -12,7 +12,7 @@ from dataHandling.dataStructure import (
 )
 import numpy as np
 from dataHandling.initialConditionsSetterUpper import mockupDataSetterUpper
-from dataHandling.modelS import loadModelS
+from dataHandling.modelS import interpolatedF_con, loadModelS
 from opacity import mesaOpacity
 from stateEquationsPT import MESAEOS, IdealGas
 from sunSolvers.calmSun import getCalmSunDatapoint
@@ -29,7 +29,7 @@ from scipy.integrate import odeint
 from scipy.interpolate import interp1d
 import constants as c
 import os
-from matplotlib import pyplot as plt
+from matplotlib import lines, pyplot as plt
 import loggingConfig
 import logging
 
@@ -1011,6 +1011,21 @@ def plotInterruptedRun():
     plt.show()
 
 
+def compareTotalGradients():
+    totalGradNp = np.gradient(np.log(modelS.temperatures), np.log(modelS.pressures))
+    import gravity
+    totalGradMesa = MESAEOS.actualGradient(
+        temperature=modelS.temperatures[:-1],
+        pressure=modelS.pressures[:-1],
+        massBelowZ=gravity.massBelowZ(modelS.zs[:-1]),
+        opacity=modelS.derivedQuantities["kappas"][:-1],
+    )
+
+    plt.plot(modelS.zs, totalGradNp, label="np")
+    plt.plot(modelS.zs[:-1], totalGradMesa, label="mesa", linestyle="--")
+    plt.legend()
+    plt.show()
+
 def modelSFconsVSMESAFcons():
     from gravity import g, massBelowZ
     from sunSolvers.handySolverStuff import centralDifferencesMatrix
@@ -1027,6 +1042,7 @@ def modelSFconsVSMESAFcons():
     myMasses = massBelowZ(myDatapoint.zs)
     myTgrad = centralDifferencesMatrix(myDatapoint.zs).dot(myDatapoint.temperatures)
     myOpacity = mesaOpacity(myDatapoint.pressures, myDatapoint.temperatures)
+    myTotalGradient = np.gradient(np.log(myDatapoint.temperatures), np.log(myDatapoint.pressures))
     myDatapoint.derivedQuantities["f_cons"] = -MESAEOS.f_con(
         temperature=myDatapoint.temperatures,
         pressure=myDatapoint.pressures,
@@ -1160,9 +1176,44 @@ def testMesaNablaRadsVsModelSNablaRads():
     plt.legend()
     plt.show()
 
+def plotNablaTickVsNablaTot():
+    import gravity
+
+    mesaGradTicks = nablaTick(
+        temperature=modelS.temperatures[:-1],
+        convectiveAlpha=1.9904568,
+        c_p=MESAEOS.Cp(modelS.temperatures, modelS.pressures)[:-1],
+        density=MESAEOS.density(modelS.temperatures, modelS.pressures)[:-1],
+        opacity=mesaOpacity(modelS.pressures, modelS.temperatures)[:-1],
+        Hp=MESAEOS.pressureScaleHeight(modelS.temperatures[:-1], modelS.pressures[:-1], gravity.g(modelS.zs[:-1])),
+        gravitationalAcceleration=gravity.g(modelS.zs[:-1]),
+        adiabaticGradient=MESAEOS.adiabaticLogGradient(modelS.temperatures[:-1], modelS.pressures[:-1]),
+        actualGradient=MESAEOS.actualGradient(modelS.temperatures[:-1], modelS.pressures[:-1], gravity.massBelowZ(modelS.zs[:-1]), mesaOpacity(modelS.pressures[:-1], modelS.temperatures[:-1]))
+    )
+    nablaTots = MESAEOS.actualGradient(
+        temperature=modelS.temperatures[:-1],
+        pressure=modelS.pressures[:-1],
+        massBelowZ=gravity.massBelowZ(modelS.zs[:-1]),
+        opacity=modelS.derivedQuantities["kappas"][:-1],
+    )
+
+    plt.plot(modelS.zs[:-1], mesaGradTicks, label="tick")
+    plt.plot(modelS.zs[:-1], nablaTots, label="nabla tot", linestyle="--")
+    plt.legend()
+    plt.show()
+
+def testInterpolatedFCons():
+    modelTs, modelPs, modelFcons = modelS.temperatures, modelS.pressures, modelS.derivedQuantities["f_cons"]
+    
+    interpFs = interpolatedF_con(modelTs, modelPs)
+    plt.plot(modelTs, modelFcons, label="model")
+    plt.plot(modelTs, interpFs, label="interp", linestyle="--")
+    plt.legend()
+    plt.show()
+
 
 def main():
-    modelSFconsVSMESAFcons()
+    testInterpolatedFCons()
     pass
     pass
 
