@@ -7,6 +7,7 @@ import logging
 
 L = loggingConfig.configureLogging(logging.INFO, __name__)
 
+
 def padTillNotJagged(array, padValue=np.nan) -> np.ndarray:
     """
     pads a jagged array with padValue until it is not jagged anymore
@@ -23,6 +24,7 @@ def padTillNotJagged(array, padValue=np.nan) -> np.ndarray:
             )
             array[i] = newarray
     return np.array(array)
+
 
 def subsampleArray(array: np.ndarray, desiredNumberOfElements: int) -> np.ndarray:
     """
@@ -48,6 +50,17 @@ def dictionaryOfVariables(A: object) -> dict:
     }
 
     return dic
+
+
+def smoothByMovingAvg(y: np.ndarray, boxWidth: int) -> np.ndarray:
+    """
+    smooths a 1D array by a moving average
+    """
+    box = np.ones(boxWidth) / boxWidth
+    ySmooth = np.convolve(y, box, mode="same")
+    # the convolution makes the edge data way too small
+    ySmooth[0], ySmooth[-1] = y[0], y[-1]
+    return ySmooth
 
 
 """
@@ -76,8 +89,8 @@ unitsDictionary = {
     "kappas": "m^2/kg",
     "gamma1s": "1",
     "nablaprimes": "1",
-    "mu_unis": "1", # unitless mu, mu^-1 = sum_i(X_i/mu_i)
-    "nablas?": "1", # I'm unsure what these nablas are, they have a vibe of nabla_tot, but my supervisor calls it nabla_rad???
+    "mu_unis": "1",  # unitless mu, mu^-1 = sum_i(X_i/mu_i)
+    "nablas?": "1",  # I'm unsure what these nablas are, they have a vibe of nabla_tot, but my supervisor calls it nabla_rad???
 }
 
 
@@ -222,7 +235,7 @@ class Data:
         superDictionary = (
             {}
         )  # this dictionary is just like the "allVariables" dictionary of the single time datapoint but these contain cubes of data
-        
+
         # since times are separate from the datapoints, they get saved separately
         np.savetxt(
             f"{outputFolderName}/times.csv",
@@ -288,9 +301,7 @@ def createDataFromFolder(foldername: str) -> Data:
     """
 
     try:
-        times = (
-            np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",")
-        )
+        times = np.loadtxt(f"{foldername}/times.csv", skiprows=1, delimiter=",")
     except FileNotFoundError:
         L.info("No times.csv file found, assuming only one time datapoint")
         times = np.array([0.0])
@@ -319,7 +330,9 @@ def createDataFromFolder(foldername: str) -> Data:
             else:
                 try:
                     thisTimesVariables[key] = value[i, :]
-                    thisTimesVariables[key] = thisTimesVariables[key][~np.isnan(thisTimesVariables[key])]
+                    thisTimesVariables[key] = thisTimesVariables[key][
+                        ~np.isnan(thisTimesVariables[key])
+                    ]
                     pass
                 except (
                     IndexError

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
+import pandas as pd
 from stateEquationsPT import StateEquationInterface
 from scipy import sparse
 from scipy.sparse import linalg
@@ -9,7 +10,7 @@ import loggingConfig
 import logging
 
 L = loggingConfig.configureLogging(logging.INFO, __name__)
-from dataHandling.dataStructure import SingleTimeDatapoint
+from dataHandling.dataStructure import SingleTimeDatapoint, smoothByMovingAvg
 from typing import Callable
 import gravity
 from sunSolvers.handySolverStuff import centralDifferencesMatrix
@@ -27,6 +28,9 @@ def oldTSolver(
     convectiveAlpha: float,
 ) -> np.ndarray:
     """
+    opacity function is expected to have the following signature:
+    opacityFunction(pressures: np.ndarray, temperatures: np.ndarray) -> np.ndarray
+
     solves the T equation
     dT/dt = -1/(rho cp) d/dz (F_rad + F_conv)
     the same way Bárta did
@@ -69,9 +73,9 @@ def oldTSolver(
     Ts = currentState.temperatures
     Ps = currentState.pressures
 
-    opacities = opacityFunction(Ts, Ps)
-    rhos = StateEq.density(Ts, Ps)
-    cps = StateEq.Cp(Ts, Ps)
+    opacities = opacityFunction(Ps, Ts)
+    rhos = StateEq.density(temperature = Ts, pressure = Ps)
+    cps = StateEq.Cp(temperature = Ts, pressure = Ps)
     m_zs = gravity.massBelowZ(zs)
     gs = gravity.g(zs)
     f_cons = StateEq.f_con(
@@ -146,8 +150,7 @@ def oldTSolver(
             plt.title(key)
             plt.legend()
         plt.show()
-    import pdb
-    #pdb.set_trace()
+
     oldStuff["Ts"] = Ts
     oldStuff["Ps"] = Ps
     oldStuff["opacities"] = opacities
@@ -164,8 +167,11 @@ def oldTSolver(
     oldStuff["nus"] = nus
     oldStuff["A"] = A
     oldStuff["gradA"] = gradA
+    import pdb; pdb.set_trace()
 
-
+    # FIXME this just feels like the result of bad math
+    # the outcome of this may be choppy, smooth it out
+    #Ts = smoothByMovingAvg(Ts, 2)
     return Ts
 
 
@@ -192,7 +198,6 @@ def simpleTSolver(
     newTs = currentState.temperatures + dt * dTdt
 
     newTs[0] = surfaceTemperature
-
     return newTs
 
 
@@ -217,9 +222,9 @@ def rightHandSideOfTEq(
     # NOTE this might be confusing since the zs change from one time to another
     # TODO check if you'll even need this, maybe bárta's way is better
 
-    cps = StateEq.Cp(temperatures, pressures)
-    rhos = StateEq.density(temperatures, pressures)
-    opacity = opacityFunction(temperatures, pressures)
+    cps = StateEq.Cp(temperature = temperatures, pressure = pressures)
+    rhos = StateEq.density(temperature = temperatures, pressure = pressures)
+    opacity = opacityFunction(pressures, temperatures)
     Tgrad = np.gradient(temperatures, zs)
     massBelowZ = gravity.massBelowZ(zs)
     gravitationalAcceleration = gravity.g(zs)
@@ -228,20 +233,18 @@ def rightHandSideOfTEq(
     frads = StateEq.f_rad(
         temperatures, pressures, opacity=opacity, dTdz=Tgrad
     )
-    #fcons = StateEq.f_con(
-    #    convectiveAlpha=convectiveAlpha,
-    #    temperature=temperatures,
-    #    pressure=pressures,
-    #    opacity=opacity,
-    #    massBelowZ=massBelowZ,
-    #    gravitationalAcceleration=gravitationalAcceleration,
-    #)
-    from dataHandling.modelS import interpolatedF_con
-    fcons = interpolatedF_con(temperatures, pressures)
-
+    fcons = StateEq.f_con(
+        convectiveAlpha=convectiveAlpha,
+        temperature=temperatures,
+        pressure=pressures,
+        opacity=opacity,
+        massBelowZ=massBelowZ,
+        gravitationalAcceleration=gravitationalAcceleration,
+    )
     FplusFs = frads + fcons
     dFplusFdz = np.gradient(FplusFs, zs)
     toReturn = -dFplusFdz / (rhos * cps)
+    import pdb; pdb.set_trace()
     return toReturn
 
 

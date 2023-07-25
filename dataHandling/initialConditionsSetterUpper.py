@@ -68,7 +68,6 @@ def getAdiabaticInitialConditions(
 
     return initialSun
 
-
 def getBartaInit(
     p0_ratio: float,
     maxDepth: float,

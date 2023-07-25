@@ -1211,9 +1211,28 @@ def testInterpolatedFCons():
     plt.legend()
     plt.show()
 
+def compareInitialConiditionsToModelS():
+    from dataHandling.initialConditionsSetterUpper import getBartaInit
+
+    p0ratio = 1
+    maxDepth = 16 * c.Mm
+    surfaceDepth = 0 * c.Mm
+    dlnP = 1e-3
+    initialModel = getBartaInit(p0ratio, maxDepth, surfaceDepth, dlnP)
+    from stateEquationsPT import MESAEOS
+
+    initialModel.derivedQuantities["entropies"] = MESAEOS.entropy(
+        initialModel.temperatures, initialModel.pressures
+    )
+    toPlot = ["temperatures", "pressures", "entropies", "bs"]
+    axs = plotSingleTimeDatapoint(
+        initialModel, toPlot, pltshow=False, label="Barta initial model", log=False
+    )
+    plotSingleTimeDatapoint(modelS, toPlot, axs=axs, label="Model S", log=True)
+
 
 def main():
-    testInterpolatedFCons()
+    testBartaInitialConditions()
     pass
     pass
 

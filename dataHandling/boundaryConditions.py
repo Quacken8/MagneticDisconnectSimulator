@@ -45,6 +45,22 @@ def deltaMass(bottomB, bottomDensity, totalMagneticFlux, dt, upflowVelocity):
     """
     return totalMagneticFlux * upflowVelocity * dt * bottomDensity / bottomB
 
+def getBackTheSameBottomPressure(
+    currentState: SingleTimeDatapoint,
+    newTs: np.ndarray,
+    bottomExternalPressure: float,
+    dlnP: float,
+    dt: float,
+    upflowVelocity: float,
+    totalMagneticFlux: float,
+    StateEq: Type[stateEquationsPT.StateEquationInterface] = stateEquationsPT.MESAEOS,
+) -> float:
+    """
+    literally just returns current bottom pressure
+    for debug purposes
+    """
+    L.warn("Ur using the debug bottom pressure")
+    return currentState.pressures[-1]
 
 def getAdjustedBottomPressure(
     currentState: SingleTimeDatapoint,

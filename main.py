@@ -27,7 +27,7 @@ def main(
     maxDepth: float = 100,
     upflowVelocity: float = 1e-3,
     totalMagneticFlux: float = 1e13,
-    surfaceTemperature: float = 3500,
+    surfaceTemperature: float | None = None,
     finalT: float = 100,
     numberOfTSteps: int = 2**4,
     outputFolderName: str = "output",
@@ -81,6 +81,10 @@ def main(
             maxDepth=calmMaxDepth,
         )
 
+    if surfaceTemperature is None:
+        surfaceTemperature = np.interp(
+            calmMinDepth, backgroundReference.zs, backgroundReference.temperatures
+        ).item()
     externalzP = (calmModel.zs[:], calmModel.pressures[:])
     # only P_e is important from the background model
     # these *can* be be quite big, get rid of them
@@ -100,9 +104,9 @@ def main(
         time = 0
         while time < finalT:
             time += dt  # TODO maybe use non constant dt?
-
+            # with new temperatures now get new bottom pressure from inflow of material
             # first integrate the temperature equation
-            newTs = temperatureSolvers.oldTSolver(
+            newTs = temperatureSolvers.simpleTSolver(
                 currentState=currentState,
                 dt=dt,
                 StateEq=MESAEOS,
@@ -110,7 +114,7 @@ def main(
                 surfaceTemperature=surfaceTemperature,
                 convectiveAlpha=convectiveAlpha,
             )
-            # with new temperatures now get new bottom pressure from inflow of material
+
             bottomPe = np.interp(
                 currentState.zs[-1], externalzP[0], externalzP[1]
             ).item()
@@ -128,7 +132,6 @@ def main(
             # then integrate hydrostatic equilibrium from bottom to the top
             initialZ = currentState.zs[-1]
             finalZ = currentState.zs[0]
-            oldPs = currentState.pressures
             currentState = pressureSolvers.integrateHydrostaticEquilibrium(
                 referenceTs=newTs,
                 referenceZs=currentState.zs,
@@ -142,7 +145,6 @@ def main(
             newZs = currentState.zs
             newPs = currentState.pressures
             lastYs = np.sqrt(currentState.bs)  # FIXME this may be a bottlenect
-
             # finally solve the magnetic equation
             externalPressures = np.interp(newZs, externalzP[0], externalzP[1])
             newYs = magneticSolvers.integrateMagneticEquation(
@@ -172,13 +174,11 @@ def main(
 
 if __name__ == "__main__":
     maxDepth = 10  # depth in Mm
-    minDepth = 1  # depth in Mm
+    minDepth = 0  # depth in Mm
     p0_ratio = 1  # ratio of initial pressure to the pressure at the top of the model S
-    surfaceTemperature = 3500  # temperature in K FIXME ur not even using thiiiiiiiiis
     dlnP = 1e-2
 
-    initialConditions = init.getBartaInit(p0_ratio, maxDepth, minDepth, dlnP=dlnP)
-
+    initialConditions = init.getBartaInit(p0_ratio, maxDepth*c.Mm, minDepth*c.Mm, dlnP=dlnP)
     finalT = 1  # final time in hours
     numberOfTSteps = 32  # number of time steps
 
